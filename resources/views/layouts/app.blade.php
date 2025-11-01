@@ -51,10 +51,50 @@
     </style>
 </head>
 
-<body class="bg-gray-50 min-h-screen">
-    @yield('content')
+<body class="bg-gray-50 min-h-screen antialiased" 
+      x-data="{ menuOpen: false }" 
+      :class="{ 'modal-open': menuOpen }"
+      x-cloak>
+    <div class="page-wrapper">
+        <div class="page-content">
+            @yield('content')
+        </div>
+        
+        @if(Auth::check())
+        @include('layouts.partials.bottom-nav')
+        @endif
+    </div>
+
+    <!-- Modal Backdrop -->
+    <template x-if="menuOpen">
+        <div class="modal-backdrop" 
+             @click="menuOpen = false"
+             x-show="menuOpen"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+        </div>
+    </template>
 
     @stack('scripts')
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 
 </html>

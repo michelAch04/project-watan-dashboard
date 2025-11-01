@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Carbon\Carbon;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -23,6 +25,7 @@ class User extends Authenticatable
         'email',
         'mobile',
         'password',
+        'manager_id',
         'otp_code',
         'otp_expires_at',
     ];
@@ -50,6 +53,44 @@ class User extends Authenticatable
             'otp_expires_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function manager()
+    {
+        return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    /**
+     * Get the user's primary role.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function role()
+    {
+        return $this->roles()->first();
+    }
+    
+    public function zones()
+    {
+        return $this->hasMany(Zone::class);
+    }
+
+    public function cities()
+    {
+        if($this->zones()->count() == 0){
+            return $this->hasMany(City::class);
+        }
+        return $this->hasManyThrough(City::class, Zone::class);
+    }
+
+    public function villages()
+    {
+        if($this->zones()->count() == 0 && $this->cities()->count() == 0){
+            return $this->hasMany(Village::class);
+        } elseif($this->zones()->count() > 0 && $this->cities()->count() == 0){
+            return $this->hasManyThrough(Village::class, Zone::class);
+        }
+        return $this->hasManyThrough(Village::class, City::class);
     }
 
         /**

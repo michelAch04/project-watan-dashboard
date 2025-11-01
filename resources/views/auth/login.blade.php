@@ -3,7 +3,13 @@
 @section('title', 'Login')
 
 @section('content')
-<div class="min-h-screen flex items-center justify-center px-4 py-8">
+<div class="min-h-screen flex items-center justify-center px-4 py-8"
+     x-data="{ pageReady: false }"
+     x-init="setTimeout(() => pageReady = true, 50)"
+     x-show="pageReady"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100">
     <div class="w-full max-w-md">
         <!-- Logo/Header -->
         <div class="text-center mb-8">
@@ -112,11 +118,19 @@
     
     <!-- Backdrop -->
     <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+         x-show="showModal"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
          @click="showModal = false"></div>
     
     <!-- Modal -->
     <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 modal-enter"
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+             x-show="showModal"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 transform scale-95"
+             x-transition:enter-end="opacity-100 transform scale-100"
              @click.stop>
             
             <!-- Close Button -->
@@ -322,8 +336,21 @@ function otpModal() {
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    // Success! Redirect to dashboard
-                    window.location.href = data.redirect;
+                    // Create smooth white transition overlay
+                    const overlay = document.createElement('div');
+                    overlay.className = 'fixed inset-0 bg-white z-[60] transition-opacity duration-500';
+                    overlay.style.opacity = '0';
+                    document.body.appendChild(overlay);
+                    
+                    // Fade in overlay
+                    setTimeout(() => {
+                        overlay.style.opacity = '1';
+                        
+                        // Navigate to dashboard after fade completes
+                        setTimeout(() => {
+                            window.location.href = data.redirect;
+                        }, 500);
+                    }, 50);
                 } else {
                     this.errorMessage = data.message || 'Invalid OTP code';
                     this.otp = ''; // Clear OTP input
@@ -336,8 +363,7 @@ function otpModal() {
             }
         },
 
-        async resendOTP()
-        {
+        async resendOTP() {
             this.loading = true;
             this.errorMessage = '';
 
