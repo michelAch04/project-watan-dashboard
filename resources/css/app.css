@@ -1,11 +1,63 @@
-@import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Radio+Canada:ital,wght@0,300..700;1,300..700&display=swap');
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+@layer base {
+    :root {
+        --snow: #fcf7f8;
+        --seafoam: #fef9de;
+        --egypt: #f8f0e2;
+        --madder: #931335;
+        --oxblood: #622032;
+    }
+
+    body {
+        font-family: "Radio Canada", sans-serif;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        font-family: "Lexend", sans-serif;
+    }
+}
+
+@layer components {
+    .btn-primary {
+        @apply bg-[#931335] hover:bg-[#622032] text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-200 active:scale-95;
+    }
+
+    .btn-secondary {
+        @apply bg-[#f8f0e2] hover:bg-[#dfd1ba] text-[#622032] font-semibold py-3 px-6 rounded-lg transition-all duration-200 active:scale-95;
+    }
+
+    .input-field {
+        @apply w-full px-4 py-3 bg-[#fcf7f8] border border-[#dfd1ba] rounded-lg transition-all duration-200
+               outline-none text-[#622032]
+               focus:outline-none focus:border-[#931335]/20 focus:ring-2 focus:ring-[#931335]/10 focus:shadow-[0_0_0_4px_rgba(147,19,53,0.05)]
+               focus-visible:outline-none;
+    }
+
+    .error-message {
+        @apply relative overflow-hidden bg-gradient-to-r from-red-50 to-red-50 
+               border-l-2 sm:border-l-4 border-red-500 
+               p-3 sm:p-4 mb-4 sm:mb-6 
+               rounded-lg shadow-sm;
+    }
+
+    .error-message p {
+        @apply text-[13px] sm:text-sm text-red-800 relative z-10 pl-7 sm:pl-8;
+    }
+
+    .error-message::before {
+        content: '';
+        @apply absolute inset-0 opacity-10;
+        background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23991B1B' fill-opacity='0.05' d='M0 0h24v24H0z'/%3E%3C/svg%3E");
+    }
+
+    .error-icon {
+        @apply absolute left-3 top-1/2 -translate-y-1/2
+               text-red-500 
+               w-4 h-4 sm:w-5 sm:h-5;
+    }
 }

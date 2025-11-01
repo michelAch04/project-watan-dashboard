@@ -11,6 +11,11 @@
 /.phpunit.cache
 /.vscode
 /.zed
+composer.lock
+package-lock.json
+yarn.lock
+npm-debug.log
+yarn-error.log
 /auth.json
 /node_modules
 /public/build

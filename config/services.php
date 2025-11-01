@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'bestsms' => [
+        'username' => env('BESTSMS_USERNAME'),
+        'password' => env('BESTSMS_PASSWORD'),
+        'sender' => env('BESTSMS_SENDER', 'YourApp'),
+    ],
 ];
