@@ -107,7 +107,7 @@
     }
 
     .page-content {
-        @apply flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0;
+        @apply flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))];
     }
 
     .bottom-nav-container {
@@ -157,11 +157,11 @@
     }
 
     .btn-primary {
-        @apply bg-[#931335] hover:bg-[#622032] text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-200 active:scale-95;
+        @apply bg-[#931335] hover:bg-[#622032] text-white font-medium text-sm py-2 px-4 rounded-lg shadow transition-all duration-200 active:scale-95;
     }
 
     .btn-secondary {
-        @apply bg-[#f8f0e2] hover:bg-[#dfd1ba] text-[#622032] font-semibold py-3 px-6 rounded-lg transition-all duration-200 active:scale-95;
+        @apply bg-[#f8f0e2] hover:bg-[#dfd1ba] text-[#622032] font-medium text-sm py-2 px-4 rounded-lg transition-all duration-200 active:scale-95;
     }
 
     .input-field {

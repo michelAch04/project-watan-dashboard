@@ -87,9 +87,19 @@ class User extends Authenticatable
     {
         if($this->zones()->count() == 0 && $this->cities()->count() == 0){
             return $this->hasMany(Village::class);
-        } elseif($this->zones()->count() > 0 && $this->cities()->count() == 0){
-            return $this->hasManyThrough(Village::class, Zone::class);
         }
+        // Use nested hasManyThrough for zone managers
+        if($this->zones()->count() > 0){
+            return $this->hasManyThrough(
+                Village::class,
+                City::class,
+                'zone_id', // Foreign key on cities table
+                'city_id', // Foreign key on villages table
+                'id', // Local key on users table
+                'id'  // Local key on cities table
+            );
+        }
+        // For city managers
         return $this->hasManyThrough(Village::class, City::class);
     }
 

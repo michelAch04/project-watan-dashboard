@@ -292,10 +292,27 @@ function otpModal() {
                 this.mobileHint = e.detail.mobileHint;
                 this.showModal = true;
                 this.startTimer();
+                
                 // Focus OTP input after modal animation
+                // Using multiple timeouts to ensure focus works across different browsers
                 setTimeout(() => {
-                    this.$refs.otpInput.focus();
+                    this.$refs.otpInput?.focus();
+                    // Backup focus attempt
+                    setTimeout(() => {
+                        if (document.activeElement !== this.$refs.otpInput) {
+                            this.$refs.otpInput?.focus();
+                        }
+                    }, 100);
                 }, 300);
+            });
+            
+            // Re-focus when modal becomes visible
+            this.$watch('showModal', (isVisible) => {
+                if (isVisible) {
+                    setTimeout(() => {
+                        this.$refs.otpInput?.focus();
+                    }, 100);
+                }
             });
         },
 

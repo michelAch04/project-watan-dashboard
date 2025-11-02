@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name', 100);
             $table->string('name_ar', 100);
             $table->unsignedBigInteger('zone_id')->foreignId('zone_id')->constrained('districts')->onDelete('cascade');
-            $table->unsignedBigInteger('user_id')->foreignId('user_id')->constrained('users')->onDelete('set null');
+            $table->unsignedBigInteger('user_id')->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
         });
     }
