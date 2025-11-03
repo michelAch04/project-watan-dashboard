@@ -37,7 +37,7 @@ class AdminPasswordMiddleware
 
         // Check if password verification is in session (valid for 5 minutes)
         if (session()->has('admin_password_verified') && 
-            session('admin_password_verified') > now()->subMinutes(5)) {
+            session('admin_password_verified') > now()->subMinutes(10)) {
             return $next($request);
         }
 

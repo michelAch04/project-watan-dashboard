@@ -3,8 +3,7 @@
 @section('title', 'Edit User')
 
 @section('content')
-<div class="min-h-screen bg-[#fcf7f8]" x-data="editUserForm()">
-    <!-- Header -->
+<div class="min-h-screen bg-[#fcf7f8]" x-data="editUserForm()" x-init="init()">
     <div class="mobile-header">
         <div class="safe-area">
             <div class="page-container py-4">
@@ -20,11 +19,9 @@
         </div>
     </div>
 
-    <!-- Content -->
     <div class="safe-area py-4">
         <div class="page-container">
             <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-[#f8f0e2]">
-                <!-- User Info (Read-only) -->
                 <div class="mb-6 p-4 bg-[#fcf7f8] rounded-lg">
                     <div class="flex items-center gap-3 mb-3">
                         <div class="avatar w-12 h-12 text-base">
@@ -41,7 +38,6 @@
                 </div>
 
                 <form @submit.prevent="submitForm" class="space-y-4">
-                    <!-- Role -->
                     <div>
                         <label for="role" class="block text-sm font-semibold text-[#622032] mb-2">
                             Role *
@@ -60,7 +56,6 @@
                         </select>
                     </div>
 
-                    <!-- Current Location (if zone - read only) -->
                     @if($locationType === 'zone')
                     <div>
                         <label class="block text-sm font-semibold text-[#622032] mb-2">
@@ -72,7 +67,6 @@
                         <p class="text-xs text-[#622032]/60 mt-1">Zone managers cannot change their assigned zone</p>
                     </div>
                     @else
-                    <!-- Location Assignment -->
                     <div>
                         <label for="location_type" class="block text-sm font-semibold text-[#622032] mb-2">
                             Assign Location
@@ -88,21 +82,57 @@
                             <option value="village" {{ $locationType === 'village' ? 'selected' : '' }}>Village</option>
                         </select>
 
-                        <!-- Location Selector -->
+                        <!-- Current Location Info -->
+                        <div x-show="form.location_type !== 'none'" class="mb-2 text-sm text-[#622032]/70" x-cloak>
+                            @if($currentLocation)
+                            <div>Current: <span class="font-semibold">{{ $currentLocation->name }}</span></div>
+                            @endif
+                        </div>
+
                         <div x-show="form.location_type !== 'none'" x-cloak>
-                            <select
-                                id="location_id"
-                                x-model="form.location_id"
-                                class="input-field"
-                                :disabled="loading || loadingLocations">
-                                <option value="">
-                                    <span x-show="loadingLocations">Loading...</span>
-                                    <span x-show="!loadingLocations">Select a location</span>
-                                </option>
-                                <template x-for="location in availableLocations" :key="location.id">
-                                    <option :value="location.id" x-text="`${location.name} (${location.location})`"></option>
-                                </template>
-                            </select>
+                            <div class="relative" @click.away="searchDropdownOpen = false">
+                                <input
+                                    type="text"
+                                    id="location_search"
+                                    x-model="locationSearch"
+                                    @focus="searchDropdownOpen = true"
+                                    @input="searchDropdownOpen = true"
+                                    :placeholder="loadingLocations ? 'Loading...' : 'Search or select a location'"
+                                    class="input-field"
+                                    :disabled="loading || loadingLocations"
+                                    autocomplete="off"
+                                />
+                                
+                                <select id="location_id" x-model="form.location_id" class="hidden">
+                                    <option value=""></option>
+                                    <template x-for="location in availableLocations" :key="location.id">
+                                        <option :value="location.id" x-text="`${location.name} (${location.location})`"></option>
+                                    </template>
+                                </select>
+
+                                <div x-show="searchDropdownOpen"
+                                     x-transition
+                                     class="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-y-auto border border-gray-200">
+                                    
+                                    <ul class="py-1">
+                                        <template x-for="location in filteredLocations" :key="location.id">
+                                            <li @click="selectLocation(location)"
+                                                class="px-4 py-2 hover:bg-[#f8f0e2] cursor-pointer"
+                                                x-text="`${location.name} (${location.location})`">
+                                            </li>
+                                        </template>
+                                        <template x-if="filteredLocations.length === 0 && !loadingLocations">
+                                            <li class="px-4 py-2 text-gray-500 italic">
+                                                <span x-show="availableLocations.length > 0">No matching locations.</span>
+                                                <span x-show="availableLocations.length === 0">No locations available.</span>
+                                            </li>
+                                        </template>
+                                        <template x-if="loadingLocations">
+                                             <li class="px-4 py-2 text-gray-500 italic">Loading...</li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
 
                         @if($managerZone)
@@ -113,7 +143,6 @@
                     </div>
                     @endif
 
-                    <!-- Error Message -->
                     <div x-show="errorMessage"
                         x-cloak
                         x-transition
@@ -124,7 +153,6 @@
                         <p x-text="errorMessage"></p>
                     </div>
 
-                    <!-- Submit Button -->
                     <div class="flex justify-end">
                         <button type="submit" class="w-50 btn-primary"
                             :disabled="loading"
@@ -164,20 +192,49 @@
             loadingLocations: false,
             errorMessage: '',
             availableLocations: [],
+            locationSearch: '',
+            searchDropdownOpen: false,
+
+            // Computed property to filter locations based on search
+            get filteredLocations() {
+                if (this.locationSearch === '') {
+                    return this.availableLocations;
+                }
+                return this.availableLocations.filter(loc => {
+                    const searchTerm = this.locationSearch.toLowerCase();
+                    const locName = `${loc.name} (${loc.location})`.toLowerCase();
+                    return locName.includes(searchTerm);
+                });
+            },
+
+            // **MODIFIED**: Removed the 'selectedLocationName' computed property
 
             init() {
                 if (this.form.location_type !== 'none' && this.form.location_type !== '') {
                     this.loadLocations();
                 }
+
+                // Close dropdown on escape key
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.searchDropdownOpen = false;
+                    }
+                });
             },
 
+            // **MODIFIED**: Updated loadLocations to set the input value
             async loadLocations() {
                 if (this.form.location_type === 'none') {
                     this.availableLocations = [];
+                    this.form.location_id = '';
+                    this.locationSearch = ''; // Reset here
                     return;
                 }
 
                 this.loadingLocations = true;
+                this.searchDropdownOpen = false;
+                // Reset search text when type changes
+                this.locationSearch = ''; 
 
                 try {
                     const response = await fetch(`/users/{{ $user->id }}/locations?type=${this.form.location_type}`, {
@@ -188,6 +245,18 @@
 
                     if (response.ok) {
                         this.availableLocations = await response.json();
+                        
+                        // If current location_id is not in the new list, reset it
+                        if (this.form.location_id && !this.availableLocations.some(loc => loc.id == this.form.location_id)) {
+                            this.form.location_id = '';
+                            this.locationSearch = '';
+                        } else if (this.form.location_id) {
+                            // **NEW**: If ID is valid, find name and set the input text
+                            const selected = this.availableLocations.find(loc => loc.id == this.form.location_id);
+                            if (selected) {
+                                this.locationSearch = `${selected.name} (${selected.location})`;
+                            }
+                        }
                     }
                 } catch (error) {
                     console.error('Failed to load locations:', error);
@@ -195,10 +264,37 @@
                     this.loadingLocations = false;
                 }
             },
+            
+            // Method to select a location from the dropdown
+            selectLocation(location) {
+                this.form.location_id = location.id;
+                this.locationSearch = `${location.name} (${location.location})`; // Set input text
+                this.searchDropdownOpen = false; // Close dropdown
+            },
 
             async submitForm() {
                 this.loading = true;
                 this.errorMessage = '';
+
+                // Ensure the search text is cleared if the selection is empty
+                if (!this.form.location_id) {
+                    this.locationSearch = '';
+                }
+                
+                // **NEW**: Check if locationSearch text matches a valid location
+                // If text is present but ID is missing, try to find a match
+                if (this.locationSearch && !this.form.location_id) {
+                    const found = this.availableLocations.find(loc => `${loc.name} (${loc.location})` === this.locationSearch);
+                    if (found) {
+                        this.form.location_id = found.id;
+                    }
+                }
+                
+                // If text is manually cleared, clear the ID
+                if (this.locationSearch === '' && this.form.location_type !== 'none') {
+                    this.form.location_id = '';
+                }
+
 
                 try {
                     const response = await fetch('{{ route("users.update", $user->id) }}', {

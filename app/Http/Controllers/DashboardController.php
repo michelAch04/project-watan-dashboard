@@ -10,15 +10,20 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
-        // Get user's accessible features based on permissions
-        $features = $this->getAccessibleFeatures($user);
-        
-        return view('dashboard.index', [
-            'user' => $user,
-            'features' => $features,
-            'zone' => $user->zone
-        ]);
+
+        if ($user->can('view_dashboard')) {
+            // Get user's accessible features based on permissions
+            $features = $this->getAccessibleFeatures($user);
+
+            return view('dashboard.index', [
+                'user' => $user,
+                'features' => $features,
+                'zone' => $user->zone
+            ]);
+        }
+        else {
+            return redirect()->route('errors.403');
+        }
     }
 
     private function getAccessibleFeatures($user)

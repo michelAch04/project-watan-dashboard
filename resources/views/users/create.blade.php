@@ -3,8 +3,7 @@
 @section('title', 'Create User')
 
 @section('content')
-<div class="min-h-screen bg-[#fcf7f8]" x-data="createUserForm()">
-    <!-- Header -->
+<div class="min-h-screen bg-[#fcf7f8]" x-data="createUserForm()" x-init="init()">
     <div class="mobile-header">
         <div class="safe-area">
             <div class="page-container py-4">
@@ -20,12 +19,10 @@
         </div>
     </div>
 
-    <!-- Content -->
     <div class="safe-area py-4">
         <div class="page-container">
             <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-[#f8f0e2]">
                 <form @submit.prevent="submitForm" class="space-y-4">
-                    <!-- Name -->
                     <div>
                         <label for="name" class="block text-sm font-semibold text-[#622032] mb-2">
                             Full Name *
@@ -40,7 +37,6 @@
                         >
                     </div>
 
-                    <!-- Email -->
                     <div>
                         <label for="email" class="block text-sm font-semibold text-[#622032] mb-2">
                             Email Address *
@@ -55,7 +51,6 @@
                         >
                     </div>
 
-                    <!-- Mobile -->
                     <div>
                         <label for="mobile" class="block text-sm font-semibold text-[#622032] mb-2">
                             Mobile Number *
@@ -75,7 +70,6 @@
                         </div>
                     </div>
 
-                    <!-- Password -->
                     <div>
                         <label for="password" class="block text-sm font-semibold text-[#622032] mb-2">
                             Password *
@@ -90,7 +84,6 @@
                         >
                     </div>
 
-                    <!-- Password Confirmation -->
                     <div>
                         <label for="password_confirmation" class="block text-sm font-semibold text-[#622032] mb-2">
                             Confirm Password *
@@ -105,7 +98,6 @@
                         >
                     </div>
 
-                    <!-- Role -->
                     <div>
                         <label for="role" class="block text-sm font-semibold text-[#622032] mb-2">
                             Role *
@@ -124,26 +116,55 @@
                         </select>
                     </div>
 
-                    <!-- Manager -->
                     <div>
-                        <label for="manager_id" class="block text-sm font-semibold text-[#622032] mb-2">
+                        <label for="manager_search" class="block text-sm font-semibold text-[#622032] mb-2">
                             Reports To
                         </label>
-                        <select 
-                            id="manager_id" 
-                            x-model="form.manager_id"
-                            class="input-field"
-                            :disabled="loading"
-                        >
-                            <option value="">No Manager (Reports to Self)</option>
-                            @foreach($users as $user)
-                                <option value="{{ $user->id }}">{{ $user->name }}</option>
-                            @endforeach
-                        </select>
-                        <p class="text-xs text-[#622032]/60 mt-1">Leave empty if user reports to themselves</p>
-                    </div>
+                        <div class="relative" @click.away="managerSearchOpen = false">
+                            <input
+                                type="text"
+                                id="manager_search"
+                                x-model="managerSearch"
+                                @focus="managerSearchOpen = true"
+                                @input="managerSearchOpen = true"
+                                placeholder="Search managers..."
+                                class="input-field"
+                                :disabled="loading"
+                                autocomplete="off"
+                            />
 
-                    <!-- Error Message -->
+                            <select id="manager_id" x-model="form.manager_id" class="hidden">
+                                <option value="">No Manager (Reports to Self)</option>
+                                <template x-for="manager in availableManagers" :key="manager.id">
+                                    <option :value="manager.id" x-text="manager.name"></option>
+                                </template>
+                            </select>
+
+                            <div x-show="managerSearchOpen"
+                                 x-transition
+                                 class="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-y-auto border border-gray-200">
+                                
+                                <ul class="py-1">
+                                    <li @click="selectManager({ id: '', name: 'No Manager (Reports to Self)' })"
+                                        class="px-4 py-2 hover:bg-[#f8f0e2] cursor-pointer italic">
+                                        No Manager (Reports to Self)
+                                    </li>
+                                    
+                                    <template x-for="manager in filteredManagers" :key="manager.id">
+                                        <li @click="selectManager(manager)"
+                                            class="px-4 py-2 hover:bg-[#f8f0e2] cursor-pointer"
+                                            x-text="manager.name">
+                                        </li>
+                                    </template>
+                                    
+                                    <template x-if="filteredManagers.length === 0">
+                                        <li class="px-4 py-2 text-gray-500 italic">No matching managers.</li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </div>
+                        <p class="text-xs text-[#622032]/60 mt-1">Leave empty or select "No Manager" if user reports to themselves</p>
+                    </div>
                     <div x-show="errorMessage" 
                          x-cloak
                          x-transition
@@ -154,7 +175,6 @@
                         <p x-text="errorMessage"></p>
                     </div>
 
-                    <!-- Submit Button -->
                     <button 
                         type="submit" 
                         class="w-full btn-primary"
@@ -174,7 +194,6 @@
         </div>
     </div>
 
-    <!-- Assign Location Modal -->
     <div x-show="showAssignModal" 
          x-cloak
          class="fixed inset-0 z-50 overflow-y-auto"
@@ -234,9 +253,64 @@ function createUserForm() {
         showAssignModal: false,
         createdUserId: null,
 
+        // **NEW**: Properties for manager search
+        availableManagers: [],
+        managerSearch: '',
+        managerSearchOpen: false,
+
+        // **NEW**: Computed property to filter managers
+        get filteredManagers() {
+            if (this.managerSearch === '' || this.managerSearch === 'No Manager (Reports to Self)') {
+                return this.availableManagers;
+            }
+            return this.availableManagers.filter(manager => {
+                return manager.name.toLowerCase().includes(this.managerSearch.toLowerCase());
+            });
+        },
+
+        // **NEW**: init() function to load managers from PHP
+        init() {
+            // Load managers from the Blade variable into Alpine state
+            // We map it to ensure we only have the data we need (id, name)
+            this.availableManagers = @json($users->map(fn($user) => ['id' => $user->id, 'name' => $user->name]));
+
+            // Set initial text for the "No Manager" default
+            if (this.form.manager_id === '') {
+                this.managerSearch = '';
+            }
+            
+            // Watch for when the user manually clears the search input
+            this.$watch('managerSearch', (value) => {
+                if (value === '') {
+                    this.form.manager_id = ''; // Set back to 'No Manager'
+                }
+            });
+
+            // Close dropdown on Escape key
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    this.managerSearchOpen = false;
+                }
+            });
+        },
+
+        // **NEW**: Method to select a manager from the dropdown
+        selectManager(manager) {
+            // manager is an object: { id: 123, name: 'John Doe' }
+            // or { id: '', name: 'No Manager (Reports to Self)' }
+            this.form.manager_id = manager.id;
+            this.managerSearch = manager.name;
+            this.managerSearchOpen = false;
+        },
+
         async submitForm() {
             this.loading = true;
             this.errorMessage = '';
+
+            // **MODIFIED**: Ensure manager_id is correctly set if text was cleared
+            if (this.managerSearch === '' || this.managerSearch === 'No Manager (Reports to Self)') {
+                this.form.manager_id = '';
+            }
 
             try {
                 const response = await fetch('{{ route("users.store") }}', {

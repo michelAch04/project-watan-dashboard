@@ -33,7 +33,7 @@
                                 {{ auth()->user()->name }}
                             </h2>
                             <p class="text-xs sm:text-sm text-[#622032]/60 capitalize">
-                                {{ auth()->user()->role()->first()?->name ?? 'No Role' }}
+                                {{ auth()->user()->role()->name ?? 'No Role' }}
                             </p>
                         </div>
                     </div>

@@ -9,6 +9,7 @@ use App\Models\Village;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules;
 use Spatie\Permission\Models\Role;
 use Illuminate\Validation\ValidationException;
@@ -67,23 +68,29 @@ class UserController extends Controller
             });
         }
 
-        // Zone filter
+                // Zone filter
         if ($request->filled('zone_id')) {
             $zoneId = $request->zone_id;
             $query->where(function($q) use ($zoneId) {
                 // Zone managers
-                $q->whereHas('zones', function($q) use ($zoneId) {
-                    $q->where('id', $zoneId);
-                })
-                // City managers in this zone
-                ->orWhereHas('cities', function($q) use ($zoneId) {
-                    $q->where('zone_id', $zoneId);
-                })
-                // Village managers in cities of this zone
-                ->orWhereHas('villages', function($q) use ($zoneId) {
-                    $q->whereHas('city', function($q) use ($zoneId) {
-                        $q->where('zone_id', $zoneId);
+                $q->where(function($sq) use ($zoneId) {
+                    $sq->whereHas('zones', function($q) use ($zoneId) {
+                        $q->where('id', $zoneId);
                     });
+                })
+                // City managers - direct user_id match
+                ->orWhere(function($sq) use ($zoneId) {
+                    $cityIds = City::whereHas('zone', function($q) use ($zoneId) {
+                        $q->where('id', $zoneId);
+                    })->pluck('user_id');
+                    $sq->whereIn('id', $cityIds);
+                })
+                // Village managers - direct user_id match
+                ->orWhere(function($sq) use ($zoneId) {
+                    $villageIds = Village::whereHas('city.zone', function($q) use ($zoneId) {
+                        $q->where('id', $zoneId);
+                    })->pluck('user_id');
+                    $sq->whereIn('id', $villageIds);
                 });
             });
         }
@@ -183,7 +190,7 @@ class UserController extends Controller
                             'id' => $zone->id,
                             'name' => $zone->name,
                             'name_ar' => $zone->name_ar,
-                            'location' => $zone->district->governorate->name . ' > ' . $zone->district->name
+                            'location' => $zone->district->governorate->name . ', ' . $zone->district->name
                         ];
                     });
             }
@@ -206,7 +213,7 @@ class UserController extends Controller
                         'id' => $city->id,
                         'name' => $city->name,
                         'name_ar' => $city->name_ar,
-                        'location' => $city->zone->district->governorate->name . ' > ' . $city->zone->name
+                        'location' => $city->zone->district->name . ', ' . $city->zone->name
                     ];
                 });
         } elseif ($type === 'village') {
@@ -230,8 +237,7 @@ class UserController extends Controller
                         'id' => $village->id,
                         'name' => $village->name,
                         'name_ar' => $village->name_ar,
-                        'location' => $village->city->zone->district->governorate->name . ' > ' . 
-                                     $village->city->zone->name . ' > ' . $village->city->name
+                        'location' => $village->city->zone->name . ', ' . $village->city->name
                     ];
                 });
         }
