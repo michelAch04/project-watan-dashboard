@@ -66,6 +66,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings', function () {
         return view('settings.index');
     })->name('settings.index')->middleware('can:manage_settings');
+
+    Route::get('/inbox', function () {
+        return view('inbox.index');
+    })->name('inbox.index')->middleware('can:manage_settings');
 });
 
 // Redirect root to appropriate page
