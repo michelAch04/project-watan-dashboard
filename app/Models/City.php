@@ -13,9 +13,16 @@ class City extends Model
         'user_id'
     ];
 
-    public function manager()
+    protected $casts = [
+        'user_id' => 'array'
+    ];
+
+    public function managers()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsToMany(User::class, null, 'user_id', 'id')
+            ->where(function ($query) {
+                $query->whereJsonContains('cities.user_id', 'id');
+            });
     }
 
     public function zone()

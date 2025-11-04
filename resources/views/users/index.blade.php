@@ -29,6 +29,7 @@
     <div class="safe-area py-4">
         <div class="page-container space-y-4">
             <!-- Create Button -->
+            @if(auth()->user()->can('create_users'))
             <div class="flex justify-end">
                 <a href="{{ route('users.create') }}" class="block btn-primary text-center flex align-center">
                     <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -37,6 +38,7 @@
                     Create New User
                 </a>
             </div>
+            @endif
             <!-- Search and Filter Bar -->
             <div class="bg-white rounded-xl p-4 shadow-sm border border-[#f8f0e2]">
                 <form action="{{ route('users.index') }}" method="GET" class="space-y-3">
