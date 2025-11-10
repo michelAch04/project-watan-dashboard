@@ -77,30 +77,14 @@ class User extends Authenticatable
 
     public function cities()
     {
-        if($this->zones()->count() == 0){
-            return $this->hasMany(City::class);
-        }
-        return $this->hasManyThrough(City::class, Zone::class);
+        // Cities where user_id JSON array contains this user's ID
+        return City::whereJsonContains('user_id', $this->id)->get();
     }
 
     public function villages()
     {
-        if($this->zones()->count() == 0 && $this->cities()->count() == 0){
-            return $this->hasMany(Village::class);
-        }
-        // Use nested hasManyThrough for zone managers
-        if($this->zones()->count() > 0){
-            return $this->hasManyThrough(
-                Village::class,
-                City::class,
-                'zone_id', // Foreign key on cities table
-                'city_id', // Foreign key on villages table
-                'id', // Local key on users table
-                'id'  // Local key on cities table
-            );
-        }
-        // For city managers
-        return $this->hasManyThrough(Village::class, City::class);
+        // Villages where user_id JSON array contains this user's ID
+        return Village::whereJsonContains('user_id', $this->id)->get();
     }
 
         /**

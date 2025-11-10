@@ -56,7 +56,7 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::with(['roles', 'manager', 'zones', 'cities', 'villages']);
+        $query = User::with(['roles', 'manager', 'zones']);
 
         // Search functionality
         if ($request->filled('search')) {
@@ -68,7 +68,7 @@ class UserController extends Controller
             });
         }
 
-                // Zone filter
+        // Zone filter
         if ($request->filled('zone_id')) {
             $zoneId = $request->zone_id;
             $query->where(function($q) use ($zoneId) {
@@ -78,19 +78,19 @@ class UserController extends Controller
                         $q->where('id', $zoneId);
                     });
                 })
-                // City managers - direct user_id match
+                // City managers - JSON user_id contains user id
                 ->orWhere(function($sq) use ($zoneId) {
-                    $cityIds = City::whereHas('zone', function($q) use ($zoneId) {
-                        $q->where('id', $zoneId);
-                    })->pluck('user_id');
-                    $sq->whereIn('id', $cityIds);
+                    $sq->whereHas('cities', function($q) use ($zoneId) {
+                        $q->where('zone_id', $zoneId);
+                    });
                 })
-                // Village managers - direct user_id match
+                // Village managers - JSON user_id contains user id
                 ->orWhere(function($sq) use ($zoneId) {
-                    $villageIds = Village::whereHas('city.zone', function($q) use ($zoneId) {
-                        $q->where('id', $zoneId);
-                    })->pluck('user_id');
-                    $sq->whereIn('id', $villageIds);
+                    $sq->whereHas('villages', function($q) use ($zoneId) {
+                        $q->whereHas('city.zone', function($q) use ($zoneId) {
+                            $q->where('id', $zoneId);
+                        });
+                    });
                 });
             });
         }
@@ -195,15 +195,20 @@ class UserController extends Controller
                     });
             }
         } elseif ($type === 'city') {
-            $query = City::whereNull('user_id')->with('zone.district.governorate');
+            // Show all cities in the zone, since multiple users can be assigned to the same city
+            $query = City::with('zone.district.governorate');
             
-            // Filter by manager's zone
+            // Filter by manager's zone if user reports to someone else
             if ($user->manager_id && $user->manager_id != $user->id) {
                 $manager = User::find($user->manager_id);
                 if ($manager->zones()->count() > 0) {
                     $managerZone = $manager->zones()->first();
                     $query->where('zone_id', $managerZone->id);
                 }
+            } else if ($user->zones()->count() > 0) {
+                // If user is a zone manager, show all cities in their zone
+                $userZone = $user->zones()->first();
+                $query->where('zone_id', $userZone->id);
             }
             
             $locations = $query->orderBy('name')
@@ -217,9 +222,10 @@ class UserController extends Controller
                     ];
                 });
         } elseif ($type === 'village') {
-            $query = Village::whereNull('user_id')->with('city.zone.district.governorate');
+            // Show all villages in the zone, since multiple users can be assigned to the same village
+            $query = Village::with('city.zone.district.governorate');
             
-            // Filter by manager's zone
+            // Filter by manager's zone if user reports to someone else
             if ($user->manager_id && $user->manager_id != $user->id) {
                 $manager = User::find($user->manager_id);
                 if ($manager->zones()->count() > 0) {
@@ -228,6 +234,12 @@ class UserController extends Controller
                         $q->where('zone_id', $managerZone->id);
                     });
                 }
+            } else if ($user->zones()->count() > 0) {
+                // If user is a zone manager, show all villages in their zone
+                $userZone = $user->zones()->first();
+                $query->whereHas('city', function($q) use ($userZone) {
+                    $q->where('zone_id', $userZone->id);
+                });
             }
             
             $locations = $query->orderBy('name')
@@ -251,8 +263,8 @@ class UserController extends Controller
     public function assignLocation(Request $request, $id)
     {
         $request->validate([
-            'location_type' => ['required', 'in:zone,city,village'],
-            'location_id' => ['required', 'integer'],
+            'location_type' => ['required', 'in:zone,city,village,none'],
+            'location_id' => ['nullable', 'integer', 'required_if:location_type,zone,city,village'],
         ]);
 
         $user = User::findOrFail($id);
@@ -262,10 +274,14 @@ class UserController extends Controller
                 Zone::where('id', $request->location_id)->update(['user_id' => $user->id]);
                 break;
             case 'city':
-                City::where('id', $request->location_id)->update(['user_id' => $user->id]);
+                // Add user to city's JSON array
+                $city = City::findOrFail($request->location_id);
+                $city->assignUser($user->id);
                 break;
             case 'village':
-                Village::where('id', $request->location_id)->update(['user_id' => $user->id]);
+                // Add user to village's JSON array
+                $village = Village::findOrFail($request->location_id);
+                $village->assignUser($user->id);
                 break;
         }
 
@@ -281,7 +297,7 @@ class UserController extends Controller
      */
     public function edit($id)
     {
-        $user = User::with(['roles', 'zones', 'cities', 'villages', 'manager'])->findOrFail($id);
+        $user = User::with(['roles', 'zones', 'manager'])->findOrFail($id);
         $roles = Role::all();
         
         // Determine current location
@@ -321,7 +337,7 @@ class UserController extends Controller
         $request->validate([
             'role' => ['required', 'exists:roles,name'],
             'location_type' => ['nullable', 'in:zone,city,village,none'],
-            'location_id' => ['required_unless:location_type,none', 'integer'],
+            'location_id' => ['nullable', 'integer', 'required_if:location_type,zone,city,village'],
         ]);
 
         // Update role
@@ -332,12 +348,16 @@ class UserController extends Controller
         if ($user->zones()->count() > 0) {
             Zone::where('user_id', $user->id)->update(['user_id' => null]);
         }
-        if ($user->cities()->count() > 0) {
-            City::where('user_id', $user->id)->update(['user_id' => null]);
-        }
-        if ($user->villages()->count() > 0) {
-            Village::where('user_id', $user->id)->update(['user_id' => null]);
-        }
+        
+        // Remove user from all cities they're assigned to
+        City::whereJsonContains('user_id', $user->id)->each(function ($city) use ($user) {
+            $city->removeUser($user->id);
+        });
+        
+        // Remove user from all villages they're assigned to
+        Village::whereJsonContains('user_id', $user->id)->each(function ($village) use ($user) {
+            $village->removeUser($user->id);
+        });
 
         // Assign new location
         if ($request->location_type !== 'none') {
@@ -346,10 +366,12 @@ class UserController extends Controller
                     Zone::where('id', $request->location_id)->update(['user_id' => $user->id]);
                     break;
                 case 'city':
-                    City::where('id', $request->location_id)->update(['user_id' => $user->id]);
+                    $city = City::findOrFail($request->location_id);
+                    $city->assignUser($user->id);
                     break;
                 case 'village':
-                    Village::where('id', $request->location_id)->update(['user_id' => $user->id]);
+                    $village = Village::findOrFail($request->location_id);
+                    $village->assignUser($user->id);
                     break;
             }
         }
@@ -378,8 +400,16 @@ class UserController extends Controller
 
         // Remove location assignments
         Zone::where('user_id', $user->id)->update(['user_id' => null]);
-        City::where('user_id', $user->id)->update(['user_id' => null]);
-        Village::where('user_id', $user->id)->update(['user_id' => null]);
+        
+        // Remove user from all cities
+        City::whereJsonContains('user_id', $user->id)->each(function ($city) use ($user) {
+            $city->removeUser($user->id);
+        });
+        
+        // Remove user from all villages
+        Village::whereJsonContains('user_id', $user->id)->each(function ($village) use ($user) {
+            $village->removeUser($user->id);
+        });
 
         // Update users who report to this user
         User::where('manager_id', $user->id)->update(['manager_id' => null]);

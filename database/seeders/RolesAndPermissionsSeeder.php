@@ -31,6 +31,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'edit_humanitarian',
             'delete_humanitarian',
             'approve_humanitarian',
+            'final_approve_humanitarian',
+            'mark_ready_humanitarian',
+            'mark_collected_humanitarian',
             
             // Zone Management
             'view_zones',
@@ -48,21 +51,76 @@ class RolesAndPermissionsSeeder extends Seeder
             
             // Settings
             'manage_settings',
+            
+            // Inbox
+            'view_inbox',
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
         // Create roles and assign permissions
 
         // Admin - Full access
-        $admin = Role::create(['name' => 'admin']);
-        $admin->givePermissionTo(Permission::all());
+        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $admin->syncPermissions(Permission::all());
+
+        // HOR (Head of Region) - Full access except user management
+        $hor = Role::firstOrCreate(['name' => 'hor']);
+        $hor->syncPermissions([
+            'view_dashboard',
+            'view_humanitarian',
+            'create_humanitarian',
+            'edit_humanitarian',
+            'delete_humanitarian',
+            'approve_humanitarian',
+            'final_approve_humanitarian',
+            'mark_ready_humanitarian',
+            'mark_collected_humanitarian',
+            'view_financial',
+            'create_financial',
+            'edit_financial',
+            'delete_financial',
+            'approve_financial',
+            'view_reports',
+            'export_reports',
+            'view_zones',
+            'manage_zones',
+            'view_inbox',
+            'manage_settings',
+        ]);
+
+        // GS (General Secretary) - Can manage but not final approve
+        $gs = Role::firstOrCreate(['name' => 'gs']);
+        $gs->syncPermissions([
+            'view_dashboard',
+            'view_humanitarian',
+            'create_humanitarian',
+            'edit_humanitarian',
+            'approve_humanitarian',
+            'view_financial',
+            'create_financial',
+            'edit_financial',
+            'view_reports',
+            'view_inbox',
+        ]);
+
+        // S (Secretary) - Basic access
+        $s = Role::firstOrCreate(['name' => 's']);
+        $s->syncPermissions([
+            'view_dashboard',
+            'view_humanitarian',
+            'create_humanitarian',
+            'edit_humanitarian',
+            'view_financial',
+            'view_reports',
+            'view_inbox',
+        ]);
 
         // Manager - Can manage financial and humanitarian in their zone
-        $manager = Role::create(['name' => 'manager']);
-        $manager->givePermissionTo([
+        $manager = Role::firstOrCreate(['name' => 'manager']);
+        $manager->syncPermissions([
             'view_dashboard',
             'view_financial',
             'create_financial',
@@ -70,16 +128,19 @@ class RolesAndPermissionsSeeder extends Seeder
             'view_humanitarian',
             'create_humanitarian',
             'edit_humanitarian',
+            'approve_humanitarian',
             'view_reports',
+            'view_inbox',
         ]);
 
         // Viewer - Read-only access
-        $viewer = Role::create(['name' => 'viewer']);
-        $viewer->givePermissionTo([
+        $viewer = Role::firstOrCreate(['name' => 'viewer']);
+        $viewer->syncPermissions([
             'view_dashboard',
             'view_financial',
             'view_humanitarian',
             'view_reports',
+            'view_inbox',
         ]);
 
         $this->command->info('✅ Roles and permissions created successfully!');

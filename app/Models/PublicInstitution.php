@@ -1,0 +1,43 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class PublicInstitution extends Model
+{
+    protected $fillable = [
+        'name',
+        'description',
+        'city_id',
+        'contact_person',
+        'phone'
+    ];
+
+    /**
+     * Get the city
+     */
+    public function city()
+    {
+        return $this->belongsTo(City::class);
+    }
+
+    /**
+     * Get requests for this institution
+     */
+    public function requests()
+    {
+        return $this->hasMany(Request::class, 'public_institution_id');
+    }
+
+    /**
+     * Search scope
+     */
+    public function scopeSearch($query, $search)
+    {
+        return $query->where(function($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('description', 'like', "%{$search}%");
+        });
+    }
+}
