@@ -21,6 +21,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'pw_member_id',
         'name',
         'email',
         'mobile',
@@ -58,6 +59,14 @@ class User extends Authenticatable
     public function manager()
     {
         return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    /**
+     * Get the PW member this user belongs to
+     */
+    public function pwMember()
+    {
+        return $this->belongsTo(PwMember::class, 'pw_member_id');
     }
 
     /**

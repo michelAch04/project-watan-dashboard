@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Zone;
 use App\Models\City;
 use App\Models\Village;
+use App\Models\PwMember;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -56,7 +57,7 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::with(['roles', 'manager', 'zones']);
+        $query = User::with(['roles', 'manager', 'zones', 'pwMember']);
 
         // Search functionality
         if ($request->filled('search')) {
@@ -109,7 +110,13 @@ class UserController extends Controller
         $roles = Role::all();
         $users = User::orderBy('name')->get();
         
-        return view('users.create', compact('roles', 'users'));
+        // Get PW members that don't have users yet
+        $pwMembers = PwMember::active()
+            ->whereDoesntHave('user')
+            ->orderBy('name')
+            ->get();
+        
+        return view('users.create', compact('roles', 'users', 'pwMembers'));
     }
 
     /**
@@ -118,19 +125,22 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'pw_member_id' => ['required', 'exists:pw_members,id', 'unique:users,pw_member_id'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'mobile' => ['required', 'string', 'unique:users'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'role' => ['required', 'exists:roles,name'],
             'manager_id' => ['nullable', 'exists:users,id'],
         ]);
 
+        // Get PW member details
+        $pwMember = PwMember::findOrFail($request->pw_member_id);
+        
         // Format mobile number
-        $mobile = $this->formatMobile($request->mobile);
+        $mobile = $this->formatMobile($pwMember->phone);
 
         $user = User::create([
-            'name' => $request->name,
+            'pw_member_id' => $request->pw_member_id,
+            'name' => $pwMember->name,
             'email' => $request->email,
             'mobile' => $mobile,
             'password' => Hash::make($request->password),

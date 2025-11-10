@@ -23,18 +23,92 @@
         <div class="page-container">
             <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-[#f8f0e2]">
                 <form @submit.prevent="submitForm" class="space-y-4">
-                    <div>
-                        <label for="name" class="block text-sm font-semibold text-[#622032] mb-2">
-                            Full Name *
-                        </label>
-                        <input 
-                            type="text" 
-                            id="name" 
-                            x-model="form.name"
-                            class="input-field"
-                            required
-                            :disabled="loading"
-                        >
+                    
+                    <!-- PW Member Selection -->
+                    <div class="bg-[#f8f0e2] p-4 rounded-lg border-2 border-[#931335]/20">
+                        <h3 class="text-sm font-bold text-[#622032] mb-2 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-[#931335]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Select PW Member (Required) *
+                        </h3>
+                        <p class="text-xs text-[#622032]/70 mb-3">Users must be linked to a PW member</p>
+                        
+                        <div class="relative" @click.away="pwMemberSearchOpen = false">
+                            <input
+                                type="text"
+                                x-model="pwMemberSearch"
+                                @focus="pwMemberSearchOpen = true"
+                                @input="pwMemberSearchOpen = true"
+                                placeholder="Search PW member..."
+                                class="input-field"
+                                :class="{ 'border-red-500': !form.pw_member_id && submitAttempted }"
+                                :disabled="loading"
+                                autocomplete="off"
+                                required
+                            />
+                            
+                            <div x-show="pwMemberSearchOpen"
+                                 x-transition:enter="transition ease-out duration-100"
+                                 x-transition:enter-start="opacity-0 transform scale-95"
+                                 x-transition:enter-end="opacity-100 transform scale-100"
+                                 x-transition:leave="transition ease-in duration-75"
+                                 x-transition:leave-start="opacity-100 transform scale-100"
+                                 x-transition:leave-end="opacity-0 transform scale-95"
+                                 class="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-xl max-h-60 overflow-y-auto border-2 border-[#931335]/20"
+                                 style="display: none;">
+                                <ul class="py-1">
+                                    <template x-for="member in filteredPwMembers" :key="member.id">
+                                        <li @click.stop="selectPwMember(member)"
+                                            @mousedown.prevent
+                                            class="px-4 py-3 hover:bg-[#f8f0e2] cursor-pointer border-b border-gray-100 last:border-0 transition-colors">
+                                            <div class="font-semibold text-[#622032]" x-text="member.name"></div>
+                                            <div class="text-xs text-[#622032]/60" x-text="member.phone"></div>
+                                        </li>
+                                    </template>
+                                    
+                                    <template x-if="filteredPwMembers.length === 0">
+                                        <li class="px-4 py-3 text-gray-500 text-sm italic">
+                                            No available PW members
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div x-show="form.pw_member_id" x-cloak class="mt-3 p-3 bg-white rounded-lg border-2 border-[#931335]/30">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <p class="text-xs font-semibold text-[#931335] mb-1">✓ Selected PW Member:</p>
+                                    <p class="text-sm font-bold text-[#622032]" x-text="selectedPwMember?.name"></p>
+                                    <p class="text-xs text-[#622032]/60" x-text="selectedPwMember?.phone"></p>
+                                </div>
+                                <button type="button" @click="clearPwMember()" class="text-red-600 hover:text-red-700 p-1">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div x-show="!form.pw_member_id && submitAttempted" x-cloak class="mt-2 text-xs text-red-600">
+                            Please select a PW member
+                        </div>
+                    </div>
+
+                    <!-- Auto-filled Name & Phone -->
+                    <div x-show="form.pw_member_id" x-cloak class="bg-[#fcf7f8] p-4 rounded-lg border border-[#f8f0e2]">
+                        <h3 class="text-sm font-bold text-[#622032] mb-3">Member Information (Auto-filled)</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-[#622032]/60">Name:</span>
+                                <span class="font-semibold text-[#622032]" x-text="selectedPwMember?.name"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-[#622032]/60">Phone:</span>
+                                <span class="font-semibold text-[#622032]" x-text="selectedPwMember?.phone"></span>
+                            </div>
+                        </div>
                     </div>
 
                     <div>
@@ -49,25 +123,6 @@
                             required
                             :disabled="loading"
                         >
-                    </div>
-
-                    <div>
-                        <label for="mobile" class="block text-sm font-semibold text-[#622032] mb-2">
-                            Mobile Number *
-                        </label>
-                        <div class="relative">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[#622032] font-semibold">+961</span>
-                            <input 
-                                type="tel" 
-                                id="mobile" 
-                                x-model="form.mobile"
-                                class="input-field pl-16"
-                                placeholder="03 123 456"
-                                required
-                                :disabled="loading"
-                                @input="form.mobile = $event.target.value.replace(/[^0-9]/g, '')"
-                            >
-                        </div>
                     </div>
 
                     <div>
@@ -165,6 +220,7 @@
                         </div>
                         <p class="text-xs text-[#622032]/60 mt-1">Leave empty or select "No Manager" if user reports to themselves</p>
                     </div>
+                    
                     <div x-show="errorMessage" 
                          x-cloak
                          x-transition
@@ -215,7 +271,7 @@
                 
                 <h2 class="text-xl font-bold text-[#622032] mb-4">Assign Location?</h2>
                 <p class="text-[#622032]/70 mb-6">
-                    User <strong x-text="form.name"></strong> has been created successfully. 
+                    User <strong x-text="selectedPwMember?.name"></strong> has been created successfully. 
                     Would you like to assign a location to them now?
                 </p>
 
@@ -240,25 +296,40 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 function createUserForm() {
     return {
         form: {
-            name: '',
+            pw_member_id: '',
             email: '',
-            mobile: '',
             password: '',
             password_confirmation: '',
             role: '',
             manager_id: ''
         },
         loading: false,
+        submitAttempted: false,
         errorMessage: '',
         showAssignModal: false,
         createdUserId: null,
 
-        // **NEW**: Properties for manager search
+        // PW Member search
+        pwMembers: @json($pwMembers),
+        pwMemberSearch: '',
+        pwMemberSearchOpen: false,
+        selectedPwMember: null,
+
+        get filteredPwMembers() {
+            if (this.pwMemberSearch === '') {
+                return this.pwMembers;
+            }
+            return this.pwMembers.filter(member => {
+                return member.name.toLowerCase().includes(this.pwMemberSearch.toLowerCase()) ||
+                       member.phone.includes(this.pwMemberSearch);
+            });
+        },
+
+        // Manager search
         availableManagers: [],
         managerSearch: '',
         managerSearchOpen: false,
 
-        // **NEW**: Computed property to filter managers
         get filteredManagers() {
             if (this.managerSearch === '' || this.managerSearch === 'No Manager (Reports to Self)') {
                 return this.availableManagers;
@@ -268,46 +339,58 @@ function createUserForm() {
             });
         },
 
-        // **NEW**: init() function to load managers from PHP
         init() {
-            // Load managers from the Blade variable into Alpine state
-            // We map it to ensure we only have the data we need (id, name)
             this.availableManagers = @json($users->map(fn($user) => ['id' => $user->id, 'name' => $user->name]));
 
-            // Set initial text for the "No Manager" default
             if (this.form.manager_id === '') {
                 this.managerSearch = '';
             }
             
-            // Watch for when the user manually clears the search input
             this.$watch('managerSearch', (value) => {
                 if (value === '') {
-                    this.form.manager_id = ''; // Set back to 'No Manager'
+                    this.form.manager_id = '';
                 }
             });
 
-            // Close dropdown on Escape key
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     this.managerSearchOpen = false;
+                    this.pwMemberSearchOpen = false;
                 }
             });
         },
 
-        // **NEW**: Method to select a manager from the dropdown
+        selectPwMember(member) {
+            this.selectedPwMember = member;
+            this.form.pw_member_id = member.id;
+            this.pwMemberSearch = member.name;
+            this.pwMemberSearchOpen = false;
+            this.submitAttempted = false;
+        },
+
+        clearPwMember() {
+            this.selectedPwMember = null;
+            this.form.pw_member_id = '';
+            this.pwMemberSearch = '';
+        },
+
         selectManager(manager) {
-            // manager is an object: { id: 123, name: 'John Doe' }
-            // or { id: '', name: 'No Manager (Reports to Self)' }
             this.form.manager_id = manager.id;
             this.managerSearch = manager.name;
             this.managerSearchOpen = false;
         },
 
         async submitForm() {
+            this.submitAttempted = true;
             this.loading = true;
             this.errorMessage = '';
 
-            // **MODIFIED**: Ensure manager_id is correctly set if text was cleared
+            if (!this.form.pw_member_id) {
+                this.errorMessage = 'Please select a PW member';
+                this.loading = false;
+                return;
+            }
+
             if (this.managerSearch === '' || this.managerSearch === 'No Manager (Reports to Self)') {
                 this.form.manager_id = '';
             }

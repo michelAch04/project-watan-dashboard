@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PwMember extends Model
 {
@@ -16,6 +17,14 @@ class PwMember extends Model
     protected $casts = [
         'is_active' => 'boolean'
     ];
+
+    /**
+     * Get the user account linked to this PW member
+     */
+    public function user(): HasOne
+    {
+        return $this->hasOne(User::class, 'pw_member_id');
+    }
 
     /**
      * Get requests where this member is referenced
