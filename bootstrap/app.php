@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
             'admin.password' => \App\Http\Middleware\AdminPasswordMiddleware::class,
+            'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
 
         //

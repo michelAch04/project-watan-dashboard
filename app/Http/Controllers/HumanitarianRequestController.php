@@ -11,6 +11,7 @@ use App\Models\InboxNotification;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class HumanitarianRequestController extends Controller
 {
@@ -36,56 +37,122 @@ class HumanitarianRequestController extends Controller
             ->forUser($user)
             ->count();
 
-        return view('humanitarian.index', compact('activeCount', 'draftCount', 'completedCount'));
+        // Get budgets if user is HOR
+        $budgets = null;
+        if ($user->hasRole('hor')) {
+            $budgets = \App\Models\Budget::with('zone')
+                ->whereHas('zone', function($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                })
+                ->get()
+                ->map(function($budget) {
+                    $currentMonth = now()->month;
+                    $currentYear = now()->year;
+
+                    return [
+                        'id' => $budget->id,
+                        'description' => $budget->description,
+                        'zone' => $budget->zone->name_en,
+                        'monthly_amount' => $budget->monthly_amount_in_usd,
+                        'current_remaining' => $budget->getRemainingBudgetForMonth($currentYear, $currentMonth),
+                        'predicted_end_of_month' => $budget->getPredictedBudgetForMonth($currentYear, $currentMonth)
+                    ];
+                });
+        }
+
+        return view('humanitarian.index', compact('activeCount', 'draftCount', 'completedCount', 'budgets'));
     }
 
     /**
      * View active requests
      */
-    public function active()
+    public function active(HttpRequest $httpRequest)
     {
         $user = Auth::user();
 
-        $requests = Request::with([
+        $query = Request::with([
             'requestType',
             'requestStatus',
             'sender',
             'currentUser',
             'requesterCity',
             'voter',
-            'referenceMember'
+            'referenceMember',
+            'budget'
         ])
             ->ofType('humanitarian')
             ->active()
-            ->forUser($user)
-            ->orderBy('created_at', 'desc')
+            ->forUser($user);
+
+        // Filter by month if provided
+        $month = $httpRequest->input('month');
+        $year = $httpRequest->input('year');
+
+        if ($month && $year) {
+            $query->whereYear('ready_date', $year)
+                  ->whereMonth('ready_date', $month);
+        }
+
+        $requests = $query->orderBy('created_at', 'desc')
             ->paginate(15);
 
-        return view('humanitarian.active', compact('requests'));
+        // Get available months for filter (last 12 months)
+        $availableMonths = [];
+        for ($i = 0; $i < 12; $i++) {
+            $date = now()->subMonths($i);
+            $availableMonths[] = [
+                'month' => $date->month,
+                'year' => $date->year,
+                'label' => $date->format('F Y')
+            ];
+        }
+
+        return view('humanitarian.active', compact('requests', 'availableMonths', 'month', 'year'));
     }
 
     /**
      * View completed requests
      */
-    public function completed()
+    public function completed(HttpRequest $httpRequest)
     {
         $user = Auth::user();
 
-        $requests = Request::with([
+        $query = Request::with([
             'requestType',
             'requestStatus',
             'sender',
             'requesterCity',
             'voter',
-            'referenceMember'
+            'referenceMember',
+            'budget'
         ])
             ->ofType('humanitarian')
             ->completed()
-            ->forUser($user)
-            ->orderBy('updated_at', 'desc')
-            ->paginate(15);
+            ->forUser($user);
 
-        return view('humanitarian.completed', compact('requests'));
+        // Filter by month/year if provided
+        $month = $httpRequest->input('month');
+        $year = $httpRequest->input('year');
+
+        if ($month && $year) {
+            $query->whereYear('ready_date', $year)
+                  ->whereMonth('ready_date', $month);
+        }
+
+        $requests = $query->orderBy('updated_at', 'desc')->paginate(15)->appends($httpRequest->only(['month', 'year']));
+
+        // Get available months for filter (last 12 months)
+        $availableMonths = [];
+        for ($i = 0; $i < 12; $i++) {
+            $date = now()->subMonths($i);
+            $availableMonths[] = [
+                'month' => $date->month,
+                'year' => $date->year,
+                'label' => $date->format('F Y')
+            ];
+        }
+
+        return view('humanitarian.completed', compact('requests', 'availableMonths', 'month', 'year'));
     }
 
     /**
@@ -137,78 +204,137 @@ class HumanitarianRequestController extends Controller
             'reference_member_id' => 'required|exists:pw_members,id',
             'amount' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
-            'action' => 'required|in:draft,publish'
+            'action' => 'required|in:draft,publish',
+            'budget_id' => 'nullable|exists:budgets,id',
+            'ready_date' => 'nullable|date'
         ]);
 
         $user = Auth::user();
         $humanitarianType = RequestType::getByName('humanitarian');
 
-        // Determine status based on action
-        if ($validated['action'] === 'draft') {
-            $status = RequestStatus::getByName(RequestStatus::STATUS_DRAFT);
-            $currentUserId = null;
-        } else {
-            $status = RequestStatus::getByName(RequestStatus::STATUS_PUBLISHED);
-            // Set current user to sender's manager (if HOR, auto-approve)
-            if ($user->hasRole('hor')) {
-                $status = RequestStatus::getByName(RequestStatus::STATUS_FINAL_APPROVAL);
+        DB::beginTransaction();
+        try {
+            // Determine status based on action
+            if ($validated['action'] === 'draft') {
+                $status = RequestStatus::getByName(RequestStatus::STATUS_DRAFT);
                 $currentUserId = null;
             } else {
-                $currentUserId = $user->manager_id;
+                $status = RequestStatus::getByName(RequestStatus::STATUS_PUBLISHED);
+                // Set current user to sender's manager (if HOR, auto-approve)
+                if ($user->hasRole('hor')) {
+                    $status = RequestStatus::getByName(RequestStatus::STATUS_FINAL_APPROVAL);
+                    $currentUserId = null;
+                } else {
+                    $currentUserId = $user->manager_id;
+                }
             }
-        }
 
-        $requestData = [
-            'request_type_id' => $humanitarianType->id,
-            'request_status_id' => $status->id,
-            'sender_id' => $user->id,
-            'current_user_id' => $currentUserId,
-        ];
+            $requestData = [
+                'request_type_id' => $humanitarianType->id,
+                'request_status_id' => $status->id,
+                'sender_id' => $user->id,
+                'current_user_id' => $currentUserId,
+            ];
 
-        // If voter selected, use voter data
-        if ($validated['voter_id']) {
-            $voter = Voter::find($validated['voter_id']);
-            $requestData['voter_id'] = $voter->id;
-            $requestData['requester_first_name'] = $voter->first_name;
-            $requestData['requester_father_name'] = $voter->father_name;
-            $requestData['requester_last_name'] = $voter->last_name;
-            $requestData['requester_city_id'] = $voter->city_id;
-            $requestData['requester_ro_number'] = $voter->ro_number;
-            $requestData['requester_phone'] = $voter->phone;
-        } else {
-            $requestData = array_merge($requestData, [
-                'requester_first_name' => $validated['requester_first_name'],
-                'requester_father_name' => $validated['requester_father_name'],
-                'requester_last_name' => $validated['requester_last_name'],
-                'requester_city_id' => $validated['requester_city_id'],
-                'requester_ro_number' => $validated['requester_ro_number'] ?? null,
-                'requester_phone' => $validated['requester_phone'] ?? null,
+            // If voter selected, use voter data
+            if ($validated['voter_id']) {
+                $voter = Voter::find($validated['voter_id']);
+                $requestData['voter_id'] = $voter->id;
+                $requestData['requester_first_name'] = $voter->first_name;
+                $requestData['requester_father_name'] = $voter->father_name;
+                $requestData['requester_last_name'] = $voter->last_name;
+                $requestData['requester_city_id'] = $voter->city_id;
+                $requestData['requester_ro_number'] = $voter->ro_number;
+                $requestData['requester_phone'] = $voter->phone;
+            } else {
+                $requestData = array_merge($requestData, [
+                    'requester_first_name' => $validated['requester_first_name'],
+                    'requester_father_name' => $validated['requester_father_name'],
+                    'requester_last_name' => $validated['requester_last_name'],
+                    'requester_city_id' => $validated['requester_city_id'],
+                    'requester_ro_number' => $validated['requester_ro_number'] ?? null,
+                    'requester_phone' => $validated['requester_phone'] ?? null,
+                ]);
+            }
+
+            $requestData['subtype'] = $validated['subtype'];
+            $requestData['reference_member_id'] = $validated['reference_member_id'];
+            $requestData['amount'] = $validated['amount'];
+            $requestData['notes'] = $validated['notes'] ?? null;
+
+            // Handle budget allocation for HOR users who publish with budget
+            if ($user->hasRole('hor') && $validated['action'] === 'publish' && !empty($validated['budget_id']) && !empty($validated['ready_date'])) {
+                // Verify budget belongs to HOR's zone
+                $budget = \App\Models\Budget::with('zone')->findOrFail($validated['budget_id']);
+                if ($budget->zone->user_id !== $user->id) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You can only use budgets from your own zones'
+                    ], 403);
+                }
+
+                // Check and refill budget if needed
+                $budget->checkAndRefill();
+
+                // Check if budget has enough balance
+                if ($budget->current_balance < $validated['amount']) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Insufficient budget balance for this request. Current balance: $' . number_format($budget->current_balance)
+                    ], 400);
+                }
+
+                // Add budget and ready date to request data
+                $requestData['budget_id'] = $validated['budget_id'];
+                $requestData['ready_date'] = $validated['ready_date'];
+            }
+
+            // Create the request
+            $request = Request::create($requestData);
+
+            // Deduct from budget if HOR user allocated budget
+            if ($user->hasRole('hor') && $validated['action'] === 'publish' && !empty($validated['budget_id'])) {
+                $budget = \App\Models\Budget::findOrFail($validated['budget_id']);
+
+                Log::info("Deducting amount: " . $validated['amount'] . " for new request id: " . $request->id);
+
+                $budget->deduct(
+                    $validated['amount'],
+                    $request->id,
+                    "Request #{$request->request_number} - {$request->requester_full_name}"
+                );
+
+                Log::info("Budget deducted successfully. New balance: " . $budget->current_balance);
+            }
+
+            // Create inbox notification if published
+            if ($validated['action'] === 'publish' && $currentUserId) {
+                InboxNotification::createForUser(
+                    $currentUserId,
+                    $request->id,
+                    'request_published',
+                    'New Request for Approval',
+                    "{$user->name} has published a humanitarian request #{$request->request_number} for your approval."
+                );
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => $validated['action'] === 'draft' ? 'Request saved as draft' : 'Request published successfully',
+                'redirect' => route('humanitarian.index')
             ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error creating request: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create request: ' . $e->getMessage()
+            ], 500);
         }
-
-        $requestData['subtype'] = $validated['subtype'];
-        $requestData['reference_member_id'] = $validated['reference_member_id'];
-        $requestData['amount'] = $validated['amount'];
-        $requestData['notes'] = $validated['notes'] ?? null;
-
-        $request = Request::create($requestData);
-
-        // Create inbox notification if published
-        if ($validated['action'] === 'publish' && $currentUserId) {
-            InboxNotification::createForUser(
-                $currentUserId,
-                $request->id,
-                'request_published',
-                'New Request for Approval',
-                "{$user->name} has published a humanitarian request #{$request->request_number} for your approval."
-            );
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => $validated['action'] === 'draft' ? 'Request saved as draft' : 'Request published successfully',
-            'redirect' => route('humanitarian.index')
-        ]);
     }
 
     /**
@@ -382,36 +508,125 @@ class HumanitarianRequestController extends Controller
                     'Request Approved - Awaiting Your Review',
                     "{$user->name} has approved humanitarian request #{$request->request_number}. It now requires your approval."
                 );
-            } else {
-                // Reached top (HOR) - final approval
-                $finalStatus = RequestStatus::getByName(RequestStatus::STATUS_FINAL_APPROVAL);
-                $request->update([
-                    'request_status_id' => $finalStatus->id,
-                    'current_user_id' => null
-                ]);
 
-                // Notify sender
-                InboxNotification::createForUser(
-                    $request->sender_id,
-                    $request->id,
-                    'request_final_approved',
-                    'Request Finally Approved',
-                    "Your humanitarian request #{$request->request_number} has received final approval and is now ready for processing."
-                );
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Request approved successfully',
+                    'redirect' => route('humanitarian.active')
+                ]);
+            } else {
+                // Reached top (HOR) - need budget selection
+                // Return special response to trigger budget modal
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'needs_budget_selection' => true,
+                    'message' => 'Please select budget and ready date'
+                ]);
             }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to approve request'
+            ], 500);
+        }
+    }
+
+    /**
+     * Final approval with budget selection (HOR only)
+     */
+    public function finalApprove(HttpRequest $httpRequest, $id)
+    {
+        $request = Request::findOrFail($id);
+        $user = Auth::user();
+
+        if (!$user->hasRole('hor')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only HOR can perform final approval'
+            ], 403);
+        }
+
+        $validated = $httpRequest->validate([
+            'budget_id' => 'required|exists:budgets,id',
+            'ready_date' => 'required|date'
+        ]);
+
+        DB::beginTransaction();
+        try {
+            // Verify budget belongs to HOR's zone
+            $budget = \App\Models\Budget::with('zone')->findOrFail($validated['budget_id']);
+            if ($budget->zone->user_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only use budgets from your own zones'
+                ], 403);
+            }
+
+            // Check if budget has enough current balance
+            $readyDate = \Carbon\Carbon::parse($validated['ready_date']);
+
+            // Check and refill budget if needed
+            $budget->checkAndRefill();
+            
+            Log::info("Deducting amount: " . $request->amount . " for request id: " . $request->id);
+            
+            $budget->deduct(
+                $request->amount,
+                $request->id,
+                "Request #{$request->request_number} - {$request->requester_full_name}"
+            );
+            
+            Log::info("Budget deducted successfully. New balance: " . $budget->current_balance);
+
+            if ($budget->current_balance < $request->amount) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Insufficient budget balance for this request. Current balance: $' . number_format($budget->current_balance)
+                ], 400);
+            }
+
+            // Deduct from budget and create transaction record
+            $budget->deduct(
+                $request->amount,
+                $request->id,
+                "Request #{$request->request_number} - {$request->requester_full_name}"
+            );
+
+            // Update request with final approval, budget, and ready date
+            $finalStatus = RequestStatus::getByName(RequestStatus::STATUS_FINAL_APPROVAL);
+            $request->update([
+                'request_status_id' => $finalStatus->id,
+                'current_user_id' => null,
+                'budget_id' => $validated['budget_id'],
+                'ready_date' => $validated['ready_date']
+            ]);
+
+            // Notify sender
+            InboxNotification::createForUser(
+                $request->sender_id,
+                $request->id,
+                'request_final_approved',
+                'Request Finally Approved',
+                "Your humanitarian request #{$request->request_number} has received final approval and is scheduled for {$readyDate->format('M d, Y')}."
+            );
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Request approved successfully',
+                'message' => 'Request finally approved with budget allocated',
                 'redirect' => route('humanitarian.active')
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to approve request'
+                'message' => 'Failed to approve request: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -653,5 +868,88 @@ class HumanitarianRequestController extends Controller
             });
 
         return response()->json($members);
+    }
+
+    /**
+     * Get request amount (AJAX)
+     */
+    public function getAmount($id)
+    {
+        $request = Request::findOrFail($id);
+        return response()->json([
+            'amount' => $request->amount
+        ]);
+    }
+
+    /**
+     * Export monthly requests to PDF
+     * TODO: Implement actual PDF generation using Humanitarian Request Format
+     */
+    public function exportMonthlyPDF(HttpRequest $httpRequest)
+    {
+        $user = Auth::user();
+        $month = $httpRequest->input('month');
+        $year = $httpRequest->input('year');
+
+        if (!$month || !$year) {
+            abort(400, 'Month and year are required');
+        }
+
+        // Get all completed requests for the specified month
+        $requests = Request::with([
+            'requestType',
+            'requestStatus',
+            'sender',
+            'requesterCity',
+            'voter',
+            'referenceMember',
+            'budget'
+        ])
+            ->ofType('humanitarian')
+            ->completed()
+            ->forUser($user)
+            ->whereYear('ready_date', $year)
+            ->whereMonth('ready_date', $month)
+            ->orderBy('request_number')
+            ->get();
+            
+
+        // Use download.blade.php for multiple requests
+        return view('humanitarian.download', compact('requests', 'month', 'year'));
+    }
+
+    /**
+     * Export active requests to PDF
+     */
+    public function exportActivePDF(HttpRequest $httpRequest)
+    {
+        $user = Auth::user();
+        $month = $httpRequest->input('month');
+        $year = $httpRequest->input('year');
+
+        if (!$month || !$year) {
+            abort(400, 'Month and year are required');
+        }
+
+        // Get all active requests for the specified month
+        $requests = Request::with([
+            'requestType',
+            'requestStatus',
+            'sender',
+            'requesterCity',
+            'voter',
+            'referenceMember',
+            'budget'
+        ])
+            ->ofType('humanitarian')
+            ->active()
+            ->forUser($user)
+            ->whereYear('ready_date', $year)
+            ->whereMonth('ready_date', $month)
+            ->orderBy('request_number')
+            ->get();
+
+        // Use download.blade.php for multiple requests
+        return view('humanitarian.download', compact('requests', 'month', 'year'));
     }
 }

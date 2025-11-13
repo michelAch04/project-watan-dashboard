@@ -27,4 +27,9 @@ class Zone extends Model
     {
         return $this->hasMany(City::class);
     }
+
+    public function budgets()
+    {
+        return $this->hasMany(Budget::class);
+    }
 }

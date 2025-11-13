@@ -3,7 +3,7 @@
 @section('title', 'Create Humanitarian Request')
 
 @section('content')
-<div class="min-h-screen bg-[#fcf7f8]" x-data="humanitarianForm()" x-init="init()">
+<div class="min-h-screen bg-[#fcf7f8]" x-data="humanitarianForm(@json(auth()->user()->hasRole('hor')))" x-init="init()">
     {{-- ... (Header is unchanged) ... --}}
     <div class="mobile-header">
         <div class="safe-area">
@@ -290,6 +290,75 @@
                 </form>
             </div>
         </div>
+
+        <!-- Budget Selection Modal (HOR only) -->
+        <div x-show="showBudgetModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" @keydown.escape.window="showBudgetModal = false">
+            <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="showBudgetModal = false"></div>
+            <div class="flex items-end sm:items-center justify-center min-h-screen p-0 sm:p-4">
+                <div class="relative bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg sm:max-h-[90vh] overflow-y-auto" @click.stop>
+                    <div class="sticky top-0 bg-white rounded-t-3xl sm:rounded-t-2xl p-4 sm:p-6 border-b border-[#f8f0e2]">
+                        <h2 class="text-lg sm:text-xl font-bold text-[#622032] mb-2">Select Budget & Ready Date</h2>
+                        <p class="text-sm sm:text-base text-[#622032]/70">
+                            Amount: <span class="text-[#931335] font-semibold">($<span x-text="form.amount"></span>)</span>
+                        </p>
+                    </div>
+
+                    <div class="p-4 sm:p-6 space-y-4">
+                        <!-- Budget Selection -->
+                        <div>
+                            <label class="block text-sm font-semibold text-[#622032] mb-2">Select Budget</label>
+                            <select x-model="selectedBudget" @change="updateBudgetPreview" class="input-field text-sm sm:text-base">
+                                <option value="">-- Select Budget --</option>
+                                <template x-for="budget in budgets" :key="budget.id">
+                                    <option :value="budget.id" x-text="`${budget.description} ($${budget.monthly_amount_in_usd})`"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- Ready Date Selection -->
+                        <div>
+                            <label class="block text-sm font-semibold text-[#622032] mb-2">Ready Date</label>
+                            <input type="date" x-model="readyDate" @change="updateBudgetPreview" class="input-field text-sm sm:text-base" :min="new Date().toISOString().split('T')[0]">
+                        </div>
+
+                        <!-- Budget Preview -->
+                        <div x-show="budgetPreview" class="bg-[#f8f0e2] rounded-lg p-3 sm:p-4 space-y-2">
+                            <h3 class="font-semibold text-[#622032] mb-2 text-sm sm:text-base">Budget Preview</h3>
+                            <div class="flex justify-between text-xs sm:text-sm">
+                                <span class="text-[#622032]/70">Monthly Budget:</span>
+                                <span class="font-semibold text-[#622032]">$<span x-text="budgetPreview?.monthly_budget || 0"></span></span>
+                            </div>
+                            <div class="flex justify-between text-xs sm:text-sm">
+                                <span class="text-[#622032]/70">Current Remaining:</span>
+                                <span class="font-semibold" :class="budgetPreview?.current_remaining >= 0 ? 'text-green-600' : 'text-red-600'">
+                                    $<span x-text="budgetPreview?.current_remaining || 0"></span>
+                                </span>
+                            </div>
+                            <div class="flex justify-between text-xs sm:text-sm border-t border-[#622032]/20 pt-2">
+                                <span class="text-[#622032]/70">After Request:</span>
+                                <span class="font-bold" :class="budgetPreview?.after_request >= 0 ? 'text-green-600' : 'text-red-600'">
+                                    $<span x-text="budgetPreview?.after_request || 0"></span>
+                                </span>
+                            </div>
+                            <div x-show="!budgetPreview?.has_enough" class="text-xs text-red-600 font-semibold mt-2 flex items-start gap-1">
+                                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                <span>Insufficient budget!</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sticky bottom-0 bg-white p-4 sm:p-6 border-t border-[#f8f0e2] flex flex-col sm:flex-row gap-3">
+                        <button @click="showBudgetModal = false" class="w-full sm:flex-1 btn-secondary">Cancel</button>
+                        <button @click="confirmPublishWithBudget" :disabled="loading || !selectedBudget || !readyDate" class="w-full sm:flex-1 btn-primary">
+                            <span x-show="!loading">Publish & Allocate</span>
+                            <span x-show="loading">Publishing...</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
@@ -298,7 +367,7 @@
 <script>
 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-function humanitarianForm() {
+function humanitarianForm(isHor) {
     return {
         form: {
             voter_id: '',
@@ -307,12 +376,22 @@ function humanitarianForm() {
             reference_member_id: '',
             amount: '',
             notes: '',
-            action: 'draft'
+            action: 'draft',
+            budget_id: '',
+            ready_date: ''
         },
         loading: false,
         submitAction: '',
         submitAttempted: false,
         errorMessage: '',
+        
+        // Budget modal for HOR
+        showBudgetModal: false,
+        budgets: [],
+        selectedBudget: '',
+        readyDate: '',
+        budgetPreview: null,
+        userIsHor: isHor,
         
         // Voter search
         voterSearch: '',
@@ -320,7 +399,7 @@ function humanitarianForm() {
         voterSearching: false,
         voterResults: [],
         selectedVoter: null,
-        voterSearchTimeout: null, // This is fine, but we'll remove the logic
+        voterSearchTimeout: null,
         
         // Member search
         memberSearch: '',
@@ -328,7 +407,7 @@ function humanitarianForm() {
         memberSearching: false,
         memberResults: [],
         selectedMember: null,
-        memberSearchTimeout: null, // This is fine, but we'll remove the logic
+        memberSearchTimeout: null,
 
         init() {
             // Load all PW members initially
@@ -404,10 +483,95 @@ function humanitarianForm() {
             this.submitForm();
         },
 
-        submitAndPublish() {
-            this.form.action = 'publish';
-            this.submitAction = 'publish';
-            this.submitForm();
+        async submitAndPublish() {
+            this.submitAttempted = true;
+            
+            if (!this.form.voter_id) {
+                this.errorMessage = 'Please select a voter from your assigned location';
+                return;
+            }
+
+            if (!this.form.subtype || !this.form.reference_member_id || !this.form.amount) {
+                this.errorMessage = 'Please fill in all required fields';
+                return;
+            }
+
+            // If HOR, show budget modal before publishing
+            if (this.userIsHor) {
+                this.form.action = 'publish';
+                this.submitAction = 'publish';
+                await this.showBudgetSelectionModal();
+            } else {
+                // Non-HOR users just publish normally
+                this.form.action = 'publish';
+                this.submitAction = 'publish';
+                this.submitForm();
+            }
+        },
+
+        async showBudgetSelectionModal() {
+            try {
+                // Fetch user's zone budgets
+                const response = await fetch('/api/budgets/my-zones', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    }
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    this.budgets = data.budgets;
+
+                    // Reset selections
+                    this.selectedBudget = '';
+                    this.readyDate = '';
+                    this.budgetPreview = null;
+
+                    this.showBudgetModal = true;
+                } else {
+                    this.errorMessage = 'Failed to load budgets';
+                }
+            } catch (error) {
+                this.errorMessage = 'Failed to load budgets';
+            }
+        },
+
+        async updateBudgetPreview() {
+            if (!this.selectedBudget || !this.readyDate) {
+                this.budgetPreview = null;
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/budgets/preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        budget_id: this.selectedBudget,
+                        amount: this.form.amount,
+                        ready_date: this.readyDate
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    this.budgetPreview = data;
+                }
+            } catch (error) {
+                console.error('Failed to fetch budget preview');
+            }
+        },
+
+        async confirmPublishWithBudget() {
+            this.form.budget_id = this.selectedBudget;
+            this.form.ready_date = this.readyDate;
+            this.showBudgetModal = false;
+            await this.submitForm();
         },
 
         async submitForm() {

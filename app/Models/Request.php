@@ -23,6 +23,8 @@ class Request extends Model
         'subtype',
         'reference_member_id',
         'amount',
+        'budget_id',
+        'ready_date',
         'notes',
         'sender_id',
         'current_user_id',
@@ -31,6 +33,7 @@ class Request extends Model
 
     protected $casts = [
         'request_date' => 'date',
+        'ready_date' => 'date',
         'amount' => 'decimal:2'
     ];
 
@@ -117,6 +120,11 @@ class Request extends Model
     public function inboxNotifications()
     {
         return $this->hasMany(InboxNotification::class);
+    }
+
+    public function budget()
+    {
+        return $this->belongsTo(Budget::class);
     }
 
     /**

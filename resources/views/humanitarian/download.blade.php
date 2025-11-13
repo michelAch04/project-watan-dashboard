@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>طلب إنساني - {{ $request->request_number }}</title>
+    <title>
+        @if(isset($requests))
+            طلبات إنسانية - {{ \Carbon\Carbon::create($year, $month, 1)->format('F Y') }}
+        @else
+            طلب إنساني - {{ $request->request_number }}
+        @endif
+    </title>
     <style>
         @page {
             margin: 2cm;
@@ -158,123 +164,75 @@
             margin-top: 10px;
             border-right: 4px solid #931335;
         }
+
+        .page-break {
+            page-break-after: always;
+        }
+
+        .monthly-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #931335 0%, #622032 100%);
+            color: white;
+            border-radius: 10px;
+        }
+
+        .monthly-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .monthly-subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .request-card {
+            margin-bottom: 40px;
+            padding-bottom: 40px;
+            border-bottom: 3px dashed #ddd;
+        }
+
+        .request-card:last-child {
+            border-bottom: none;
+        }
+
+        @media print {
+            .request-card {
+                page-break-inside: avoid;
+            }
+        }
     </style>
 </head>
 <body>
     <button class="print-button" onclick="window.print()">طباعة / Print</button>
 
-    <div class="header">
-        <div class="logo">مشروع الوطن - Project Watan</div>
-        <div class="title">طلب مساعدة إنسانية</div>
-        <div class="title" style="font-size: 16px; color: #622032;">Humanitarian Aid Request</div>
-        <div class="request-number">رقم الطلب: {{ $request->request_number }}</div>
-        <div class="request-number">تاريخ: {{ $request->request_date->format('Y/m/d') }}</div>
-    </div>
-
-    <!-- Requester Information -->
-    <div class="section">
-        <div class="section-title">معلومات الطالب / Requester Information</div>
-        
-        <div class="field">
-            <span class="field-label">الإسم الكامل:</span>
-            <span class="field-value">{{ $request->requester_full_name }}</span>
-        </div>
-        
-        <div class="field">
-            <span class="field-label">البلدة:</span>
-            <span class="field-value">{{ $request->requesterCity->name_ar }}</span>
-        </div>
-        
-        @if($request->requester_ro_number)
-        <div class="field">
-            <span class="field-label">رقم السجل:</span>
-            <span class="field-value">{{ $request->requester_ro_number }}</span>
-        </div>
-        @endif
-        
-        @if($request->requester_phone)
-        <div class="field">
-            <span class="field-label">رقم الهاتف:</span>
-            <span class="field-value">{{ $request->requester_phone }}</span>
-        </div>
-        @endif
-    </div>
-
-    <!-- Request Details -->
-    <div class="section">
-        <div class="section-title">تفاصيل الطلب / Request Details</div>
-        
-        <div class="field">
-            <span class="field-label">نوع المساعدة:</span>
-            <span class="field-value">{{ $request->subtype }}</span>
-        </div>
-        
-        @if($request->referenceMember)
-        <div class="field">
-            <span class="field-label">المرجع:</span>
-            <span class="field-value">{{ $request->referenceMember->name }} ({{ $request->referenceMember->phone }})</span>
-        </div>
-        @endif
-        
-        @if($request->notes)
-        <div class="field">
-            <span class="field-label">ملاحظات:</span>
-            <span class="field-value">
-                <div class="notes-box">{{ $request->notes }}</div>
-            </span>
-        </div>
-        @endif
-    </div>
-
-    <!-- Amount -->
-    <div class="amount-box">
-        <div class="amount-label">المبلغ المطلوب / Requested Amount</div>
-        <div class="amount-value">${{ number_format($request->amount, 2) }} USD</div>
-    </div>
-
-    <!-- Workflow Information -->
-    <div class="section">
-        <div class="section-title">معلومات المعاملة / Transaction Information</div>
-        
-        <div class="field">
-            <span class="field-label">مقدم الطلب:</span>
-            <span class="field-value">{{ $request->sender->name }}</span>
-        </div>
-        
-        <div class="field">
-            <span class="field-label">الحالة:</span>
-            <span class="field-value">{{ $request->requestStatus->name_ar }}</span>
-        </div>
-        
-        <div class="field">
-            <span class="field-label">تاريخ الموافقة النهائية:</span>
-            <span class="field-value">{{ $request->updated_at->format('Y/m/d') }}</span>
-        </div>
-    </div>
-
-    <!-- Footer with Signatures -->
-    <div class="footer">
-        <div class="signatures">
-            <div class="signature-box">
-                <div class="signature-line">
-                    <strong>توقيع المستفيد</strong><br>
-                    Beneficiary Signature
-                </div>
+    @if(isset($requests))
+        <!-- Multiple Requests (Monthly Export) -->
+        <div class="monthly-header">
+            <div class="monthly-title">تقرير الطلبات الإنسانية الشهري</div>
+            <div class="monthly-title" style="font-size: 20px;">Monthly Humanitarian Requests Report</div>
+            <div class="monthly-subtitle">
+                {{ \Carbon\Carbon::create($year, $month, 1)->format('F Y') }} /
+                {{ \Carbon\Carbon::create($year, $month, 1)->locale('ar')->translatedFormat('F Y') }}
             </div>
-            
-            <div class="signature-box">
-                <div class="signature-line">
-                    <strong>توقيع المسؤول</strong><br>
-                    Official Signature
-                </div>
+            <div class="monthly-subtitle" style="margin-top: 10px;">
+                عدد الطلبات: {{ $requests->count() }} طلب
             </div>
         </div>
-        
-        <div style="text-align: center; margin-top: 40px; color: #622032; font-size: 12px;">
-            <p>مشروع الوطن - خدمة المجتمع والإنسانية</p>
-            <p>Project Watan - Serving Community & Humanity</p>
+
+        @foreach($requests as $index => $request)
+        <div class="request-card {{ $index > 0 && $index % 2 == 0 ? 'page-break' : '' }}">
+            @include('humanitarian.partials.download-single-request', ['request' => $request, 'showHeader' => false])
         </div>
-    </div>
+        @endforeach
+
+    @else
+        <!-- Single Request -->
+        @include('humanitarian.partials.download-single-request', ['request' => $request, 'showHeader' => true])
+    @endif
 
     <script>
         // Auto-print when page loads (optional)

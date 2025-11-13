@@ -108,6 +108,22 @@ class DashboardController extends Controller
             ];
         }
 
+        // Budgets (HOR and Admin only)
+        if ($user->hasRole('hor') || $user->hasRole('admin')) {
+            $features[] = [
+                'name' => 'Budgets',
+                'description' => 'Manage zone budgets and track expenses',
+                'icon' => 'wallet',
+                'color' => 'madder',
+                'route' => 'budgets.index',
+                'permissions' => [
+                    'view' => true,
+                    'create' => $user->hasRole('hor'),
+                    'edit' => $user->hasRole('hor'),
+                ]
+            ];
+        }
+
         // Settings
         if ($user->can('manage_settings')) {
             $features[] = [

@@ -83,6 +83,12 @@ Route::middleware('auth')->group(function () {
             Route::post('/', [App\Http\Controllers\HumanitarianRequestController::class, 'store'])->name('humanitarian.store');
         });
 
+        // Export routes (must come before /{id} wildcard route)
+        Route::middleware('can:final_approve_humanitarian')->group(function () {
+            Route::get('/export-monthly-pdf', [App\Http\Controllers\HumanitarianRequestController::class, 'exportMonthlyPDF'])->name('humanitarian.export-monthly-pdf');
+            Route::get('/export-active-pdf', [App\Http\Controllers\HumanitarianRequestController::class, 'exportActivePDF'])->name('humanitarian.export-active-pdf');
+        });
+
         Route::get('/{id}', [App\Http\Controllers\HumanitarianRequestController::class, 'show'])->name('humanitarian.show');
 
         Route::middleware('can:edit_humanitarian')->group(function () {
@@ -105,11 +111,61 @@ Route::middleware('auth')->group(function () {
 
         Route::middleware('can:final_approve_humanitarian')->group(function () {
             Route::get('/{id}/download', [App\Http\Controllers\HumanitarianRequestController::class, 'download'])->name('humanitarian.download');
+            Route::post('/{id}/final-approve', [App\Http\Controllers\HumanitarianRequestController::class, 'finalApprove'])->name('humanitarian.final-approve');
         });
 
         // AJAX routes
         Route::get('/api/search-voters', [App\Http\Controllers\HumanitarianRequestController::class, 'searchVoters'])->name('humanitarian.search-voters');
         Route::get('/api/search-members', [App\Http\Controllers\HumanitarianRequestController::class, 'searchMembers'])->name('humanitarian.search-members');
+        Route::get('/{id}/amount', [App\Http\Controllers\HumanitarianRequestController::class, 'getAmount'])->name('humanitarian.get-amount');
+    });
+
+    // Budget Management (HOR and Admin)
+    Route::prefix('budgets')->middleware('can:view_humanitarian')->group(function () {
+        // Index accessible by both HOR and Admin
+        Route::get('/', [App\Http\Controllers\BudgetController::class, 'index'])
+            ->name('budgets.index')
+            ->middleware('role:hor|admin');
+
+        // Create/Store only by HOR
+        Route::get('/create', [App\Http\Controllers\BudgetController::class, 'create'])
+            ->name('budgets.create')
+            ->middleware('role:hor');
+        Route::post('/', [App\Http\Controllers\BudgetController::class, 'store'])
+            ->name('budgets.store')
+            ->middleware('role:hor');
+
+        // Edit/Update only by HOR (of their own zones)
+        Route::get('/{id}/edit', [App\Http\Controllers\BudgetController::class, 'edit'])
+            ->name('budgets.edit')
+            ->middleware('role:hor');
+        Route::put('/{id}', [App\Http\Controllers\BudgetController::class, 'update'])
+            ->name('budgets.update')
+            ->middleware('role:hor');
+
+        // Delete only by HOR (of their own zones)
+        Route::delete('/{id}', [App\Http\Controllers\BudgetController::class, 'destroy'])
+            ->name('budgets.destroy')
+            ->middleware('role:hor');
+
+        // AJAX routes (HOR only)
+        Route::get('/zone/{zoneId}', [App\Http\Controllers\BudgetController::class, 'getBudgetsForZone'])
+            ->name('budgets.for-zone')
+            ->middleware('role:hor');
+    });
+
+    // Budget API Routes (for budget preview - HOR only)
+    Route::prefix('api/budgets')->middleware(['can:view_humanitarian', 'role:hor'])->group(function () {
+        Route::post('/preview', [App\Http\Controllers\BudgetController::class, 'getBudgetPreview'])->name('api.budgets.preview');
+        Route::get('/my-zones', [App\Http\Controllers\BudgetController::class, 'getMyZoneBudgets'])->name('api.budgets.my-zones');
+    });
+
+    // Monthly List Management
+    Route::prefix('monthly-list')->middleware('can:view_humanitarian')->group(function () {
+        Route::get('/', [App\Http\Controllers\MonthlyListController::class, 'index'])->name('monthly-list.index');
+        Route::post('/add', [App\Http\Controllers\MonthlyListController::class, 'add'])->name('monthly-list.add');
+        Route::delete('/{id}', [App\Http\Controllers\MonthlyListController::class, 'remove'])->name('monthly-list.remove');
+        Route::post('/publish-all', [App\Http\Controllers\MonthlyListController::class, 'publishAll'])->name('monthly-list.publish-all');
     });
 
     // Inbox

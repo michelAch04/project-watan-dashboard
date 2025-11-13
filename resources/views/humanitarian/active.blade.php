@@ -23,44 +23,81 @@
     <!-- Content -->
     <div class="safe-area py-4" x-data="activeRequests()">
         <div class="page-container space-y-4">
-            
+
             <!-- Filter Tabs -->
             <div class="bg-white rounded-xl p-2 shadow-sm border border-[#f8f0e2] overflow-x-auto">
                 <div class="flex gap-2 min-w-max">
-                    <button @click="statusFilter = 'all'" 
-                            :class="statusFilter === 'all' ? 'bg-[#931335] text-white' : 'bg-[#fcf7f8] text-[#622032]'"
-                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap">
+                    <button @click="statusFilter = 'all'"
+                        :class="statusFilter === 'all' ? 'bg-[#931335] text-white' : 'bg-[#fcf7f8] text-[#622032]'"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap">
                         All
                     </button>
-                    <button @click="statusFilter = 'published'" 
-                            :class="statusFilter === 'published' ? 'bg-[#931335] text-white' : 'bg-[#fcf7f8] text-[#622032]'"
-                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap">
+                    <button @click="statusFilter = 'published'"
+                        :class="statusFilter === 'published' ? 'bg-[#931335] text-white' : 'bg-[#fcf7f8] text-[#622032]'"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap">
                         Published
                     </button>
-                    <button @click="statusFilter = 'approved'" 
-                            :class="statusFilter === 'approved' ? 'bg-[#931335] text-white' : 'bg-[#fcf7f8] text-[#622032]'"
-                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap">
+                    <button @click="statusFilter = 'approved'"
+                        :class="statusFilter === 'approved' ? 'bg-[#931335] text-white' : 'bg-[#fcf7f8] text-[#622032]'"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap">
                         Approved
                     </button>
-                    <button @click="statusFilter = 'final_approval'" 
-                            :class="statusFilter === 'final_approval' ? 'bg-[#931335] text-white' : 'bg-[#fcf7f8] text-[#622032]'"
-                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap">
+                    <button @click="statusFilter = 'final_approval'"
+                        :class="statusFilter === 'final_approval' ? 'bg-[#931335] text-white' : 'bg-[#fcf7f8] text-[#622032]'"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap">
                         Final Approval
                     </button>
-                    <button @click="statusFilter = 'ready_for_collection'" 
-                            :class="statusFilter === 'ready_for_collection' ? 'bg-[#931335] text-white' : 'bg-[#fcf7f8] text-[#622032]'"
-                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap">
+                    <button @click="statusFilter = 'ready_for_collection'"
+                        :class="statusFilter === 'ready_for_collection' ? 'bg-[#931335] text-white' : 'bg-[#fcf7f8] text-[#622032]'"
+                        class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap">
                         Ready
                     </button>
                 </div>
             </div>
 
+            <!-- Month Filter and Export -->
+            @can('final_approve_humanitarian')
+            <div class="bg-white rounded-xl p-4 shadow-sm border border-[#f8f0e2]">
+                <div class="space-y-3">
+                    <div class="w-full">
+                        <label class="block text-sm font-semibold text-[#622032] mb-2">Filter by Ready Date Month</label>
+                        <form method="GET" action="{{ route('humanitarian.active') }}" class="flex flex-row gap-2">
+                            <input type="month"
+                                   x-model="selectedMonthYear"
+                                   @change="submitForm()"
+                                   class="input-field flex-1 text-sm sm:text-base"
+                                   placeholder="Select month">
+                            <input type="hidden" name="month" :value="getMonth()">
+                            <input type="hidden" name="year" :value="getYear()">
+                            <div class="flex items-center gap-2">
+                                @if($month && $year)
+                                <a href="{{ route('humanitarian.active') }}" class="flex-1 sm:flex-initial btn-secondary whitespace-nowrap">Clear</a>
+                                @endif
+                            </div>
+                        </form>
+                    </div>
+
+                    @if($month && $year)
+                    <div class="w-full">
+                        <a href="{{ route('humanitarian.export-active-pdf', ['month' => $month, 'year' => $year]) }}"
+                           class="btn-primary flex items-center justify-center w-full">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Export to PDF
+                        </a>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endcan
+
             <!-- Requests List -->
             <div class="space-y-3">
                 @forelse($requests as $request)
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-[#f8f0e2]" 
-                     x-show="statusFilter === 'all' || statusFilter === '{{ $request->requestStatus->name }}'">
-                    
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-[#f8f0e2]"
+                    x-show="statusFilter === 'all' || statusFilter === '{{ $request->requestStatus->name }}'">
+
                     <!-- Request Header -->
                     <div class="flex items-start justify-between mb-3">
                         <div>
@@ -89,7 +126,7 @@
                                 <p class="text-xs text-[#622032]/60">{{ $request->requesterCity->name }} @if($request->requester_ro_number) • {{ $request->requester_ro_number }} @endif</p>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center gap-2 text-xs text-[#622032]/60">
                             <span class="px-2 py-1 bg-[#fef9de] rounded">{{ $request->subtype }}</span>
                             <span>•</span>
@@ -118,40 +155,54 @@
                     </div>
 
                     <!-- Actions -->
-                    <div class="flex gap-2 pt-3 border-t border-[#f8f0e2]">
-                        <a href="{{ route('humanitarian.show', $request->id) }}" 
-                           class="flex-1 bg-[#f8f0e2] hover:bg-[#dfd1ba] text-[#622032] font-semibold text-sm py-2 px-4 rounded-lg text-center transition-all active:scale-95">
+                    <div class="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#f8f0e2]">
+                        <a href="{{ route('humanitarian.show', $request->id) }}"
+                            class="flex-1 bg-[#f8f0e2] hover:bg-[#dfd1ba] text-[#622032] font-semibold text-sm py-2 px-4 rounded-lg text-center transition-all active:scale-95">
                             View Details
                         </a>
-                        
-                        @if($request->canApproveReject(auth()->user()))
-                        <button @click="showApproveModal({{ $request->id }}, '{{ $request->request_number }}')"
-                                class="bg-green-600 hover:bg-green-700 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95">
-                            Approve
-                        </button>
-                        <button @click="showRejectModal({{ $request->id }}, '{{ $request->request_number }}')"
-                                class="bg-red-600 hover:bg-red-700 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95">
-                            Reject
-                        </button>
-                        @endif
 
-                        @can('mark_ready_humanitarian')
+                        <div class="grid grid-cols-2 gap-1">
+                            @if($request->canApproveReject(auth()->user()))
+                            <button @click="showApproveModal({{ $request->id }}, '{{ $request->request_number }}')"
+                                class="bg-green-600 hover:bg-green-700 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95">
+                                Approve
+                            </button>
+                            <button @click="showRejectModal({{ $request->id }}, '{{ $request->request_number }}')"
+                                class="bg-red-600 hover:bg-red-700 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95">
+                                Reject
+                            </button>
+                            @endif
+
+                            @can('mark_ready_humanitarian')
                             @if($request->requestStatus->name === 'final_approval')
                             <button @click="markReady({{ $request->id }})"
-                                    class="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95">
+                                class="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95">
                                 Mark as Ready
                             </button>
                             @endif
-                        @endcan
+                            @endcan
 
-                        @can('mark_collected_humanitarian')
+                            @can('mark_collected_humanitarian')
                             @if($request->requestStatus->name === 'ready_for_collection')
                             <button @click="markCollected({{ $request->id }})"
-                                    class="bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95">
+                                class="bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95">
                                 Mark as Collected
                             </button>
                             @endif
-                        @endcan
+                            @endcan
+
+                            @if($request->requestStatus->name === 'final_approval' || $request->requestStatus->name === 'ready_for_collection')
+                            @can('final_approve_humanitarian')
+                            <a href="{{ route('humanitarian.download', $request->id) }}"
+                                class="bg-[#931335] hover:bg-[#622032] text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span>Download</span>
+                            </a>
+                            @endcan
+                            @endif
+                        </div>
                     </div>
                 </div>
                 @empty
@@ -215,134 +266,330 @@
                 </div>
             </div>
         </div>
+
+        <!-- Budget Selection Modal (HOR only) -->
+        <div x-show="showBudgetModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" @keydown.escape.window="showBudgetModal = false">
+            <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="showBudgetModal = false"></div>
+            <div class="flex items-end sm:items-center justify-center min-h-screen p-0 sm:p-4">
+                <div class="relative bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg sm:max-h-[90vh] overflow-y-auto" @click.stop>
+                    <div class="sticky top-0 bg-white rounded-t-3xl sm:rounded-t-2xl p-4 sm:p-6 border-b border-[#f8f0e2]">
+                        <h2 class="text-lg sm:text-xl font-bold text-[#622032] mb-2">Select Budget & Ready Date</h2>
+                        <p class="text-sm sm:text-base text-[#622032]/70">
+                            Final approval for request <strong class="break-all" x-text="selectedRequestNumber"></strong>
+                            <span class="text-[#931335] font-semibold">($<span x-text="requestAmount"></span>)</span>
+                        </p>
+                    </div>
+
+                    <div class="p-4 sm:p-6 space-y-4">
+                        <!-- Budget Selection -->
+                        <div>
+                            <label class="block text-sm font-semibold text-[#622032] mb-2">Select Budget</label>
+                            <select x-model="selectedBudget" @change="updateBudgetPreview" class="input-field text-sm sm:text-base">
+                                <option value="">-- Select Budget --</option>
+                                <template x-for="budget in budgets" :key="budget.id">
+                                    <option :value="budget.id" x-text="`${budget.description} ($${budget.monthly_amount_in_usd})`"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- Ready Date Selection -->
+                        <div>
+                            <label class="block text-sm font-semibold text-[#622032] mb-2">Ready Date</label>
+                            <input type="date" x-model="readyDate" @change="updateBudgetPreview" class="input-field text-sm sm:text-base" :min="new Date().toISOString().split('T')[0]">
+                        </div>
+
+                        <!-- Budget Preview -->
+                        <div x-show="budgetPreview" class="bg-[#f8f0e2] rounded-lg p-3 sm:p-4 space-y-2">
+                            <h3 class="font-semibold text-[#622032] mb-2 text-sm sm:text-base">Budget Preview</h3>
+                            <div class="flex justify-between text-xs sm:text-sm">
+                                <span class="text-[#622032]/70">Monthly Budget:</span>
+                                <span class="font-semibold text-[#622032]">$<span x-text="budgetPreview?.monthly_budget || 0"></span></span>
+                            </div>
+                            <div class="flex justify-between text-xs sm:text-sm">
+                                <span class="text-[#622032]/70">Current Remaining:</span>
+                                <span class="font-semibold" :class="budgetPreview?.current_remaining >= 0 ? 'text-green-600' : 'text-red-600'">
+                                    $<span x-text="budgetPreview?.current_remaining || 0"></span>
+                                </span>
+                            </div>
+                            <div class="flex justify-between text-xs sm:text-sm border-t border-[#622032]/20 pt-2">
+                                <span class="text-[#622032]/70">After Request:</span>
+                                <span class="font-bold" :class="budgetPreview?.after_request >= 0 ? 'text-green-600' : 'text-red-600'">
+                                    $<span x-text="budgetPreview?.after_request || 0"></span>
+                                </span>
+                            </div>
+                            <div x-show="!budgetPreview?.has_enough" class="text-xs text-red-600 font-semibold mt-2 flex items-start gap-1">
+                                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                <span>Insufficient budget!</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sticky bottom-0 bg-white p-4 sm:p-6 border-t border-[#f8f0e2] flex flex-col sm:flex-row gap-3">
+                        <button @click="showBudgetModal = false" class="w-full sm:flex-1 btn-secondary">Cancel</button>
+                        <button @click="confirmFinalApprove" :disabled="processing || !selectedBudget || !readyDate" class="w-full sm:flex-1 btn-primary">
+                            <span x-show="!processing">Approve & Allocate</span>
+                            <span x-show="processing">Processing...</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
 
 @push('scripts')
 <script>
-const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-function activeRequests() {
-    return {
-        statusFilter: 'all',
-        showApprove: false,
-        showReject: false,
-        selectedRequestId: null,
-        selectedRequestNumber: '',
-        rejectionReason: '',
-        processing: false,
+    function activeRequests() {
+        return {
+            statusFilter: 'all',
+            showApprove: false,
+            showReject: false,
+            showBudgetModal: false,
+            selectedRequestId: null,
+            selectedRequestNumber: '',
+            requestAmount: 0,
+            rejectionReason: '',
+            processing: false,
+            budgets: [],
+            selectedBudget: '',
+            readyDate: '',
+            budgetPreview: null,
+            selectedMonthYear: '{{ $month && $year ? sprintf("%04d-%02d", $year, $month) : "" }}',
 
-        showApproveModal(id, number) {
-            this.selectedRequestId = id;
-            this.selectedRequestNumber = number;
-            this.showApprove = true;
-        },
+            getMonth() {
+                if (!this.selectedMonthYear) return '';
+                return this.selectedMonthYear.split('-')[1];
+            },
 
-        showRejectModal(id, number) {
-            this.selectedRequestId = id;
-            this.selectedRequestNumber = number;
-            this.rejectionReason = '';
-            this.showReject = true;
-        },
+            getYear() {
+                if (!this.selectedMonthYear) return '';
+                return this.selectedMonthYear.split('-')[0];
+            },
 
-        async confirmApprove() {
-            this.processing = true;
-            try {
-                const response = await fetch(`/humanitarian/${this.selectedRequestId}/approve`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
+            submitForm() {
+                document.querySelector('form').submit();
+            },
+
+            showApproveModal(id, number) {
+                this.selectedRequestId = id;
+                this.selectedRequestNumber = number;
+                this.showApprove = true;
+            },
+
+            showRejectModal(id, number) {
+                this.selectedRequestId = id;
+                this.selectedRequestNumber = number;
+                this.rejectionReason = '';
+                this.showReject = true;
+            },
+
+            async confirmApprove() {
+                this.processing = true;
+                try {
+                    const response = await fetch(`/humanitarian/${this.selectedRequestId}/approve`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        if (data.needs_budget_selection) {
+                            // HOR needs to select budget
+                            this.showApprove = false;
+                            await this.showBudgetSelectionModal();
+                        } else {
+                            window.location.reload();
+                        }
+                    } else {
+                        alert(data.message || 'Failed to approve request');
                     }
-                });
-
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.message || 'Failed to approve request');
+                } catch (error) {
+                    alert('Network error. Please try again.');
+                } finally {
+                    this.processing = false;
                 }
-            } catch (error) {
-                alert('Network error. Please try again.');
-            } finally {
-                this.processing = false;
-            }
-        },
+            },
 
-        async confirmReject() {
-            this.processing = true;
-            try {
-                const response = await fetch(`/humanitarian/${this.selectedRequestId}/reject`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ rejection_reason: this.rejectionReason })
-                });
+            async showBudgetSelectionModal() {
+                try {
+                    // Fetch user's zone budgets
+                    const response = await fetch('/api/budgets/my-zones', {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken
+                        }
+                    });
+                    const data = await response.json();
 
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.message || 'Failed to reject request');
-                }
-            } catch (error) {
-                alert('Network error. Please try again.');
-            } finally {
-                this.processing = false;
-            }
-        },
+                    if (response.ok && data.success) {
+                        this.budgets = data.budgets;
 
-        async markReady(id) {
-            if (!confirm('Mark this request as ready for collection?')) return;
-            
-            try {
-                const response = await fetch(`/humanitarian/${id}/mark-ready`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
+                        // Get request amount
+                        const requestResponse = await fetch(`/humanitarian/${this.selectedRequestId}/amount`, {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken
+                            }
+                        });
+                        const requestData = await requestResponse.json();
+                        this.requestAmount = requestData.amount;
+
+                        // Reset selections
+                        this.selectedBudget = '';
+                        this.readyDate = '';
+                        this.budgetPreview = null;
+
+                        this.showBudgetModal = true;
+                    } else {
+                        alert('Failed to load budgets');
                     }
-                });
-
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.message || 'Failed to mark as ready');
+                } catch (error) {
+                    alert('Failed to load budgets');
                 }
-            } catch (error) {
-                alert('Network error. Please try again.');
-            }
-        },
+            },
 
-        async markCollected(id) {
-            if (!confirm('Mark this request as collected?')) return;
-            
-            try {
-                const response = await fetch(`/humanitarian/${id}/mark-collected`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
+            async updateBudgetPreview() {
+                if (!this.selectedBudget || !this.readyDate) {
+                    this.budgetPreview = null;
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/budgets/preview', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            budget_id: this.selectedBudget,
+                            amount: this.requestAmount,
+                            ready_date: this.readyDate
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        this.budgetPreview = data;
                     }
-                });
-
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    window.location.reload();
-                } else {
-                    alert(data.message || 'Failed to mark as collected');
+                } catch (error) {
+                    console.error('Failed to fetch budget preview');
                 }
-            } catch (error) {
-                alert('Network error. Please try again.');
+            },
+
+            async confirmFinalApprove() {
+                this.processing = true;
+                try {
+                    const response = await fetch(`/humanitarian/${this.selectedRequestId}/final-approve`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            budget_id: this.selectedBudget,
+                            ready_date: this.readyDate
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'Failed to approve request');
+                    }
+                } catch (error) {
+                    alert('Network error. Please try again.');
+                } finally {
+                    this.processing = false;
+                }
+            },
+
+            async confirmReject() {
+                this.processing = true;
+                try {
+                    const response = await fetch(`/humanitarian/${this.selectedRequestId}/reject`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            rejection_reason: this.rejectionReason
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'Failed to reject request');
+                    }
+                } catch (error) {
+                    alert('Network error. Please try again.');
+                } finally {
+                    this.processing = false;
+                }
+            },
+
+            async markReady(id) {
+                if (!confirm('Mark this request as ready for collection?')) return;
+
+                try {
+                    const response = await fetch(`/humanitarian/${id}/mark-ready`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'Failed to mark as ready');
+                    }
+                } catch (error) {
+                    alert('Network error. Please try again.');
+                }
+            },
+
+            async markCollected(id) {
+                if (!confirm('Mark this request as collected?')) return;
+
+                try {
+                    const response = await fetch(`/humanitarian/${id}/mark-collected`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'Failed to mark as collected');
+                    }
+                } catch (error) {
+                    alert('Network error. Please try again.');
+                }
             }
         }
     }
-}
 </script>
 @endpush

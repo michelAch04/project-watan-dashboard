@@ -12,20 +12,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('villages', function (Blueprint $table) {
-            // Drop the foreign key constraint first
-            $table->dropForeign(['user_id']);
-            // Change column type to json
-            $table->json('user_id')->nullable()->change();
-        });
+        // Schema::table('villages', function (Blueprint $table) {
+        //     // Drop the foreign key constraint first
+        //     $table->dropForeign(['user_id']);
+        //     // Change column type to json
+        //     $table->json('user_id')->nullable()->change();
+        // });
 
         // Migrate existing single user_id values to JSON array format
-        $villages = DB::table('villages')->whereNotNull('user_id')->get();
-        foreach ($villages as $village) {
-            DB::table('villages')
-                ->where('id', $village->id)
-                ->update(['user_id' => json_encode([(int)$village->user_id])]);
-        }
+        // $villages = DB::table('villages')->whereNotNull('user_id')->get();
+        // foreach ($villages as $village) {
+        //     DB::table('villages')
+        //         ->where('id', $village->id)
+        //         ->update(['user_id' => json_encode([(int)$village->user_id])]);
+        // }
     }
 
     /**

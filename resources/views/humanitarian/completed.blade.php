@@ -21,14 +21,54 @@
     </div>
 
     <!-- Content -->
-    <div class="safe-area py-4">
+    <div class="safe-area py-4" x-data="completedRequests()">
         <div class="page-container space-y-4">
-            
+
+            <!-- Filter and Actions -->
+            <div class="bg-white rounded-xl p-4 shadow-sm border border-[#f8f0e2]">
+                <div class="space-y-3">
+                    <!-- Filter Form -->
+                    <div class="w-full">
+                        <label class="block text-sm font-semibold text-[#622032] mb-2">Filter by Month</label>
+                        <form method="GET" action="{{ route('humanitarian.completed') }}" class="flex flex-row gap-2">
+                            <input type="month" 
+                                   x-model="selectedMonthYear" 
+                                   @change="submitForm()"
+                                   class="input-field flex-1 text-sm sm:text-base"
+                                   placeholder="Select month">
+                            <input type="hidden" name="month" :value="getMonth()">
+                            <input type="hidden" name="year" :value="getYear()">
+                            <div class="flex gap-2">
+                                @if($month && $year)
+                                <a href="{{ route('humanitarian.completed') }}" class="btn-secondary whitespace-nowrap flex items-center">
+                                    <span class="hidden sm:inline">Clear Filter</span>
+                                    <span class="sm:hidden">Clear</span>
+                                </a>
+                                @endif
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Export Button -->
+                    @if($month && $year)
+                    <div class="w-full">
+                        <a href="{{ route('humanitarian.export-monthly-pdf', ['month' => $month, 'year' => $year]) }}"
+                            class="btn-primary flex items-center justify-center w-full">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Export to PDF
+                        </a>
+                    </div>
+                    @endif
+                </div>
+            </div>
+
             <!-- Stats Summary -->
             <div class="bg-white rounded-xl p-4 shadow-sm border border-[#f8f0e2]">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-[#622032]/60">Total Collected</p>
+                        <p class="text-sm text-[#622032]/60">{{ $month && $year ? 'Filtered Results' : 'Total Collected' }}</p>
                         <p class="text-2xl font-bold text-[#622032]">{{ $requests->total() }}</p>
                     </div>
                     <div class="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
@@ -43,7 +83,7 @@
             <div class="space-y-3">
                 @forelse($requests as $request)
                 <div class="bg-white rounded-xl p-4 shadow-sm border border-[#f8f0e2]">
-                    
+
                     <!-- Request Header -->
                     <div class="flex items-start justify-between mb-3">
                         <div>
@@ -71,7 +111,7 @@
                                 <p class="text-xs text-[#622032]/60">{{ $request->requesterCity->name }} @if($request->requester_ro_number) • {{ $request->requester_ro_number }} @endif</p>
                             </div>
                         </div>
-                        
+
                         <div class="flex items-center gap-2 text-xs text-[#622032]/60">
                             <span class="px-2 py-1 bg-[#fef9de] rounded">{{ $request->subtype }}</span>
                             <span>•</span>
@@ -100,19 +140,32 @@
                     </div>
 
                     <!-- Actions -->
-                    <div class="flex gap-2 pt-3 border-t border-[#f8f0e2]">
-                        <a href="{{ route('humanitarian.show', $request->id) }}" 
-                           class="flex-1 bg-[#f8f0e2] hover:bg-[#dfd1ba] text-[#622032] font-semibold text-sm py-2 px-4 rounded-lg text-center transition-all active:scale-95">
-                            View Details
-                        </a>
-                        
+                    <div class="space-y-2 pt-3 border-t border-[#f8f0e2]">
+                        <!-- Secondary actions - Grid on desktop, stacked on mobile -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <!-- Primary action - Full width on mobile -->
+                            <a href="{{ route('humanitarian.show', $request->id) }}"
+                                class="block w-full bg-[#f8f0e2] hover:bg-[#dfd1ba] text-[#622032] font-semibold text-sm py-2 px-4 rounded-lg text-center transition-all active:scale-95">
+                                View Details
+                            </a>
+
+                            <button @click="addToMonthlyList({{ $request->id }})"
+                                class="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                <span class="hidden sm:inline">Add to Monthly</span>
+                                <span class="sm:hidden">Add Monthly</span>
+                            </button>
+                        </div>
+
                         @can('final_approve_humanitarian')
-                        <a href="{{ route('humanitarian.download', $request->id) }}" 
-                           class="bg-[#931335] hover:bg-[#622032] text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center gap-2">
+                        <a href="{{ route('humanitarian.download', $request->id) }}"
+                            class="bg-[#931335] hover:bg-[#622032] text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
-                            Download
+                            <span>Download</span>
                         </a>
                         @endcan
                     </div>
@@ -140,3 +193,59 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+    function completedRequests() {
+        return {
+            selectedMonthYear: '{{ $month && $year ? sprintf("%04d-%02d", $year, $month) : "" }}',
+
+            getMonth() {
+                if (!this.selectedMonthYear) return '';
+                // Month input format is YYYY-MM
+                return this.selectedMonthYear.split('-')[1];
+            },
+
+            getYear() {
+                if (!this.selectedMonthYear) return '';
+                // Month input format is YYYY-MM
+                return this.selectedMonthYear.split('-')[0];
+            },
+
+            submitForm() {
+                // Auto-submit when month changes
+                document.querySelector('form').submit();
+            },
+
+            async addToMonthlyList(requestId) {
+                try {
+                    const response = await fetch('/monthly-list/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            request_id: requestId,
+                            month: new Date().getMonth() + 1,
+                            year: new Date().getFullYear()
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        alert('Request added to monthly list');
+                    } else {
+                        alert(data.message || 'Failed to add request');
+                    }
+                } catch (error) {
+                    alert('Network error. Please try again.');
+                }
+            }
+        }
+    }
+</script>
+@endpush

@@ -34,7 +34,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'final_approve_humanitarian',
             'mark_ready_humanitarian',
             'mark_collected_humanitarian',
-            
+
+            // Budget Management
+            'view_budget',
+            'create_budget',
+            'edit_budget',
+            'delete_budget',
+
             // Zone Management
             'view_zones',
             'manage_zones',
@@ -78,6 +84,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'final_approve_humanitarian',
             'mark_ready_humanitarian',
             'mark_collected_humanitarian',
+            'view_budget',
+            'create_budget',
+            'edit_budget',
+            'delete_budget',
             'view_financial',
             'create_financial',
             'edit_financial',
