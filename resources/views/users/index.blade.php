@@ -55,6 +55,7 @@
                     </div>
 
                     <!-- Zone Filter -->
+                    @if(auth()->user()->hasRole('admin'))
                     <div>
                         <label for="zone_id" class="block text-xs font-semibold text-[#622032] mb-1">Filter by Zone</label>
                         <select
@@ -84,6 +85,7 @@
                         </a>
                         @endif
                     </div>
+                    @endif
                 </form>
             </div>
 

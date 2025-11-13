@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
@@ -84,16 +85,65 @@ class User extends Authenticatable
         return $this->hasMany(Zone::class);
     }
 
+    /**
+     * Get cities collection (for backward compatibility)
+     */
     public function cities()
     {
         // Cities where user_id JSON array contains this user's ID
         return City::whereJsonContains('user_id', $this->id)->get();
     }
 
+    /**
+     * Get cities as a proper relationship (for queries)
+     */
+    public function citiesRelation()
+    {
+        return City::query()->whereJsonContains('user_id', $this->id);
+    }
+
+    /**
+     * Scope for filtering users by cities in a specific zone
+     */
+    public function scopeHasCityInZone($query, $zoneId)
+    {
+        return $query->whereExists(function($subquery) use ($zoneId) {
+            $subquery->select(DB::raw(1))
+                ->from('cities')
+                ->whereRaw('JSON_CONTAINS(cities.user_id, users.id)')
+                ->where('cities.zone_id', $zoneId);
+        });
+    }
+
+    /**
+     * Get villages collection (for backward compatibility)
+     */
     public function villages()
     {
         // Villages where user_id JSON array contains this user's ID
         return Village::whereJsonContains('user_id', $this->id)->get();
+    }
+
+    /**
+     * Get villages as a proper relationship (for queries)
+     */
+    public function villagesRelation()
+    {
+        return Village::query()->whereJsonContains('user_id', $this->id);
+    }
+
+    /**
+     * Scope for filtering users by villages in a specific zone
+     */
+    public function scopeHasVillageInZone($query, $zoneId)
+    {
+        return $query->whereExists(function($subquery) use ($zoneId) {
+            $subquery->select(DB::raw(1))
+                ->from('villages')
+                ->join('cities', 'villages.city_id', '=', 'cities.id')
+                ->whereRaw('JSON_CONTAINS(villages.user_id, users.id)')
+                ->where('cities.zone_id', $zoneId);
+        });
     }
 
         /**

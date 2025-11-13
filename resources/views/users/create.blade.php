@@ -250,42 +250,6 @@
         </div>
     </div>
 
-    <div x-show="showAssignModal" 
-         x-cloak
-         class="fixed inset-0 z-50 overflow-y-auto"
-         @keydown.escape.window="skipAssignment">
-        
-        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-             x-show="showAssignModal"
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"></div>
-        
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
-                 x-show="showAssignModal"
-                 x-transition:enter="transition ease-out duration-300"
-                 x-transition:enter-start="opacity-0 transform scale-95"
-                 x-transition:enter-end="opacity-100 transform scale-100"
-                 @click.stop>
-                
-                <h2 class="text-xl font-bold text-[#622032] mb-4">Assign Location?</h2>
-                <p class="text-[#622032]/70 mb-6">
-                    User <strong x-text="selectedPwMember?.name"></strong> has been created successfully. 
-                    Would you like to assign a location to them now?
-                </p>
-
-                <div class="flex gap-3">
-                    <button @click="skipAssignment" class="flex-1 btn-secondary">
-                        Skip
-                    </button>
-                    <button @click="goToAssignLocation" class="flex-1 btn-primary">
-                        Assign
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 @endsection
 
@@ -306,8 +270,6 @@ function createUserForm() {
         loading: false,
         submitAttempted: false,
         errorMessage: '',
-        showAssignModal: false,
-        createdUserId: null,
 
         // PW Member search
         pwMembers: @json($pwMembers),
@@ -409,8 +371,12 @@ function createUserForm() {
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    this.createdUserId = data.user_id;
-                    this.showAssignModal = true;
+                    // Automatically redirect to assign-location page
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        window.location.href = `/users/${data.user_id}/assign-location`;
+                    }
                 } else {
                     this.errorMessage = data.message || 'Failed to create user';
                 }
@@ -420,14 +386,6 @@ function createUserForm() {
             } finally {
                 this.loading = false;
             }
-        },
-
-        goToAssignLocation() {
-            window.location.href = `/users/${this.createdUserId}/assign-location`;
-        },
-
-        skipAssignment() {
-            window.location.href = '{{ route("users.index") }}';
         }
     }
 }

@@ -62,22 +62,23 @@ class DashboardController extends Controller
             ];
         }
 
-        // Reports
-        if ($user->can('view_reports')) {
+        // Budgets (HOR and Admin only)
+        if (($user->hasRole('hor') || $user->hasRole('admin')) && $user->can('view_budget')) {
             $features[] = [
-                'name' => 'Reports',
-                'description' => 'View analytics and summaries',
-                'icon' => 'chart',
+                'name' => 'Budgets',
+                'description' => 'Manage zone budgets and track expenses',
+                'icon' => 'wallet',
                 'color' => 'madder',
-                'route' => 'reports.index',
+                'route' => 'budgets.index',
                 'permissions' => [
                     'view' => true,
-                    'export' => $user->can('export_reports'),
+                    'create' => $user->can('create_budget'),
+                    'edit' => $user->can('edit_budget'),
                 ]
             ];
         }
 
-        // User Management (Admin/Manager only)
+        // User Management (Admin only)
         if ($user->can('view_users')) {
             $features[] = [
                 'name' => 'Users',
@@ -93,6 +94,21 @@ class DashboardController extends Controller
             ];
         }
 
+        // Reports
+        if ($user->can('view_reports')) {
+            $features[] = [
+                'name' => 'Reports',
+                'description' => 'View analytics and summaries',
+                'icon' => 'chart',
+                'color' => 'madder',
+                'route' => 'reports.index',
+                'permissions' => [
+                    'view' => true,
+                    'export' => $user->can('export_reports'),
+                ]
+            ];
+        }
+
         // Zones (Admin only)
         if ($user->can('view_zones')) {
             $features[] = [
@@ -104,22 +120,6 @@ class DashboardController extends Controller
                 'permissions' => [
                     'view' => true,
                     'manage' => $user->can('manage_zones'),
-                ]
-            ];
-        }
-
-        // Budgets (HOR and Admin only)
-        if ($user->hasRole('hor') || $user->hasRole('admin')) {
-            $features[] = [
-                'name' => 'Budgets',
-                'description' => 'Manage zone budgets and track expenses',
-                'icon' => 'wallet',
-                'color' => 'madder',
-                'route' => 'budgets.index',
-                'permissions' => [
-                    'view' => true,
-                    'create' => $user->hasRole('hor'),
-                    'edit' => $user->hasRole('hor'),
                 ]
             ];
         }

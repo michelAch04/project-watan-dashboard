@@ -7,7 +7,8 @@
       "Bash(else mkdir -p resources/views/budgets)",
       "Bash(fi)",
       "Bash(if [ -d \"resources/views/humanitarian/partials\" ])",
-      "Bash(else mkdir -p resources/views/humanitarian/partials)"
+      "Bash(else mkdir -p resources/views/humanitarian/partials)",
+      "Bash(php -l:*)"
     ],
     "deny": [],
     "ask": []

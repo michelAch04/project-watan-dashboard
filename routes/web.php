@@ -22,28 +22,22 @@ Route::middleware('auth')->group(function () {
         return view('profile.index');
     })->name('profile');
 
-    // User Management Routes (Admin only with password verification)
-    Route::prefix('users')->group(function () {
-        // Password verification routes (middleware handles admin check + doesn't require password verification)
-        Route::middleware(['admin.password'])->group(function () {
-            Route::get('/verify-password', [UserController::class, 'showVerifyPassword'])->name('users.verify-password');
-            Route::post('/verify-password', [UserController::class, 'verifyPassword'])->name('users.verify-password.submit');
+    // User Management Routes (Admin and HOR access)
+    Route::prefix('users')->middleware('role:admin|hor')->group(function () {
+        // Index page (viewing users)
+        Route::get('/', [UserController::class, 'index'])->name('users.index');
 
-            // Index page (viewing only - no password required, but admin check applies)
-            Route::get('/', [UserController::class, 'index'])->name('users.index');
+        // User CRUD routes
+        Route::get('/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('/', [UserController::class, 'store'])->name('users.store');
+        Route::get('/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+        Route::put('/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
-            // Routes that require password verification
-            Route::get('/create', [UserController::class, 'create'])->name('users.create');
-            Route::post('/', [UserController::class, 'store'])->name('users.store');
-            Route::get('/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-            Route::put('/{user}', [UserController::class, 'update'])->name('users.update');
-            Route::delete('/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-
-            // Location assignment
-            Route::get('/{user}/assign-location', [UserController::class, 'showAssignLocation'])->name('users.assign-location');
-            Route::post('/{user}/assign-location', [UserController::class, 'assignLocation'])->name('users.assign-location.store');
-            Route::get('/{user}/locations', [UserController::class, 'getAvailableLocations'])->name('users.locations');
-        });
+        // Location assignment
+        Route::get('/{user}/assign-location', [UserController::class, 'showAssignLocation'])->name('users.assign-location');
+        Route::post('/{user}/assign-location', [UserController::class, 'assignLocation'])->name('users.assign-location.store');
+        Route::get('/{user}/locations', [UserController::class, 'getAvailableLocations'])->name('users.locations');
     });
 
     // Feature routes (placeholders - we'll create these later)
@@ -177,6 +171,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/unread-count', [App\Http\Controllers\InboxController::class, 'unreadCount'])->name('inbox.unread-count');
     });
 });
+
+Route::get('/403', function(){
+    return view('errors.403');
+})->name('errors.403');
 
 // Redirect root to appropriate page
 Route::get('/', function () {

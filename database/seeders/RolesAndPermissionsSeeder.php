@@ -99,6 +99,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage_zones',
             'view_inbox',
             'manage_settings',
+            'view_users',
+            'create_users',
+            'edit_users',
+            'delete_users',
         ]);
 
         // GS (General Secretary) - Can manage but not final approve

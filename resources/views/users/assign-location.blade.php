@@ -55,7 +55,7 @@
                             <option value="village">Village</option>
                         </select>
                         
-                        @if(!$canAssignZone)
+                        @if(!$canAssignZone && auth()->user()->hasRole('admin'))
                         <p class="text-xs text-[#622032]/60 mt-2">
                             Only users who report to themselves can be assigned a zone
                         </p>
