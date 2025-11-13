@@ -912,7 +912,6 @@ class HumanitarianRequestController extends Controller
             ->whereMonth('ready_date', $month)
             ->orderBy('request_number')
             ->get();
-            
 
         // Use download.blade.php for multiple requests
         return view('humanitarian.download', compact('requests', 'month', 'year'));
