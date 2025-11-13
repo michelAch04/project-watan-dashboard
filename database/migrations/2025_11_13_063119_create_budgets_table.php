@@ -11,12 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('cities', function (Blueprint $table) {
+        Schema::create('budgets', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 100);
-            $table->string('name_ar', 100);
+            $table->string('description', 255);
+            $table->integer('monthly_amount_in_usd');
             $table->unsignedBigInteger('zone_id')->foreignId('zone_id')->constrained('zones')->onDelete('cascade');
-            $table->json('user_id')->nullable();
             $table->timestamps();
         });
     }
@@ -26,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('cities');
+        Schema::dropIfExists('budgets');
     }
 };
