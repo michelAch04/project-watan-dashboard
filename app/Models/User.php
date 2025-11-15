@@ -30,6 +30,7 @@ class User extends Authenticatable
         'manager_id',
         'otp_code',
         'otp_expires_at',
+        'cancelled'
     ];
 
     /**

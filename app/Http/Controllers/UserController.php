@@ -170,7 +170,7 @@ class UserController extends Controller
     /**
      * Show the form for creating a new user
      */
-    public function create()
+    public function create(Request $request)
     {
         $horZone = $this->getUserZone();
 
@@ -212,7 +212,33 @@ class UserController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('users.create', compact('roles', 'users', 'pwMembers', 'horZone'));
+        // Check if pre-filling from a PW member
+        $pwMember = null;
+        if ($request->filled('pw_member_id')) {
+            $pwMember = PwMember::with(['voter.city.zone'])->findOrFail($request->input('pw_member_id'));
+
+            // Verify access to this PW member
+            $user = Auth::user();
+            if (!$user->hasRole('admin') && !$user->hasRole('hor')) {
+                abort(403, 'Unauthorized');
+            }
+
+            if (!$user->hasRole('admin')) {
+                if ($user->hasRole('hor')) {
+                    $zoneIds = $user->zones()->pluck('zones.id');
+                    if ($pwMember->voter && !$zoneIds->contains($pwMember->voter->city->zone_id)) {
+                        abort(403, 'You do not have access to this PW member');
+                    }
+                } else {
+                    $cityIds = $user->cities()->pluck('cities.id');
+                    if ($pwMember->voter && !$cityIds->contains($pwMember->voter->city_id)) {
+                        abort(403, 'You do not have access to this PW member');
+                    }
+                }
+            }
+        }
+
+        return view('users.create', compact('roles', 'users', 'pwMembers', 'horZone', 'pwMember'));
     }
 
     /**

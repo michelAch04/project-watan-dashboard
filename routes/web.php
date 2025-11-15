@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
         Route::middleware('can:edit_humanitarian')->group(function () {
             Route::get('/{id}/edit', [App\Http\Controllers\HumanitarianRequestController::class, 'edit'])->name('humanitarian.edit');
             Route::put('/{id}', [App\Http\Controllers\HumanitarianRequestController::class, 'update'])->name('humanitarian.update');
+            Route::delete('/{id}', [App\Http\Controllers\HumanitarianRequestController::class, 'destroy'])->name('humanitarian.destroy');
         });
 
         Route::middleware('can:approve_humanitarian')->group(function () {
@@ -167,8 +168,33 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [App\Http\Controllers\InboxController::class, 'index'])->name('inbox.index');
         Route::post('/{id}/read', [App\Http\Controllers\InboxController::class, 'markAsRead'])->name('inbox.mark-read');
         Route::post('/read-all', [App\Http\Controllers\InboxController::class, 'markAllAsRead'])->name('inbox.mark-all-read');
+        Route::post('/clear-all', [App\Http\Controllers\InboxController::class, 'clearAll'])->name('inbox.clear-all');
         Route::delete('/{id}', [App\Http\Controllers\InboxController::class, 'destroy'])->name('inbox.destroy');
         Route::get('/api/unread-count', [App\Http\Controllers\InboxController::class, 'unreadCount'])->name('inbox.unread-count');
+    });
+
+    // PW Members Management
+    Route::prefix('pw-members')->group(function () {
+        Route::get('/', [App\Http\Controllers\PwMemberController::class, 'index'])->name('pw-members.index');
+        Route::get('/search', [App\Http\Controllers\PwMemberController::class, 'search'])->name('pw-members.search');
+        Route::get('/search-available-voters', [App\Http\Controllers\PwMemberController::class, 'searchAvailableVoters'])->name('pw-members.search-available-voters');
+
+        Route::middleware('role:admin|hor')->group(function () {
+            Route::get('/create', [App\Http\Controllers\PwMemberController::class, 'create'])->name('pw-members.create');
+            Route::post('/', [App\Http\Controllers\PwMemberController::class, 'store'])->name('pw-members.store');
+            Route::get('/{id}/edit', [App\Http\Controllers\PwMemberController::class, 'edit'])->name('pw-members.edit');
+            Route::put('/{id}', [App\Http\Controllers\PwMemberController::class, 'update'])->name('pw-members.update');
+            Route::delete('/{id}', [App\Http\Controllers\PwMemberController::class, 'destroy'])->name('pw-members.destroy');
+        });
+
+        Route::get('/{id}', [App\Http\Controllers\PwMemberController::class, 'show'])->name('pw-members.show');
+    });
+
+    // Voters List (Read-only)
+    Route::prefix('voters-list')->group(function () {
+        Route::get('/', [App\Http\Controllers\VotersListController::class, 'index'])->name('voters-list.index');
+        Route::get('/search', [App\Http\Controllers\VotersListController::class, 'search'])->name('voters-list.search');
+        Route::get('/{id}/check-pw-member', [App\Http\Controllers\VotersListController::class, 'checkPwMember'])->name('voters-list.check-pw-member');
     });
 });
 

@@ -14,7 +14,8 @@ class Voter extends Model
         'last_name',
         'city_id',
         'ro_number',
-        'phone'
+        'phone',
+        'cancelled'
     ];
 
     /**
@@ -31,6 +32,14 @@ class Voter extends Model
     public function requests()
     {
         return $this->hasMany(Request::class, 'voter_id');
+    }
+
+    /**
+     * Get the PW member linked to this voter
+     */
+    public function pwMember()
+    {
+        return $this->hasOne(PwMember::class, 'voter_id');
     }
 
     /**

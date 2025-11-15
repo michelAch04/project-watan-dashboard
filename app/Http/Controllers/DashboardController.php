@@ -30,26 +30,10 @@ class DashboardController extends Controller
     {
         $features = [];
 
-        // Financial Management
-        if ($user->can('view_financial')) {
-            $features[] = [
-                'name' => 'Financial',
-                'description' => 'Manage donations and expenses',
-                'icon' => 'money',
-                'color' => 'madder',
-                'route' => 'financial.index',
-                'permissions' => [
-                    'view' => $user->can('view_financial'),
-                    'create' => $user->can('create_financial'),
-                    'edit' => $user->can('edit_financial'),
-                ]
-            ];
-        }
-
         // Humanitarian Management
         if ($user->can('view_humanitarian')) {
             $features[] = [
-                'name' => 'Humanitarian',
+                'name' => 'Humanitarian Requests',
                 'description' => 'Track aid and assistance',
                 'icon' => 'heart',
                 'color' => 'madder',
@@ -82,7 +66,7 @@ class DashboardController extends Controller
         if ($user->can('view_users')) {
             $features[] = [
                 'name' => 'Users',
-                'description' => 'Manage team members',
+                'description' => 'Manage system users',
                 'icon' => 'users',
                 'color' => 'madder',
                 'route' => 'users.index',
@@ -94,46 +78,32 @@ class DashboardController extends Controller
             ];
         }
 
-        // Reports
-        if ($user->can('view_reports')) {
+        // PW Members Management
+        if ($user->can('view_pw_members')) {
             $features[] = [
-                'name' => 'Reports',
-                'description' => 'View analytics and summaries',
-                'icon' => 'chart',
+                'name' => 'PW Members',
+                'description' => 'Manage project watan members',
+                'icon' => 'members',
                 'color' => 'madder',
-                'route' => 'reports.index',
+                'route' => 'pw-members.index',
                 'permissions' => [
                     'view' => true,
-                    'export' => $user->can('export_reports'),
+                    'create' => $user->can('create_pw_members'),
+                    'edit' => $user->can('edit_pw_members'),
                 ]
             ];
         }
 
-        // Zones (Admin only)
-        if ($user->can('view_zones')) {
+        // Voters List
+        if ($user->can('view_voters_list')) {
             $features[] = [
-                'name' => 'Zones',
-                'description' => 'Manage geographic areas',
-                'icon' => 'location',
+                'name' => 'Voters List',
+                'description' => 'View registered voters database',
+                'icon' => 'voters',
                 'color' => 'madder',
-                'route' => 'zones.index',
+                'route' => 'voters-list.index',
                 'permissions' => [
                     'view' => true,
-                    'manage' => $user->can('manage_zones'),
-                ]
-            ];
-        }
-
-        // Settings
-        if ($user->can('manage_settings')) {
-            $features[] = [
-                'name' => 'Settings',
-                'description' => 'System configuration',
-                'icon' => 'settings',
-                'color' => 'madder',
-                'route' => 'settings.index',
-                'permissions' => [
-                    'manage' => true,
                 ]
             ];
         }

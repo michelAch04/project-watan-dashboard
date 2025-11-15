@@ -11,7 +11,8 @@ class PublicInstitution extends Model
         'description',
         'city_id',
         'contact_person',
-        'phone'
+        'phone',
+        'cancelled'
     ];
 
     /**

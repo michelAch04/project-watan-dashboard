@@ -10,7 +10,7 @@
             <div class="page-container py-4">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <a href="{{ route('dashboard') }}" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all mr-2">
+                        <a href="{{ route('dashboard') }}" @click.prevent="window.history.length > 1 ? window.history.back() : window.location.href = '{{ route('dashboard') }}'" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all mr-2">
                             <svg class="w-5 h-5 text-[#622032]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                             </svg>
@@ -22,13 +22,21 @@
                             Inbox
                         </h1>
                     </div>
-                    
-                    @if($unreadCount > 0)
-                    <button @click="markAllAsRead" 
-                            class="text-sm text-[#931335] hover:text-[#622032] font-semibold">
-                        Mark all read
-                    </button>
-                    @endif
+
+                    <div class="flex items-center gap-2">
+                        @if($unreadCount > 0)
+                        <button @click="markAllAsRead"
+                                class="text-sm text-[#931335] hover:text-[#622032] font-semibold">
+                            Mark all read
+                        </button>
+                        @endif
+                        @if($notifications->count() > 0)
+                        <button @click="clearAll"
+                                class="text-sm text-red-600 hover:text-red-800 font-semibold">
+                            Clear all
+                        </button>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
@@ -201,6 +209,26 @@ function inboxManager() {
                 }
             } catch (error) {
                 console.error('Error marking all as read:', error);
+            }
+        },
+
+        async clearAll() {
+            if (!confirm('Are you sure you want to clear all notifications? This action cannot be undone.')) return;
+
+            try {
+                const response = await fetch('/inbox/clear-all', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Error clearing all notifications:', error);
             }
         },
 

@@ -10,6 +10,7 @@ class District extends Model
         'name',
         'name_ar',
         'governorate_id',
+        'cancelled'
     ];
 
     public function governorate()

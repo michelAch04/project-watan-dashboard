@@ -10,7 +10,8 @@ class MonthlyList extends Model
         'user_id',
         'request_id',
         'month',
-        'year'
+        'year',
+        'cancelled'
     ];
 
     protected $casts = [
@@ -35,11 +36,19 @@ class MonthlyList extends Model
     }
 
     /**
+     * Scope to exclude cancelled items
+     */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
+
+    /**
      * Scope to filter by month and year
      */
     public function scopeForMonth($query, $month, $year)
     {
-        return $query->where('month', $month)->where('year', $year);
+        return $query->notCancelled()->where('month', $month)->where('year', $year);
     }
 
     /**

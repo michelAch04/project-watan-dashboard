@@ -10,9 +10,10 @@ class City extends Model
 {
     protected $fillable = [
         'name',
-        'name_ar', 
+        'name_ar',
         'zone_id',
-        'user_id'
+        'user_id',
+        'cancelled'
     ];
 
     protected $casts = [

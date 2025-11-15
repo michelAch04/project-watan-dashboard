@@ -9,7 +9,7 @@
         <div class="safe-area">
             <div class="page-container py-4">
                 <div class="flex items-center">
-                    <a href="{{ route('humanitarian.index') }}" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all mr-2">
+                    <a href="{{ route('humanitarian.index') }}" @click.prevent="window.history.length > 1 ? window.history.back() : window.location.href = '{{ route('humanitarian.index') }}'" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all mr-2">
                         <svg class="w-5 h-5 text-[#622032]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                         </svg>
@@ -117,18 +117,27 @@
 
                     <!-- Actions -->
                     <div class="flex gap-2 pt-3 border-t border-[#f8f0e2]">
-                        <a href="{{ route('humanitarian.edit', $request->id) }}" 
+                        <a href="{{ route('humanitarian.edit', $request->id) }}"
                            class="flex-1 bg-[#931335] hover:bg-[#622032] text-white font-semibold text-sm py-2 px-4 rounded-lg text-center transition-all active:scale-95 flex items-center justify-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                             </svg>
                             Edit & Continue
                         </a>
-                        
-                        <a href="{{ route('humanitarian.show', $request->id) }}" 
+
+                        <a href="{{ route('humanitarian.show', $request->id) }}"
                            class="bg-[#f8f0e2] hover:bg-[#dfd1ba] text-[#622032] font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95">
                             View
                         </a>
+
+                        @if($request->canDelete(auth()->user()))
+                        <button onclick="deleteDraft({{ $request->id }}, '{{ $request->request_number }}')"
+                           class="bg-red-100 hover:bg-red-200 text-red-700 font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                        @endif
                     </div>
                 </div>
                 @empty
@@ -153,4 +162,38 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+async function deleteDraft(requestId, requestNumber) {
+    if (!confirm(`Are you sure you want to delete draft #${requestNumber}? This action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/humanitarian/${requestId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Show success message and reload page
+            alert(data.message);
+            window.location.reload();
+        } else {
+            alert(data.message || 'Failed to delete draft');
+        }
+    } catch (error) {
+        console.error('Error deleting draft:', error);
+        alert('An error occurred while deleting the draft');
+    }
+}
+</script>
+@endpush
 @endsection

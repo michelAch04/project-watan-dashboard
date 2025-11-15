@@ -18,13 +18,6 @@ class RolesAndPermissionsSeeder extends Seeder
             // Dashboard
             'view_dashboard',
             
-            // Financial Management
-            'view_financial',
-            'create_financial',
-            'edit_financial',
-            'delete_financial',
-            'approve_financial',
-            
             // Humanitarian Management
             'view_humanitarian',
             'create_humanitarian',
@@ -40,26 +33,24 @@ class RolesAndPermissionsSeeder extends Seeder
             'create_budget',
             'edit_budget',
             'delete_budget',
-
-            // Zone Management
-            'view_zones',
-            'manage_zones',
             
             // User Management
             'view_users',
             'create_users',
             'edit_users',
             'delete_users',
-            
-            // Reports
-            'view_reports',
-            'export_reports',
-            
-            // Settings
-            'manage_settings',
-            
+
             // Inbox
             'view_inbox',
+
+            // PW Members Management
+            'view_pw_members',
+            'create_pw_members',
+            'edit_pw_members',
+            'delete_pw_members',
+
+            // Voters List
+            'view_voters_list',
         ];
 
         foreach ($permissions as $permission) {
@@ -72,7 +63,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $admin = Role::firstOrCreate(['name' => 'admin']);
         $admin->syncPermissions(Permission::all());
 
-        // HOR (Head of Region) - Full access except user management
+        // HOR (Head of Region) - Full access to their zone
         $hor = Role::firstOrCreate(['name' => 'hor']);
         $hor->syncPermissions([
             'view_dashboard',
@@ -88,21 +79,16 @@ class RolesAndPermissionsSeeder extends Seeder
             'create_budget',
             'edit_budget',
             'delete_budget',
-            'view_financial',
-            'create_financial',
-            'edit_financial',
-            'delete_financial',
-            'approve_financial',
-            'view_reports',
-            'export_reports',
-            'view_zones',
-            'manage_zones',
             'view_inbox',
-            'manage_settings',
             'view_users',
             'create_users',
             'edit_users',
             'delete_users',
+            'view_pw_members',
+            'create_pw_members',
+            'edit_pw_members',
+            'delete_pw_members',
+            'view_voters_list',
         ]);
 
         // GS (General Secretary) - Can manage but not final approve
@@ -113,11 +99,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'create_humanitarian',
             'edit_humanitarian',
             'approve_humanitarian',
-            'view_financial',
-            'create_financial',
-            'edit_financial',
-            'view_reports',
             'view_inbox',
+            'view_pw_members',
+            'view_voters_list',
         ]);
 
         // S (Secretary) - Basic access
@@ -127,34 +111,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'view_humanitarian',
             'create_humanitarian',
             'edit_humanitarian',
-            'view_financial',
-            'view_reports',
             'view_inbox',
-        ]);
-
-        // Manager - Can manage financial and humanitarian in their zone
-        $manager = Role::firstOrCreate(['name' => 'manager']);
-        $manager->syncPermissions([
-            'view_dashboard',
-            'view_financial',
-            'create_financial',
-            'edit_financial',
-            'view_humanitarian',
-            'create_humanitarian',
-            'edit_humanitarian',
-            'approve_humanitarian',
-            'view_reports',
-            'view_inbox',
-        ]);
-
-        // Viewer - Read-only access
-        $viewer = Role::firstOrCreate(['name' => 'viewer']);
-        $viewer->syncPermissions([
-            'view_dashboard',
-            'view_financial',
-            'view_humanitarian',
-            'view_reports',
-            'view_inbox',
+            'view_pw_members',
+            'view_voters_list',
         ]);
 
         $this->command->info('✅ Roles and permissions created successfully!');

@@ -9,6 +9,7 @@ class Governorate extends Model
     protected $fillable = [
         'name_en',
         'name_ar',
+        'cancelled'
     ];
 
     public function districts()

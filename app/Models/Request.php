@@ -28,7 +28,9 @@ class Request extends Model
         'notes',
         'sender_id',
         'current_user_id',
-        'rejection_reason'
+        'rejection_reason',
+        'published_count',
+        'cancelled'
     ];
 
     protected $casts = [
@@ -143,8 +145,21 @@ class Request extends Model
      */
     public function canEdit(User $user)
     {
-        return $this->sender_id === $user->id && 
+        return $this->sender_id === $user->id &&
                in_array($this->requestStatus->name, [RequestStatus::STATUS_DRAFT, RequestStatus::STATUS_REJECTED]);
+    }
+
+    /**
+     * Check if user can delete draft
+     * HOR can delete drafts ONLY when:
+     * 1. Status is draft
+     * 2. HOR is the current handler (sender)
+     */
+    public function canDelete(User $user)
+    {
+        return $user->hasRole('hor') &&
+               $this->sender_id === $user->id &&
+               $this->requestStatus->name === RequestStatus::STATUS_DRAFT;
     }
 
     /**
@@ -152,16 +167,21 @@ class Request extends Model
      */
     public function canApproveReject(User $user)
     {
-        return $this->current_user_id === $user->id && 
+        return $this->current_user_id === $user->id &&
                $this->requestStatus->name === RequestStatus::STATUS_PUBLISHED;
     }
 
     /**
      * Scopes
      */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
+
     public function scopeForUser($query, User $user)
     {
-        return $query->where(function($q) use ($user) {
+        return $query->notCancelled()->where(function($q) use ($user) {
             $q->where('sender_id', $user->id)
               ->orWhere('current_user_id', $user->id)
               ->orWhereHas('sender', function($sq) use ($user) {
@@ -172,7 +192,7 @@ class Request extends Model
 
     public function scopeActive($query)
     {
-        return $query->whereHas('requestStatus', function($q) {
+        return $query->notCancelled()->whereHas('requestStatus', function($q) {
             $q->where('name', '!=', RequestStatus::STATUS_COLLECTED)
                 ->where('name', '!=', RequestStatus::STATUS_DRAFT);
         });
@@ -180,14 +200,14 @@ class Request extends Model
 
     public function scopeCompleted($query)
     {
-        return $query->whereHas('requestStatus', function($q) {
+        return $query->notCancelled()->whereHas('requestStatus', function($q) {
             $q->where('name', RequestStatus::STATUS_COLLECTED);
         });
     }
 
     public function scopeDraftsAndRejects($query, User $user)
     {
-        return $query->where('sender_id', $user->id)
+        return $query->notCancelled()->where('sender_id', $user->id)
             ->whereHas('requestStatus', function($q) {
                 $q->whereIn('name', [RequestStatus::STATUS_DRAFT, RequestStatus::STATUS_REJECTED]);
             });

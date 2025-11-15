@@ -84,6 +84,21 @@ class InboxController extends Controller
     }
 
     /**
+     * Clear all notifications (delete all)
+     */
+    public function clearAll()
+    {
+        $user = Auth::user();
+
+        InboxNotification::forUser($user->id)->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'All notifications cleared'
+        ]);
+    }
+
+    /**
      * Get unread count (AJAX)
      */
     public function unreadCount()

@@ -11,7 +11,9 @@ class PwMember extends Model
         'name',
         'phone',
         'email',
-        'is_active'
+        'voter_id',
+        'is_active',
+        'cancelled'
     ];
 
     protected $casts = [
@@ -27,6 +29,14 @@ class PwMember extends Model
     }
 
     /**
+     * Get the voter linked to this PW member
+     */
+    public function voter()
+    {
+        return $this->belongsTo(Voter::class);
+    }
+
+    /**
      * Get requests where this member is referenced
      */
     public function requests()
@@ -35,10 +45,18 @@ class PwMember extends Model
     }
 
     /**
+     * Scope to exclude cancelled members
+     */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
+
+    /**
      * Scope for active members only
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->notCancelled()->where('is_active', true);
     }
 }

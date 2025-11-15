@@ -9,7 +9,7 @@
             <div class="page-container py-4">
                 <div class="flex items-center justify-between">
                     <h1 class="text-lg sm:text-xl font-bold text-[#622032]">Assign Location</h1>
-                    <a href="{{ route('users.index') }}" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all">
+                    <a href="{{ route('users.index') }}" @click.prevent="window.history.length > 1 ? window.history.back() : window.location.href = '{{ route('users.index') }}'" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all">
                         <svg class="w-5 h-5 text-[#622032]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                         </svg>

@@ -78,7 +78,7 @@ class MonthlyListController extends Controller
     }
 
     /**
-     * Remove request from monthly list
+     * Remove request from monthly list (soft delete)
      */
     public function remove($id)
     {
@@ -92,7 +92,7 @@ class MonthlyListController extends Controller
             ], 403);
         }
 
-        $item->delete();
+        $item->update(['cancelled' => 1]);
 
         return response()->json([
             'success' => true,

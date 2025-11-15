@@ -311,6 +311,9 @@ class HumanitarianRequestController extends Controller
 
             // Create inbox notification if published
             if ($validated['action'] === 'publish' && $currentUserId) {
+                // Increment published count
+                $request->increment('published_count');
+
                 InboxNotification::createForUser(
                     $currentUserId,
                     $request->id,
@@ -454,14 +457,22 @@ class HumanitarianRequestController extends Controller
             } else {
                 $updateData['current_user_id'] = $user->manager_id;
 
-                // Create notification
+                // Increment published count before creating notification
+                $request->increment('published_count');
+
+                // Create notification with correct message based on published count
                 if ($user->manager_id) {
+                    $isFirstPublish = $request->published_count === 1;
+                    $message = $isFirstPublish
+                        ? "{$user->name} has published a humanitarian request #{$request->request_number} for your approval."
+                        : "{$user->name} has republished humanitarian request #{$request->request_number} for your approval.";
+
                     InboxNotification::createForUser(
                         $user->manager_id,
                         $request->id,
                         'request_published',
-                        'Request Republished for Approval',
-                        "{$user->name} has republished humanitarian request #{$request->request_number} for your approval."
+                        $isFirstPublish ? 'New Request for Approval' : 'Request Republished for Approval',
+                        $message
                     );
                 }
             }
@@ -764,6 +775,31 @@ class HumanitarianRequestController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Request marked as collected'
+        ]);
+    }
+
+    /**
+     * Delete draft (HOR only, draft status, current handler)
+     * Uses soft delete by setting cancelled = 1
+     */
+    public function destroy($id)
+    {
+        $request = Request::findOrFail($id);
+        $user = Auth::user();
+
+        if (!$request->canDelete($user)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You can only delete drafts that you created'
+            ], 403);
+        }
+
+        $requestNumber = $request->request_number;
+        $request->update(['cancelled' => 1]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Draft #{$requestNumber} deleted successfully"
         ]);
     }
 

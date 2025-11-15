@@ -8,7 +8,11 @@
       "Bash(fi)",
       "Bash(if [ -d \"resources/views/humanitarian/partials\" ])",
       "Bash(else mkdir -p resources/views/humanitarian/partials)",
-      "Bash(php -l:*)"
+      "Bash(php -l:*)",
+      "Bash(if [ -d \"resources/views/pw-members\" ])",
+      "Bash(else mkdir -p resources/views/pw-members)",
+      "Bash(if [ -d \"resources/views/voters-list\" ])",
+      "Bash(else mkdir -p resources/views/voters-list)"
     ],
     "deny": [],
     "ask": []

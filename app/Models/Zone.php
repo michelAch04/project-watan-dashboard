@@ -10,7 +10,8 @@ class Zone extends Model
         'name_en',
         'name_ar',
         'district_id',
-        'user_id'
+        'user_id',
+        'cancelled'
     ];
     
     public function district()

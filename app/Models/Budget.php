@@ -14,7 +14,8 @@ class Budget extends Model
         'current_balance',
         'auto_refill_day',
         'last_refill_date',
-        'zone_id'
+        'zone_id',
+        'cancelled'
     ];
 
     protected $casts = [

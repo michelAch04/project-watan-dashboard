@@ -13,6 +13,7 @@ class BudgetTransaction extends Model
         'balance_after',
         'request_id',
         'description',
+        'cancelled'
     ];
 
     protected $casts = [

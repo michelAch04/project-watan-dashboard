@@ -9,9 +9,10 @@ class Village extends Model
 {
     protected $fillable = [
         'name',
-        'name_ar', 
+        'name_ar',
         'city_id',
-        'user_id'
+        'user_ids',
+        'cancelled'
     ];
 
     protected $casts = [
