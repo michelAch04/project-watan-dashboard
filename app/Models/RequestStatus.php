@@ -12,7 +12,8 @@ class RequestStatus extends Model
         'name',
         'name_ar',
         'description',
-        'order'
+        'order',
+        'cancelled'
     ];
 
     /**

@@ -7,7 +7,6 @@
     x-data="{ show: false }"
     x-init="() => {
          $nextTick(() => show = true);
-         // Remove transition overlay if it exists
          const overlay = document.querySelector('.transition-overlay');
          if (overlay) {
              overlay.style.opacity = '0';

@@ -94,6 +94,49 @@
                     });
             });
         }
+
+        // Comprehensive fix for mobile back button focus/active state
+        function clearAllStuckStates() {
+            // Blur active element
+            if (document.activeElement && document.activeElement !== document.body) {
+                document.activeElement.blur();
+            }
+
+            // Remove all Tailwind pseudo-class states by forcing a reflow
+            document.querySelectorAll('a, button, [role="button"]').forEach(function(el) {
+                // Force remove focus by re-setting tabindex
+                const currentTabIndex = el.getAttribute('tabindex');
+                el.setAttribute('tabindex', '-1');
+                el.blur();
+                if (currentTabIndex !== null) {
+                    el.setAttribute('tabindex', currentTabIndex);
+                } else {
+                    el.removeAttribute('tabindex');
+                }
+
+                // Clear any stuck visual states
+                el.style.cssText = '';
+            });
+
+            // Force a repaint
+            document.body.style.display = 'none';
+            document.body.offsetHeight;
+            document.body.style.display = '';
+        }
+
+        // On page show (back button)
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                clearAllStuckStates();
+            }
+        });
+
+        // On DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', clearAllStuckStates);
+        } else {
+            clearAllStuckStates();
+        }
     </script>
 </body>
 

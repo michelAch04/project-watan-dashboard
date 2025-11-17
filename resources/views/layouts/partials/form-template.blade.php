@@ -231,18 +231,18 @@
     </div>
 
     <!-- Office Footer -->
-    <div class="grid grid-cols-3 approval-section">
-        <div class="notes-section">
-            <div class="notes-label text-center">مكتب الشؤون الإجتماعية</div>
-            <div class="notes-box"></div>
+    <div class="approval-section" style="display: flex; gap: 0;">
+        <div class="notes-section" style="flex: 1; border-left: 1px solid #000; padding: 4px;">
+            <div class="notes-label" style="text-align: center;">مكتب الشؤون الإجتماعية</div>
+            <div class="notes-box" style="min-height: 30px;"></div>
         </div>
-        <div class="notes-section">
-            <div class="notes-label text-center">مسؤول القطاع</div>
-            <div class="notes-box"></div>
+        <div class="notes-section" style="flex: 1; border-left: 1px solid #000; padding: 4px;">
+            <div class="notes-label" style="text-align: center;">مسؤول القطاع</div>
+            <div class="notes-box" style="min-height: 30px;"></div>
         </div>
-        <div class="notes-section">
-            <div class="notes-label text-center">الموافقة</div>
-            <div class="notes-box"></div>
+        <div class="notes-section" style="flex: 1; padding: 4px;">
+            <div class="notes-label" style="text-align: center;">الموافقة</div>
+            <div class="notes-box" style="min-height: 30px;"></div>
         </div>
     </div>
 </div>

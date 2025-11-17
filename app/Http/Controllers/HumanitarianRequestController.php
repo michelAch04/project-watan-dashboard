@@ -8,6 +8,7 @@ use App\Models\RequestStatus;
 use App\Models\Voter;
 use App\Models\PwMember;
 use App\Models\InboxNotification;
+use App\Models\BudgetTransaction;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -277,12 +278,18 @@ class HumanitarianRequestController extends Controller
                 // Check and refill budget if needed
                 $budget->checkAndRefill();
 
-                // Check if budget has enough balance
-                if ($budget->current_balance < $validated['amount']) {
+                // Extract month/year from ready_date for proper monthly budget checking
+                $readyDate = \Carbon\Carbon::parse($validated['ready_date']);
+                $readyMonth = $readyDate->month;
+                $readyYear = $readyDate->year;
+
+                // Check if budget has enough for the ready_date month
+                if (!$budget->hasEnoughBudget($validated['amount'], $readyYear, $readyMonth)) {
+                    $remaining = $budget->getRemainingBudgetForMonth($readyYear, $readyMonth);
                     DB::rollBack();
                     return response()->json([
                         'success' => false,
-                        'message' => 'Insufficient budget balance for this request. Current balance: $' . number_format($budget->current_balance)
+                        'message' => 'Insufficient budget for ' . $readyDate->format('F Y') . '. Remaining: $' . number_format($remaining, 2)
                     ], 400);
                 }
 
@@ -294,19 +301,26 @@ class HumanitarianRequestController extends Controller
             // Create the request
             $request = Request::create($requestData);
 
-            // Deduct from budget if HOR user allocated budget
+            // Record budget allocation if HOR user allocated budget
             if ($user->hasRole('hor') && $validated['action'] === 'publish' && !empty($validated['budget_id'])) {
                 $budget = \App\Models\Budget::findOrFail($validated['budget_id']);
+                $readyDate = \Carbon\Carbon::parse($validated['ready_date']);
+                $readyMonth = $readyDate->month;
+                $readyYear = $readyDate->year;
 
-                Log::info("Deducting amount: " . $validated['amount'] . " for new request id: " . $request->id);
+                Log::info("Allocating amount: " . $validated['amount'] . " for new request id: " . $request->id . " to budget month: " . $readyDate->format('F Y'));
 
-                $budget->deduct(
-                    $validated['amount'],
-                    $request->id,
-                    "Request #{$request->request_number} - {$request->requester_full_name}"
-                );
+                // Record transaction for tracking purposes (but don't modify current_balance)
+                BudgetTransaction::create([
+                    'budget_id' => $validated['budget_id'],
+                    'type' => 'allocation',
+                    'amount' => -$validated['amount'],
+                    'balance_after' => $budget->getRemainingBudgetForMonth($readyYear, $readyMonth) - $validated['amount'],
+                    'request_id' => $request->id,
+                    'description' => "Request #{$request->request_number} allocated to " . $readyDate->format('F Y')
+                ]);
 
-                Log::info("Budget deducted successfully. New balance: " . $budget->current_balance);
+                Log::info("Budget allocated successfully to " . $readyDate->format('F Y'));
             }
 
             // Create inbox notification if published
@@ -578,43 +592,45 @@ class HumanitarianRequestController extends Controller
                 ], 403);
             }
 
-            // Check if budget has enough current balance
+            // Check if budget has enough for the ready_date month
             $readyDate = \Carbon\Carbon::parse($validated['ready_date']);
+            $readyMonth = $readyDate->month;
+            $readyYear = $readyDate->year;
 
             // Check and refill budget if needed
             $budget->checkAndRefill();
-            
-            Log::info("Deducting amount: " . $request->amount . " for request id: " . $request->id);
-            
-            $budget->deduct(
-                $request->amount,
-                $request->id,
-                "Request #{$request->request_number} - {$request->requester_full_name}"
-            );
-            
-            Log::info("Budget deducted successfully. New balance: " . $budget->current_balance);
 
-            if ($budget->current_balance < $request->amount) {
+            // Verify there's enough budget for the specified month
+            if (!$budget->hasEnoughBudget($request->amount, $readyYear, $readyMonth)) {
+                $remaining = $budget->getRemainingBudgetForMonth($readyYear, $readyMonth);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Insufficient budget balance for this request. Current balance: $' . number_format($budget->current_balance)
+                    'message' => 'Insufficient budget for ' . $readyDate->format('F Y') . '. Remaining: $' . number_format($remaining, 2)
                 ], 400);
             }
 
-            // Deduct from budget and create transaction record
-            $budget->deduct(
-                $request->amount,
-                $request->id,
-                "Request #{$request->request_number} - {$request->requester_full_name}"
-            );
+            Log::info("Allocating amount: " . $request->amount . " for request id: " . $request->id . " to budget month: " . $readyDate->format('F Y'));
 
             // Update request with final approval, budget, and ready date
+            // NOTE: We don't deduct from current_balance here because budget allocation
+            // is tracked monthly via ready_date. The getRemainingBudgetForMonth() method
+            // calculates the monthly budget correctly based on ready_date.
             $finalStatus = RequestStatus::getByName(RequestStatus::STATUS_FINAL_APPROVAL);
             $request->update([
                 'request_status_id' => $finalStatus->id,
                 'current_user_id' => null,
                 'budget_id' => $validated['budget_id'],
                 'ready_date' => $validated['ready_date']
+            ]);
+
+            // Record transaction for tracking purposes (but don't modify current_balance)
+            BudgetTransaction::create([
+                'budget_id' => $validated['budget_id'],
+                'type' => 'allocation',
+                'amount' => -$request->amount,
+                'balance_after' => $budget->getRemainingBudgetForMonth($readyYear, $readyMonth) - $request->amount,
+                'request_id' => $request->id,
+                'description' => "Request #{$request->request_number} allocated to " . $readyDate->format('F Y')
             ]);
 
             // Notify sender

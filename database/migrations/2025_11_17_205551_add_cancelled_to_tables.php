@@ -18,6 +18,20 @@ return new class extends Migration
             });
         }
 
+        // Add cancelled field to request types table
+        if (!Schema::hasColumn('request_types', 'cancelled')) {
+            Schema::table('request_types', function (Blueprint $table) {
+                $table->boolean('cancelled')->default(0)->after('published_count')->comment('Soft delete flag');
+            });
+        }
+
+        // Add cancelled field to request statuses table
+        if (!Schema::hasColumn('request_statuses', 'cancelled')) {
+            Schema::table('request_statuses', function (Blueprint $table) {
+                $table->boolean('cancelled')->default(0)->after('published_count')->comment('Soft delete flag');
+            });
+        }
+
         // Add cancelled field to budgets table
         if (!Schema::hasColumn('budgets', 'cancelled')) {
             Schema::table('budgets', function (Blueprint $table) {
@@ -109,6 +123,14 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('requests', function (Blueprint $table) {
+            $table->dropColumn('cancelled');
+        });
+
+        Schema::table('request_types', function (Blueprint $table) {
+            $table->dropColumn('cancelled');
+        });
+
+        Schema::table('request_statuses', function (Blueprint $table) {
             $table->dropColumn('cancelled');
         });
 

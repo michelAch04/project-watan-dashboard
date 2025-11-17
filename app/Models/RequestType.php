@@ -10,7 +10,8 @@ class RequestType extends Model
         'name',
         'name_ar',
         'description',
-        'format'
+        'format',
+        'cancelled'
     ];
 
     /**

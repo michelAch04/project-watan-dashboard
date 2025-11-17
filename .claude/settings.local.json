@@ -12,7 +12,8 @@
       "Bash(if [ -d \"resources/views/pw-members\" ])",
       "Bash(else mkdir -p resources/views/pw-members)",
       "Bash(if [ -d \"resources/views/voters-list\" ])",
-      "Bash(else mkdir -p resources/views/voters-list)"
+      "Bash(else mkdir -p resources/views/voters-list)",
+      "Bash(nul)"
     ],
     "deny": [],
     "ask": []
