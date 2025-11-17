@@ -118,9 +118,11 @@
                 <label>المتبقي:</label>
                 <div class="col-input"></div>
             </div>
-            <div class="col-field">
-                <label>المتأخرات:</label>
-                <div class="col-input"></div>
+            <div class="col-field form-row">
+                <span style="font-size: 8pt; font-weight: 600;">المتأخرات:</span>
+                <span class="form-value small" style="width: 70px;"></span>
+                <span style="font-size: 8pt; font-weight: 600;">المدفوعات:</span>
+                <span class="form-value small" style="width: 70px;"></span>
             </div>
             <div class="col-field">
                 <label>ملاحظات :</label>
@@ -139,21 +141,21 @@
                 <div class="col-input"></div>
             </div>
             <div class="col-field">
-                <label>الحسم:</label>
-                <div class="col-input"></div>
-            </div>
-            <div class="col-field">
-                <label>المتبقي:</label>
+                <label>مستلزمات:</label>
                 <div class="col-input"></div>
             </div>
         </div>
 
         <!-- Material Column -->
         <div class="col">
-            <div class="col-title">مادية</div>
+            <div class="col-title">استشفائية</div>
             <div class="col-field">
-                <label>مستلزمات:</label>
-                <div class="col-input" style="min-height: 40px;"></div>
+                <label>المجموع:</label>
+                <div class="col-input"></div>
+            </div>
+            <div class="col-field">
+                <label>الحسم:</label>
+                <div class="col-input"></div>
             </div>
             <div class="col-field">
                 <label>المتبقي:</label>
