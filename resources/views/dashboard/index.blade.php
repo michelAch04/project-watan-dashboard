@@ -25,13 +25,13 @@
                     <!-- User Info -->
                     <div class="flex items-center space-x-3 sm:space-x-4">
                         <div class="avatar">
-                            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                            {{ strtoupper(substr(auth()->user()->username, 0, 1)) }}
                         </div>
                         <div>
                             <h2 class="text-base sm:text-lg font-bold text-[#622032] leading-tight">
-                                {{ auth()->user()->name }}
+                                {{ auth()->user()->username }}
                             </h2>
-                            <p class="text-xs sm:text-sm text-[#622032]/60 capitalize">
+                            <p class="text-xs sm:text-sm text-[#622032]/60 uppercase">
                                 {{ auth()->user()->role()->name ?? 'No Role' }}
                             </p>
                         </div>

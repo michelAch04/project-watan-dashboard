@@ -28,11 +28,11 @@ class MonthlyList extends Model
     }
 
     /**
-     * Get the request in this monthly list
+     * Get the request header in this monthly list
      */
-    public function request()
+    public function requestHeader()
     {
-        return $this->belongsTo(Request::class);
+        return $this->belongsTo(RequestHeader::class, 'request_id');
     }
 
     /**

@@ -51,7 +51,7 @@
                     <!-- Request Header -->
                     <div class="flex items-start justify-between mb-3">
                         <div>
-                            <h3 class="font-bold text-[#622032]">{{ $item->request->request_number }}</h3>
+                            <h3 class="font-bold text-[#622032]">{{ $item->requestHeader->request_number }}</h3>
                             <p class="text-xs text-[#622032]/60">Template Request</p>
                         </div>
                         <button @click="removeRequest({{ $item->id }})" class="p-2 hover:bg-red-50 rounded-lg transition-all">
@@ -68,21 +68,21 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                             <div class="flex-1">
-                                <p class="text-sm font-semibold text-[#622032]">{{ $item->request->requester_full_name }}</p>
-                                <p class="text-xs text-[#622032]/60">{{ $item->request->requesterCity->name }}</p>
+                                <p class="text-sm font-semibold text-[#622032]">{{ $item->requestHeader->humanitarianRequest->requester_full_name }}</p>
+                                <p class="text-xs text-[#622032]/60">{{ $item->requestHeader->humanitarianRequest->voter->city->name }}</p>
                             </div>
                         </div>
 
                         <div class="flex items-center gap-2 text-xs text-[#622032]/60">
-                            <span class="px-2 py-1 bg-[#fef9de] rounded">{{ $item->request->subtype }}</span>
+                            <span class="px-2 py-1 bg-[#fef9de] rounded">{{ $item->requestHeader->humanitarianRequest->subtype }}</span>
                             <span>•</span>
-                            <span class="font-semibold text-[#931335]">${{ number_format($item->request->amount, 2) }}</span>
+                            <span class="font-semibold text-[#931335]">${{ number_format($item->requestHeader->humanitarianRequest->amount, 2) }}</span>
                         </div>
                     </div>
 
                     <!-- Action -->
                     <div class="flex justify-end">
-                        <a href="{{ route('humanitarian.show', $item->request->id) }}" class="text-sm text-[#931335] hover:underline">
+                        <a href="{{ route('humanitarian.show', $item->requestHeader->id) }}" class="text-sm text-[#931335] hover:underline">
                             View Original Request
                         </a>
                     </div>

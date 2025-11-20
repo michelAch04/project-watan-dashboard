@@ -44,7 +44,10 @@ class PwMemberController extends Controller
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('father_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('mother_full_name', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%");
             });
@@ -73,10 +76,14 @@ class PwMemberController extends Controller
             }
         }
 
-        $members = $query->orderBy('name')->paginate(25)->appends($request->all());
+        $members = $query->orderBy('first_name')
+                        ->orderBy('father_name')
+                        ->orderBy('last_name')
+                        ->paginate(25)
+                        ->appends($request->all());
 
         // Get filters data
-        $zones = $user->hasRole('admin') ? Zone::where('cancelled', 0)->orderBy('name_en')->get() : collect();
+        $zones = $user->hasRole('admin') ? Zone::where('cancelled', 0)->orderBy('name')->get() : collect();
         $cities = collect();
 
         if ($user->hasRole('admin')) {
@@ -143,7 +150,10 @@ class PwMemberController extends Controller
 
         $validated = $request->validate([
             'voter_id' => 'required|exists:voters_list,id',
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'father_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'mother_full_name' => 'required|string|max:255',
             'phone' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
             'is_active' => 'boolean'
@@ -286,7 +296,10 @@ class PwMemberController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'father_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'mother_full_name' => 'required|string|max:255',
             'phone' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
             'is_active' => 'boolean'
@@ -356,6 +369,11 @@ class PwMemberController extends Controller
         $user = Auth::user();
         $search = $request->input('search', '');
 
+        // Enforce minimum 2 characters for performance
+        if (!$search || strlen($search) < 2) {
+            return response()->json([]);
+        }
+
         $query = PwMember::with(['voter.city.zone'])
             ->where('cancelled', 0);
 
@@ -374,13 +392,14 @@ class PwMemberController extends Controller
             }
         }
 
-        if ($search) {
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
+        $query->where(function($q) use ($search) {
+            $q->where('first_name', 'like', "%{$search}%")
+              ->orWhere('father_name', 'like', "%{$search}%")
+              ->orWhere('last_name', 'like', "%{$search}%")
+              ->orWhere('mother_full_name', 'like', "%{$search}%")
+              ->orWhere('phone', 'like', "%{$search}%")
+              ->orWhere('email', 'like', "%{$search}%");
+        });
 
         $members = $query->limit(20)->get();
 
@@ -396,6 +415,11 @@ class PwMemberController extends Controller
             $user = Auth::user();
             $search = $request->input('search', '');
             $excludeVoterId = $request->input('exclude_voter_id'); // For edit form
+
+            // Enforce minimum 2 characters for performance
+            if (!$search || strlen($search) < 2) {
+                return response()->json([]);
+            }
 
             $query = Voter::with(['city.zone'])
                 ->where('cancelled', 0);
@@ -427,27 +451,26 @@ class PwMemberController extends Controller
             }
         }
 
-        if ($search) {
-            $query->where(function($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('father_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('full_name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('ro_number', 'like', "%{$search}%");
-            });
-        }
+        $query->where(function($q) use ($search) {
+            $q->where('first_name', 'like', "%{$search}%")
+              ->orWhere('father_name', 'like', "%{$search}%")
+              ->orWhere('last_name', 'like', "%{$search}%")
+              ->orWhere('mother_full_name', 'like', "%{$search}%")
+              ->orWhere('phone', 'like', "%{$search}%")
+              ->orWhere('register_number', 'like', "%{$search}%");
+        });
 
             $voters = $query->limit(20)->get()->map(function($voter) {
-                $fullName = $voter->full_name ?: trim("{$voter->first_name} {$voter->father_name} {$voter->last_name}");
+                $fullName = trim("{$voter->first_name} {$voter->father_name} {$voter->last_name}");
                 return [
                     'id' => $voter->id,
                     'first_name' => $voter->first_name,
                     'father_name' => $voter->father_name,
                     'last_name' => $voter->last_name,
+                    'mother_full_name' => $voter->mother_full_name,
                     'full_name' => $fullName,
                     'phone' => $voter->phone,
-                    'ro_number' => $voter->ro_number,
+                    'register_number' => $voter->register_number,
                     'city' => $voter->city ? [
                         'id' => $voter->city->id,
                         'name' => $voter->city->name,

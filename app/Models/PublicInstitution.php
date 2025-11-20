@@ -24,11 +24,11 @@ class PublicInstitution extends Model
     }
 
     /**
-     * Get requests for this institution
+     * Get public requests for this institution
      */
-    public function requests()
+    public function publicRequests()
     {
-        return $this->hasMany(Request::class, 'public_institution_id');
+        return $this->hasMany(PublicRequest::class, 'public_institution_id');
     }
 
     /**

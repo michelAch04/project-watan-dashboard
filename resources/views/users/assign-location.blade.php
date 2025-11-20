@@ -24,11 +24,11 @@
             <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-[#f8f0e2] mb-4">
                 <div class="flex items-center gap-3">
                     <div class="avatar w-12 h-12 text-base">
-                        {{ strtoupper(substr($user->name, 0, 1)) }}
+                        {{ strtoupper(substr($user->username, 0, 1)) }}
                     </div>
                     <div>
-                        <h3 class="font-bold text-[#622032]">{{ $user->name }}</h3>
-                        <p class="text-sm text-[#622032]/60 capitalize">{{ $user->roles->first()?->name ?? 'No Role' }}</p>
+                        <h3 class="font-bold text-[#622032]">{{ $user->username }}</h3>
+                        <p class="text-sm text-[#622032]/60 uppercase">{{ $user->roles->first()?->name ?? 'No Role' }}</p>
                     </div>
                 </div>
             </div>
@@ -52,7 +52,6 @@
                             <option value="zone">Zone</option>
                             @endif
                             <option value="city">City</option>
-                            <option value="village">Village</option>
                         </select>
                         
                         @if(!$canAssignZone && auth()->user()->hasRole('admin'))
@@ -63,7 +62,7 @@
 
                         @if($managerZone)
                         <p class="text-xs text-[#622032]/60 mt-2">
-                            Only locations in <strong>{{ $managerZone->name }}</strong> zone can be assigned
+                            Only locations in <strong>{{ $managerZone->name }}</strong> can be assigned
                         </p>
                         @endif
                     </div>

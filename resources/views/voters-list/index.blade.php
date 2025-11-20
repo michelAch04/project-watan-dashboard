@@ -50,7 +50,8 @@
                             name="search"
                             value="{{ request('search') }}"
                             class="input-field text-sm"
-                            placeholder="Name, phone, or RO number...">
+                            placeholder="Name, phone, or register number..."
+                            lang="ar">
                     </div>
 
                     <!-- Zone Filter (Admin only) -->
@@ -107,32 +108,39 @@
             </div>
 
             <!-- Voters List -->
-            <div class="space-y-3">
+            <div class="space-y-3" dir="rtl" lang="ar">
                 @forelse($voters as $voter)
                 <div class="bg-white rounded-xl p-4 shadow-sm border border-[#f8f0e2]">
                     <div class="flex items-start gap-3">
                         <!-- Avatar -->
                         <div class="avatar w-12 h-12 text-base flex-shrink-0">
-                            {{ strtoupper(substr($voter->first_name ?? 'V', 0, 1)) }}
+                            <svg class="w-6 h-6 inline" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
                         </div>
 
                         <!-- Info -->
                         <div class="flex-1 min-w-0">
                             <h3 class="font-bold text-[#622032] mb-1">
-                                {{ $voter->first_name }} {{ $voter->second_name }} {{ $voter->third_name }} {{ $voter->last_name }}
+                                {{ $voter->first_name }} {{ $voter->father_name }} {{ $voter->last_name }}
                             </h3>
 
-                            @if($voter->phone)
-                            <p class="text-xs text-[#622032]/60 mb-1">{{ $voter->phone }}</p>
+                            @if($voter->mother_full_name)
+                            <p class="text-xs sm:text-sm text-[#622032]/60 mb-1">إسم الأم الثلاثي: {{ $voter->mother_full_name }}</p>
                             @endif
 
-                            @if($voter->ro_number)
-                            <p class="text-xs text-[#622032]/60 mb-2">RO: {{ $voter->ro_number }}</p>
+                            @if($voter->phone)
+                            <p class="text-xs sm:text-sm text-[#622032]/60 mb-1">{{ $voter->phone }}</p>
+                            @endif
+
+                            @if($voter->register_number)
+                            <p class="text-xs sm:text-sm text-[#622032]/60 mb-2">رقم السجل: {{ $voter->register_number }}</p>
                             @endif
 
                             <!-- Location -->
                             @if($voter->city)
-                            <div class="flex items-start gap-1 text-xs text-[#622032]/70 mb-1">
+                            <div class="flex items-start gap-1 text-xs sm:text-sm text-[#622032]/70 mb-1">
                                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>

@@ -11,24 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Add cancelled field to requests table
-        if (!Schema::hasColumn('requests', 'cancelled')) {
-            Schema::table('requests', function (Blueprint $table) {
-                $table->boolean('cancelled')->default(0)->after('published_count')->comment('Soft delete flag');
-            });
-        }
-
-        // Add cancelled field to request types table
-        if (!Schema::hasColumn('request_types', 'cancelled')) {
-            Schema::table('request_types', function (Blueprint $table) {
-                $table->boolean('cancelled')->default(0)->after('published_count')->comment('Soft delete flag');
-            });
-        }
-
         // Add cancelled field to request statuses table
         if (!Schema::hasColumn('request_statuses', 'cancelled')) {
             Schema::table('request_statuses', function (Blueprint $table) {
-                $table->boolean('cancelled')->default(0)->after('published_count')->comment('Soft delete flag');
+                $table->boolean('cancelled')->default(0)->after('order')->comment('Soft delete flag');
             });
         }
 
@@ -95,13 +81,6 @@ return new class extends Migration
             });
         }
 
-        // Add cancelled field to villages table
-        if (!Schema::hasColumn('villages', 'cancelled')) {
-            Schema::table('villages', function (Blueprint $table) {
-                $table->boolean('cancelled')->default(0)->after('user_ids')->comment('Soft delete flag');
-            });
-        }
-
         // Add cancelled field to districts table
         if (!Schema::hasColumn('districts', 'cancelled')) {
             Schema::table('districts', function (Blueprint $table) {
@@ -122,14 +101,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('requests', function (Blueprint $table) {
-            $table->dropColumn('cancelled');
-        });
-
-        Schema::table('request_types', function (Blueprint $table) {
-            $table->dropColumn('cancelled');
-        });
-
         Schema::table('request_statuses', function (Blueprint $table) {
             $table->dropColumn('cancelled');
         });
@@ -167,10 +138,6 @@ return new class extends Migration
         });
 
         Schema::table('cities', function (Blueprint $table) {
-            $table->dropColumn('cancelled');
-        });
-
-        Schema::table('villages', function (Blueprint $table) {
             $table->dropColumn('cancelled');
         });
 

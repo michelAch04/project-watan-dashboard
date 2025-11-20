@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Zone;
 use App\Models\City;
-use App\Models\Village;
 use App\Models\PwMember;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +16,7 @@ use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
+    // ... [Previous helper methods like getUserZone, isAdmin, canManageUser remain unchanged] ...
     /**
      * Get the authenticated user's zone (for HORs)
      */
@@ -68,8 +68,6 @@ class UserController extends Controller
         // User belongs to zone if:
         // 1. They manage the zone
         // 2. They manage a city in the zone
-        // 3. They manage a village in a city in the zone
-
         $userZone = $targetUser->zones()->first();
         if ($userZone && $userZone->id === $horZone->id) {
             return true;
@@ -78,13 +76,6 @@ class UserController extends Controller
         $userCities = City::notCancelled()->whereJsonContains('user_id', $targetUser->id)->get();
         foreach ($userCities as $city) {
             if ($city->zone_id === $horZone->id) {
-                return true;
-            }
-        }
-
-        $userVillages = Village::notCancelled()->whereJsonContains('user_id', $targetUser->id)->get();
-        foreach ($userVillages as $village) {
-            if ($village->city && $village->city->zone_id === $horZone->id) {
                 return true;
             }
         }
@@ -112,10 +103,6 @@ class UserController extends Controller
                 // City managers - users in cities within this zone
                 ->orWhere(function($sq) use ($zoneId) {
                     $sq->hasCityInZone($zoneId);
-                })
-                // Village managers - users in villages within cities in this zone
-                ->orWhere(function($sq) use ($zoneId) {
-                    $sq->hasVillageInZone($zoneId);
                 });
             });
         }
@@ -128,7 +115,7 @@ class UserController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
+                $q->where('username', 'like', "%{$search}%") // Changed from name to username
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('mobile', 'like', "%{$search}%");
             });
@@ -151,15 +138,11 @@ class UserController extends Controller
                 // City managers - users in cities within this zone
                 ->orWhere(function($sq) use ($zoneId) {
                     $sq->hasCityInZone($zoneId);
-                })
-                // Village managers - users in villages within cities in this zone
-                ->orWhere(function($sq) use ($zoneId) {
-                    $sq->hasVillageInZone($zoneId);
                 });
             });
         }
 
-        $users = $query->orderBy('name')->paginate(15)->withQueryString();
+        $users = $query->orderBy('username')->paginate(15)->withQueryString(); // Changed order by name to username
 
         // For HOR, only show their zone; for admin, show all zones
         $zones = $horZone ? Zone::notCancelled()->where('id', $horZone->id)->get() : Zone::notCancelled()->orderBy('name')->get();
@@ -194,22 +177,19 @@ class UserController extends Controller
                           })
                           ->orWhere(function($subq) use ($zoneId) {
                               $subq->hasCityInZone($zoneId);
-                          })
-                          ->orWhere(function($subq) use ($zoneId) {
-                              $subq->hasVillageInZone($zoneId);
                           });
                       });
                 })
-                ->orderBy('name')
+                ->orderBy('username') // Changed from name to username
                 ->get();
         } else {
-            $users = User::notCancelled()->orderBy('name')->get();
+            $users = User::notCancelled()->orderBy('username')->get(); // Changed from name to username
         }
 
         // Get PW members that don't have users yet
         $pwMembers = PwMember::active()
             ->whereDoesntHave('user')
-            ->orderBy('name')
+            ->orderBy('first_name') // Ensure sorting works with new field logic
             ->get();
 
         // Check if pre-filling from a PW member
@@ -250,6 +230,7 @@ class UserController extends Controller
 
         $request->validate([
             'pw_member_id' => ['required', 'exists:pw_members,id', 'unique:users,pw_member_id'],
+            'username' => ['required', 'string', 'max:255', 'unique:users,username'], // Added username validation
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'role' => ['required', 'exists:roles,name'],
@@ -286,7 +267,7 @@ class UserController extends Controller
 
         $user = User::create([
             'pw_member_id' => $request->pw_member_id,
-            'name' => $pwMember->name,
+            'username' => $request->username, // Set username manually instead of using PW Member name
             'email' => $request->email,
             'mobile' => $mobile,
             'password' => Hash::make($request->password),
@@ -303,6 +284,10 @@ class UserController extends Controller
             'redirect' => route('users.assign-location', $user->id)
         ]);
     }
+
+    // ... [Rest of the controller methods: showAssignLocation, getAvailableLocations, assignLocation, edit, update, destroy, formatMobile remain unchanged except for potentially ordering by username if needed in specific queries] ...
+    // For brevity, I have not repeated the unchanged methods below this point unless you need them updated as well.
+    // However, formatMobile is included in the original file so I will ensure the file ends correctly.
 
     /**
      * Show location assignment form
@@ -330,7 +315,7 @@ class UserController extends Controller
         // User can only be assigned zone if they report to themselves
         $canAssignZone = !$user->manager_id || $user->manager_id == $user->id;
 
-        // If HOR, they cannot assign zones (only cities and villages in their zone)
+        // If HOR, they cannot assign zones (only cities in their zone)
         if ($horZone) {
             $canAssignZone = false;
         }
@@ -344,7 +329,7 @@ class UserController extends Controller
     public function getAvailableLocations(Request $request, $userId)
     {
         $user = User::findOrFail($userId);
-        $type = $request->type; // 'zone', 'city', or 'village'
+        $type = $request->type; // 'zone' or 'city'
 
         $horZone = $this->getUserZone();
         $locations = [];
@@ -402,44 +387,6 @@ class UserController extends Controller
                         'location' => $city->zone->district->name . ', ' . $city->zone->name
                     ];
                 });
-        } elseif ($type === 'village') {
-            // Show all villages in the zone, since multiple users can be assigned to the same village
-            $query = Village::with('city.zone.district.governorate');
-
-            // If HOR, restrict to their zone only
-            if ($horZone) {
-                $query->whereHas('city', function($q) use ($horZone) {
-                    $q->where('zone_id', $horZone->id);
-                });
-            } else {
-                // Filter by manager's zone if user reports to someone else
-                if ($user->manager_id && $user->manager_id != $user->id) {
-                    $manager = User::find($user->manager_id);
-                    if ($manager->zones()->count() > 0) {
-                        $managerZone = $manager->zones()->first();
-                        $query->whereHas('city', function($q) use ($managerZone) {
-                            $q->where('zone_id', $managerZone->id);
-                        });
-                    }
-                } else if ($user->zones()->count() > 0) {
-                    // If user is a zone manager, show all villages in their zone
-                    $userZone = $user->zones()->first();
-                    $query->whereHas('city', function($q) use ($userZone) {
-                        $q->where('zone_id', $userZone->id);
-                    });
-                }
-            }
-
-            $locations = $query->orderBy('name')
-                ->get()
-                ->map(function($village) {
-                    return [
-                        'id' => $village->id,
-                        'name' => $village->name,
-                        'name_ar' => $village->name_ar,
-                        'location' => $village->city->zone->name . ', ' . $village->city->name
-                    ];
-                });
         }
 
         return response()->json($locations);
@@ -451,8 +398,8 @@ class UserController extends Controller
     public function assignLocation(Request $request, $id)
     {
         $request->validate([
-            'location_type' => ['required', 'in:zone,city,village,none'],
-            'location_id' => ['nullable', 'integer', 'required_if:location_type,zone,city,village'],
+            'location_type' => ['required', 'in:zone,city,none'],
+            'location_id' => ['nullable', 'integer', 'required_if:location_type,zone,city'],
         ]);
 
         $user = User::findOrFail($id);
@@ -476,7 +423,7 @@ class UserController extends Controller
                 ], 403);
             }
 
-            // HOR can only assign cities/villages from their zone
+            // HOR can only assign cities from their zone
             if ($request->location_type === 'city') {
                 $city = City::find($request->location_id);
                 if (!$city || $city->zone_id !== $horZone->id) {
@@ -487,15 +434,6 @@ class UserController extends Controller
                 }
             }
 
-            if ($request->location_type === 'village') {
-                $village = Village::with('city')->find($request->location_id);
-                if (!$village || $village->city->zone_id !== $horZone->id) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'You can only assign villages from your zone.'
-                    ], 403);
-                }
-            }
         }
 
         switch ($request->location_type) {
@@ -506,11 +444,6 @@ class UserController extends Controller
                 // Add user to city's JSON array
                 $city = City::findOrFail($request->location_id);
                 $city->assignUser($user->id);
-                break;
-            case 'village':
-                // Add user to village's JSON array
-                $village = Village::findOrFail($request->location_id);
-                $village->assignUser($user->id);
                 break;
         }
 
@@ -609,7 +542,7 @@ class UserController extends Controller
                 ], 403);
             }
 
-            // HOR can only assign cities/villages from their zone
+            // HOR can only assign cities from their zone
             if ($request->location_type === 'city') {
                 $city = City::find($request->location_id);
                 if (!$city || $city->zone_id !== $horZone->id) {
@@ -620,15 +553,6 @@ class UserController extends Controller
                 }
             }
 
-            if ($request->location_type === 'village') {
-                $village = Village::with('city')->find($request->location_id);
-                if (!$village || $village->city->zone_id !== $horZone->id) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'You can only assign villages from your zone.'
-                    ], 403);
-                }
-            }
         }
 
         // Update role

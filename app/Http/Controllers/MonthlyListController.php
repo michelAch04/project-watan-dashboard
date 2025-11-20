@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\MonthlyList;
-use App\Models\Request;
+use App\Models\RequestHeader;
+use App\Models\HumanitarianRequest;
+use App\Models\RequestStatus;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +22,11 @@ class MonthlyListController extends Controller
         $currentYear = now()->year;
 
         // Get current monthly list
-        $monthlyListItems = MonthlyList::with(['request.requestType', 'request.requestStatus', 'request.requesterCity'])
+        $monthlyListItems = MonthlyList::with([
+            'requestHeader.requestStatus',
+            'requestHeader.sender',
+            'requestHeader.humanitarianRequest.voter.city'
+        ])
             ->forUser($user->id)
             ->forMonth($currentMonth, $currentYear)
             ->get();
@@ -34,7 +40,7 @@ class MonthlyListController extends Controller
     public function add(HttpRequest $httpRequest)
     {
         $validated = $httpRequest->validate([
-            'request_id' => 'required|exists:requests,id',
+            'request_id' => 'required|exists:request_headers,id',
             'month' => 'required|integer|min:1|max:12',
             'year' => 'required|integer|min:2020'
         ]);
@@ -42,10 +48,10 @@ class MonthlyListController extends Controller
         $user = Auth::user();
 
         // Check if request exists and user has access
-        $request = Request::findOrFail($validated['request_id']);
+        $requestHeader = RequestHeader::findOrFail($validated['request_id']);
 
         // Verify user can access this request (either sender or can view it)
-        if ($request->sender_id !== $user->id && !$user->hasRole('hor')) {
+        if ($requestHeader->sender_id !== $user->id && !$user->hasRole('hor')) {
             return response()->json([
                 'success' => false,
                 'message' => 'You cannot add this request to your monthly list'
@@ -115,7 +121,7 @@ class MonthlyListController extends Controller
 
         DB::beginTransaction();
         try {
-            $monthlyListItems = MonthlyList::with('request')
+            $monthlyListItems = MonthlyList::with(['requestHeader.humanitarianRequest'])
                 ->forUser($user->id)
                 ->forMonth($validated['month'], $validated['year'])
                 ->get();
@@ -130,41 +136,44 @@ class MonthlyListController extends Controller
             $publishedCount = 0;
 
             foreach ($monthlyListItems as $item) {
-                $originalRequest = $item->request;
+                $originalHeader = $item->requestHeader;
+                $originalHumanitarian = $originalHeader->humanitarianRequest;
 
-                // Create new request based on the template
-                $newRequestData = [
-                    'request_type_id' => $originalRequest->request_type_id,
-                    'request_status_id' => \App\Models\RequestStatus::getByName(\App\Models\RequestStatus::STATUS_PUBLISHED)->id,
+                // Determine status based on user role
+                $statusName = $user->hasRole('hor')
+                    ? RequestStatus::STATUS_FINAL_APPROVAL
+                    : RequestStatus::STATUS_PUBLISHED;
+
+                $status = RequestStatus::getByName($statusName);
+
+                // Create new request header
+                $newRequestHeader = RequestHeader::create([
+                    'request_number' => RequestHeader::generateRequestNumber(),
+                    'request_date' => now(),
+                    'request_status_id' => $status->id,
                     'sender_id' => $user->id,
-                    'current_user_id' => $user->manager_id,
-                    'requester_first_name' => $originalRequest->requester_first_name,
-                    'requester_father_name' => $originalRequest->requester_father_name,
-                    'requester_last_name' => $originalRequest->requester_last_name,
-                    'requester_city_id' => $originalRequest->requester_city_id,
-                    'requester_ro_number' => $originalRequest->requester_ro_number,
-                    'requester_phone' => $originalRequest->requester_phone,
-                    'voter_id' => $originalRequest->voter_id,
-                    'subtype' => $originalRequest->subtype,
-                    'reference_member_id' => $originalRequest->reference_member_id,
-                    'amount' => $originalRequest->amount,
-                    'notes' => $originalRequest->notes
-                ];
+                    'current_user_id' => $user->hasRole('hor') ? null : $user->manager_id,
+                    'reference_member_id' => $originalHeader->reference_member_id,
+                    'notes' => $originalHeader->notes,
+                    'ready_date' => now()->addDays(7), // Default ready date
+                ]);
 
-                // If HOR, auto-approve
-                if ($user->hasRole('hor')) {
-                    $newRequestData['request_status_id'] = \App\Models\RequestStatus::getByName(\App\Models\RequestStatus::STATUS_FINAL_APPROVAL)->id;
-                    $newRequestData['current_user_id'] = null;
-                }
+                // Create new humanitarian request
+                HumanitarianRequest::create([
+                    'request_header_id' => $newRequestHeader->id,
+                    'voter_id' => $originalHumanitarian->voter_id,
+                    'subtype' => $originalHumanitarian->subtype,
+                    'amount' => $originalHumanitarian->amount,
+                    'budget_id' => $originalHumanitarian->budget_id,
+                ]);
 
-                Request::create($newRequestData);
                 $publishedCount++;
 
                 // Create notification for manager if not HOR
                 if (!$user->hasRole('hor') && $user->manager_id) {
                     \App\Models\InboxNotification::createForUser(
                         $user->manager_id,
-                        $item->request->id,
+                        $newRequestHeader->id,
                         'request_published',
                         'Monthly Request Published',
                         "{$user->name} has published a recurring humanitarian request for your approval."

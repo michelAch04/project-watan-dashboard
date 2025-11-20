@@ -23,7 +23,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'pw_member_id',
-        'name',
+        'username',
         'email',
         'mobile',
         'password',
@@ -124,36 +124,6 @@ class User extends Authenticatable
         });
     }
 
-    /**
-     * Get villages collection (for backward compatibility)
-     */
-    public function villages()
-    {
-        // Villages where user_id JSON array contains this user's ID
-        return Village::whereJsonContains('user_id', $this->id)->get();
-    }
-
-    /**
-     * Get villages as a proper relationship (for queries)
-     */
-    public function villagesRelation()
-    {
-        return Village::query()->whereJsonContains('user_id', $this->id);
-    }
-
-    /**
-     * Scope for filtering users by villages in a specific zone
-     */
-    public function scopeHasVillageInZone($query, $zoneId)
-    {
-        return $query->whereExists(function($subquery) use ($zoneId) {
-            $subquery->select(DB::raw(1))
-                ->from('villages')
-                ->join('cities', 'villages.city_id', '=', 'cities.id')
-                ->whereRaw('JSON_CONTAINS(villages.user_id, users.id)')
-                ->where('cities.zone_id', $zoneId);
-        });
-    }
 
         /**
      * Generate and save OTP

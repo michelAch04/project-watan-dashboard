@@ -107,15 +107,15 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                             <div class="flex-1">
-                                <p class="text-sm font-semibold text-[#622032]">{{ $request->requester_full_name }}</p>
-                                <p class="text-xs text-[#622032]/60">{{ $request->requesterCity->name }} @if($request->requester_ro_number) • {{ $request->requester_ro_number }} @endif</p>
+                                <p class="text-sm font-semibold text-[#622032]">{{ $request->humanitarianRequest->requester_full_name }}</p>
+                                <p class="text-xs text-[#622032]/60">{{ $request->humanitarianRequest->voter->city->name }} @if($request->humanitarianRequest->voter->ro_number) • {{ $request->humanitarianRequest->voter->ro_number }} @endif</p>
                             </div>
                         </div>
 
                         <div class="flex items-center gap-2 text-xs text-[#622032]/60">
-                            <span class="px-2 py-1 bg-[#fef9de] rounded">{{ $request->subtype }}</span>
+                            <span class="px-2 py-1 bg-[#fef9de] rounded">{{ $request->humanitarianRequest->subtype }}</span>
                             <span>•</span>
-                            <span class="font-semibold text-[#931335]">${{ number_format($request->amount, 2) }}</span>
+                            <span class="font-semibold text-[#931335]">${{ number_format($request->humanitarianRequest->amount, 2) }}</span>
                         </div>
                     </div>
 
@@ -131,10 +131,22 @@
                             <span class="font-semibold text-[#622032]">{{ $request->referenceMember->name }}</span>
                         </div>
                         @endif
-                        @if($request->notes)
+                        @if($request->humanitarianRequest->budget)
+                        <div class="flex items-center gap-2">
+                            <span class="text-[#622032]/60">Budget:</span>
+                            <span class="font-semibold text-[#622032]">{{ $request->humanitarianRequest->budget->description }}</span>
+                        </div>
+                        @endif
+                        @if($request->ready_date)
+                        <div class="flex items-center gap-2">
+                            <span class="text-[#622032]/60">Ready date:</span>
+                            <span class="font-semibold text-[#931335]">{{ \Carbon\Carbon::parse($request->ready_date)->format('M d, Y') }}</span>
+                        </div>
+                        @endif
+                        @if($request->humanitarianRequest->notes)
                         <div class="flex items-start gap-2">
                             <span class="text-[#622032]/60">Notes:</span>
-                            <span class="text-[#622032]">{{ Str::limit($request->notes, 100) }}</span>
+                            <span class="text-[#622032]">{{ Str::limit($request->humanitarianRequest->notes, 100) }}</span>
                         </div>
                         @endif
                     </div>

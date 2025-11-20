@@ -24,7 +24,6 @@
             <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-[#f8f0e2]">
                 <form @submit.prevent="submitForm" class="space-y-4">
                     
-                    <!-- PW Member Selection -->
                     <div class="bg-[#f8f0e2] p-4 rounded-lg border-2 border-[#931335]/20">
                         <h3 class="text-sm font-bold text-[#622032] mb-2 flex items-center">
                             <svg class="w-5 h-5 mr-2 text-[#931335]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,6 +48,7 @@
                                 :disabled="loading"
                                 autocomplete="off"
                                 required
+                                lang="ar"
                             />
                             
                             <div x-show="pwMemberSearchOpen"
@@ -65,7 +65,9 @@
                                         <li @click.stop="selectPwMember(member)"
                                             @mousedown.prevent
                                             class="px-4 py-3 hover:bg-[#f8f0e2] cursor-pointer border-b border-gray-100 last:border-0 transition-colors">
-                                            <div class="font-semibold text-[#622032]" x-text="member.name"></div>
+                                            <div class="font-semibold text-[#622032]">
+                                                <span x-text="member.first_name"></span> <span x-text="member.last_name"></span>
+                                            </div>
                                             <div class="text-xs text-[#622032]/60" x-text="member.phone"></div>
                                         </li>
                                     </template>
@@ -83,7 +85,9 @@
                             <div class="flex items-start justify-between">
                                 <div class="flex-1">
                                     <p class="text-xs font-semibold text-[#931335] mb-1">✓ Selected PW Member:</p>
-                                    <p class="text-sm font-bold text-[#622032]" x-text="selectedPwMember?.name"></p>
+                                    <p class="text-sm font-bold text-[#622032] mb-1" lang="ar">
+                                        <span x-text="selectedPwMember?.first_name"></span> <span x-text="selectedPwMember?.father_name"></span> <span x-text="selectedPwMember?.last_name"></span>
+                                    </p>
                                     <p class="text-xs text-[#622032]/60" x-text="selectedPwMember?.phone"></p>
                                 </div>
                                 <button type="button" @click="clearPwMember()" class="text-red-600 hover:text-red-700 p-1">
@@ -99,19 +103,35 @@
                         </div>
                     </div>
 
-                    <!-- Auto-filled Name & Phone -->
                     <div x-show="form.pw_member_id" x-cloak class="bg-[#fcf7f8] p-4 rounded-lg border border-[#f8f0e2]">
-                        <h3 class="text-sm font-bold text-[#622032] mb-3">Member Information (Auto-filled)</h3>
+                        <h3 class="text-sm font-bold text-[#622032] mb-3">User Information (Auto-filled)</h3>
                         <div class="space-y-2 text-sm">
                             <div class="flex justify-between">
-                                <span class="text-[#622032]/60">Name:</span>
-                                <span class="font-semibold text-[#622032]" x-text="selectedPwMember?.name"></span>
+                                <span class="text-[#622032]/60">Full Name:</span>
+                                <span class="font-semibold text-[#622032]" lang="ar">
+                                    <span x-text="selectedPwMember?.first_name"></span> <span x-text="selectedPwMember?.father_name"></span> <span x-text="selectedPwMember?.last_name"></span>
+                                </span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-[#622032]/60">Phone:</span>
                                 <span class="font-semibold text-[#622032]" x-text="selectedPwMember?.phone"></span>
                             </div>
                         </div>
+                    </div>
+
+                    <div>
+                        <label for="username" class="block text-sm font-semibold text-[#622032] mb-2">
+                            Username *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            x-model="form.username"
+                            class="input-field"
+                            placeholder="Enter unique username"
+                            required
+                            :disabled="loading"
+                        >
                     </div>
 
                     <div>
@@ -169,7 +189,7 @@
                         >
                             <option value="">Select a role</option>
                             @foreach($roles as $role)
-                                <option value="{{ $role->name }}">{{ ucfirst($role->name) }}</option>
+                                <option value="{{ $role->name }}">{{ strtoupper($role->name) }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -194,7 +214,7 @@
                             <select id="manager_id" x-model="form.manager_id" class="hidden">
                                 <option value="">No Manager (Reports to Self)</option>
                                 <template x-for="manager in availableManagers" :key="manager.id">
-                                    <option :value="manager.id" x-text="manager.name"></option>
+                                    <option :value="manager.id" x-text="manager.username"></option>
                                 </template>
                             </select>
 
@@ -203,7 +223,7 @@
                                  class="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-y-auto border border-gray-200">
                                 
                                 <ul class="py-1">
-                                    <li @click="selectManager({ id: '', name: 'No Manager (Reports to Self)' })"
+                                    <li @click="selectManager({ id: '', username: 'No Manager (Reports to Self)' })"
                                         class="px-4 py-2 hover:bg-[#f8f0e2] cursor-pointer italic">
                                         No Manager (Reports to Self)
                                     </li>
@@ -211,7 +231,7 @@
                                     <template x-for="manager in filteredManagers" :key="manager.id">
                                         <li @click="selectManager(manager)"
                                             class="px-4 py-2 hover:bg-[#f8f0e2] cursor-pointer"
-                                            x-text="manager.name">
+                                            x-text="manager.username">
                                         </li>
                                     </template>
                                     
@@ -264,6 +284,7 @@ function createUserForm() {
     return {
         form: {
             pw_member_id: '',
+            username: '',
             email: '',
             password: '',
             password_confirmation: '',
@@ -285,7 +306,8 @@ function createUserForm() {
                 return this.pwMembers;
             }
             return this.pwMembers.filter(member => {
-                return member.name.toLowerCase().includes(this.pwMemberSearch.toLowerCase()) ||
+                const fullName = (member.first_name + ' ' + member.last_name).toLowerCase();
+                return fullName.includes(this.pwMemberSearch.toLowerCase()) ||
                        member.phone.includes(this.pwMemberSearch);
             });
         },
@@ -300,12 +322,13 @@ function createUserForm() {
                 return this.availableManagers;
             }
             return this.availableManagers.filter(manager => {
-                return manager.name.toLowerCase().includes(this.managerSearch.toLowerCase());
+                return manager.username.toLowerCase().includes(this.managerSearch.toLowerCase());
             });
         },
 
         init() {
-            this.availableManagers = @json($users->map(fn($user) => ['id' => $user->id, 'name' => $user->name]));
+            // Map user ID and Username for managers
+            this.availableManagers = @json($users->map(fn($user) => ['id' => $user->id, 'username' => $user->username]));
 
             if (this.form.manager_id === '') {
                 this.managerSearch = '';
@@ -328,7 +351,8 @@ function createUserForm() {
         selectPwMember(member) {
             this.selectedPwMember = member;
             this.form.pw_member_id = member.id;
-            this.pwMemberSearch = member.name;
+            // Display first and last name in search bar when selected
+            this.pwMemberSearch = member.first_name + ' ' + member.last_name;
             this.pwMemberSearchOpen = false;
             this.submitAttempted = false;
         },
@@ -341,7 +365,7 @@ function createUserForm() {
 
         selectManager(manager) {
             this.form.manager_id = manager.id;
-            this.managerSearch = manager.name;
+            this.managerSearch = manager.username;
             this.managerSearchOpen = false;
         },
 

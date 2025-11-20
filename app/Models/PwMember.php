@@ -8,10 +8,14 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class PwMember extends Model
 {
     protected $fillable = [
-        'name',
+        'first_name',
+        'father_name',
+        'last_name',
+        'mother_full_name',
         'phone',
         'email',
         'voter_id',
+        'office_status',
         'is_active',
         'cancelled'
     ];
@@ -37,11 +41,11 @@ class PwMember extends Model
     }
 
     /**
-     * Get requests where this member is referenced
+     * Get request headers where this member is referenced
      */
-    public function requests()
+    public function requestHeaders()
     {
-        return $this->hasMany(Request::class, 'reference_member_id');
+        return $this->hasMany(RequestHeader::class, 'reference_member_id');
     }
 
     /**

@@ -208,8 +208,23 @@ class BudgetController extends Controller
             ], 403);
         }
 
-        // Check if budget is being used (exclude cancelled requests)
-        if ($budget->requests()->notCancelled()->count() > 0) {
+        // Check if budget is being used by any active requests
+        $hasHumanitarianRequests = $budget->humanitarianRequests()
+            ->whereHas('requestHeader', function($q) {
+                $q->notCancelled();
+            })->count() > 0;
+
+        $hasPublicRequests = $budget->publicRequests()
+            ->whereHas('requestHeader', function($q) {
+                $q->notCancelled();
+            })->count() > 0;
+
+        $hasDiapersRequests = $budget->diapersRequests()
+            ->whereHas('requestHeader', function($q) {
+                $q->notCancelled();
+            })->count() > 0;
+
+        if ($hasHumanitarianRequests || $hasPublicRequests || $hasDiapersRequests) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot delete budget that is being used by requests'

@@ -122,21 +122,29 @@
             </div>
 
             <!-- Members List -->
-            <div class="space-y-3">
+            <div class="space-y-3" dir="rtl" lang="ar">
                 @forelse($members as $member)
                 <div class="bg-white rounded-xl p-4 shadow-sm border border-[#f8f0e2]">
                     <div class="flex items-start gap-3">
                         <!-- Avatar -->
                         <div class="avatar w-12 h-12 text-base flex-shrink-0">
-                            {{ strtoupper(substr($member->name, 0, 1)) }}
+                            <svg class="w-6 h-6 inline" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
                         </div>
 
                         <!-- Info -->
                         <div class="flex-1 min-w-0">
-                            <h3 class="font-bold text-[#622032] mb-1">{{ $member->name }}</h3>
-                            <p class="text-xs text-[#622032]/60 mb-1">{{ $member->phone }}</p>
+                            <h3 class="font-bold text-[#622032] mb-1">{{ $member->first_name }} {{ $member->father_name }} {{ $member->last_name }}</h3>
+
+                            @if($member->mother_full_name)
+                            <p class="text-xs sm:text-sm text-[#622032]/60 mb-1">إسم الأم الثلاثي: {{ $member->mother_full_name }}</p>
+                            @endif
+
+                            <p class="text-xs sm:text-sm text-[#622032]/60 mb-1">{{ $member->phone }}</p>
                             @if($member->email)
-                            <p class="text-xs text-[#622032]/60 mb-2">{{ $member->email }}</p>
+                            <p class="text-xs sm:text-sm text-[#622032]/60 mb-2">{{ $member->email }}</p>
                             @endif
 
                             <!-- Status Badge -->
@@ -146,7 +154,7 @@
 
                             <!-- Location (from voter) -->
                             @if($member->voter && $member->voter->city)
-                            <div class="flex items-start gap-1 text-xs text-[#622032]/70 mb-1">
+                            <div class="flex items-start gap-1 text-xs sm:text-sm text-[#622032]/70 mb-1">
                                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -189,7 +197,7 @@
                                 </svg>
                             </a>
 
-                            <button @click="deleteMember({{ $member->id }}, '{{ $member->name }}')"
+                            <button @click="deleteMember({{ $member->id }}, '{{ $member->first_name }} {{ $member->father_name }} {{ $member->last_name }}')"
                                 class="p-2 bg-red-50 hover:bg-red-100 rounded-lg transition-all active:scale-95">
                                 <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>

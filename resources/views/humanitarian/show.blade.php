@@ -76,32 +76,32 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <p class="text-xs text-[#622032]/60 mb-1">Full Name</p>
-                            <p class="text-sm font-semibold text-[#622032]">{{ $request->requester_full_name }}</p>
+                            <p class="text-sm font-semibold text-[#622032]">{{ $request->humanitarianRequest->requester_full_name }}</p>
                         </div>
                         <div>
                             <p class="text-xs text-[#622032]/60 mb-1">City (البلدة)</p>
-                            <p class="text-sm font-semibold text-[#622032]">{{ $request->requesterCity->name }} - {{ $request->requesterCity->name_ar }}</p>
+                            <p class="text-sm font-semibold text-[#622032]">{{ $request->humanitarianRequest->voter->city->name }} - {{ $request->humanitarianRequest->voter->city->name_ar }}</p>
                         </div>
                     </div>
 
-                    @if($request->requester_ro_number)
+                    @if($request->humanitarianRequest->voter->ro_number)
                     <div>
                         <p class="text-xs text-[#622032]/60 mb-1">رقم السجل</p>
-                        <p class="text-sm font-semibold text-[#622032]">{{ $request->requester_ro_number }}</p>
+                        <p class="text-sm font-semibold text-[#622032]">{{ $request->humanitarianRequest->voter->ro_number }}</p>
                     </div>
                     @endif
 
-                    @if($request->requester_phone)
+                    @if($request->humanitarianRequest->voter->phone)
                     <div>
                         <p class="text-xs text-[#622032]/60 mb-1">Phone Number</p>
-                        <p class="text-sm font-semibold text-[#622032]">{{ $request->requester_phone }}</p>
+                        <p class="text-sm font-semibold text-[#622032]">{{ $request->humanitarianRequest->voter->phone }}</p>
                     </div>
                     @endif
 
-                    @if($request->voter)
+                    @if($request->humanitarianRequest->voter)
                     <div class="p-3 bg-[#fef9de] rounded-lg">
                         <p class="text-xs text-[#622032]/60 mb-1">Linked to Voter</p>
-                        <p class="text-sm font-semibold text-[#931335]">{{ $request->voter->full_name }}</p>
+                        <p class="text-sm font-semibold text-[#931335]">{{ $request->humanitarianRequest->voter->full_name }}</p>
                     </div>
                     @endif
                 </div>
@@ -120,11 +120,11 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <p class="text-xs text-[#622032]/60 mb-1">Request Type (نوع الطلب)</p>
-                            <p class="text-sm font-semibold text-[#622032]">{{ $request->subtype }}</p>
+                            <p class="text-sm font-semibold text-[#622032]">{{ $request->humanitarianRequest->subtype }}</p>
                         </div>
                         <div>
                             <p class="text-xs text-[#622032]/60 mb-1">Amount</p>
-                            <p class="text-2xl font-bold text-[#931335]">${{ number_format($request->amount, 2) }}</p>
+                            <p class="text-2xl font-bold text-[#931335]">${{ number_format($request->humanitarianRequest->amount, 2) }}</p>
                         </div>
                     </div>
 
@@ -138,11 +138,11 @@
                     </div>
                     @endif
 
-                    @if($request->notes)
+                    @if($request->humanitarianRequest->notes)
                     <div>
                         <p class="text-xs text-[#622032]/60 mb-1">Notes</p>
                         <div class="p-3 bg-[#fcf7f8] rounded-lg">
-                            <p class="text-sm text-[#622032]">{{ $request->notes }}</p>
+                            <p class="text-sm text-[#622032]">{{ $request->humanitarianRequest->notes }}</p>
                         </div>
                     </div>
                     @endif

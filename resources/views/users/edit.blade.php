@@ -25,10 +25,10 @@
                 <div class="mb-6 p-4 bg-[#fcf7f8] rounded-lg">
                     <div class="flex items-center gap-3 mb-3">
                         <div class="avatar w-12 h-12 text-base">
-                            {{ strtoupper(substr($user->name, 0, 1)) }}
+                            {{ strtoupper(substr($user->username, 0, 1)) }}
                         </div>
                         <div>
-                            <h3 class="font-bold text-[#622032]">{{ $user->name }}</h3>
+                            <h3 class="font-bold text-[#622032]">{{ $user->username }}</h3>
                             <p class="text-sm text-[#622032]/60">{{ $user->email }}</p>
                         </div>
                     </div>

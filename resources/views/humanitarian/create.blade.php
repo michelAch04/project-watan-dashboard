@@ -186,12 +186,9 @@
                                 <input
                                     type="text"
                                     x-model="memberSearch"
-                                    {{--
-                                        FIXED (Problem 2): Simplified directives
-                                    --}}
                                     @focus="memberSearchOpen = true"
-                                    @input.debounce.300ms="searchMembers()"
-                                    placeholder="Search PW member..."
+                                    @input.debounce.300ms="if(memberSearch.length >= 2) searchMembers(); else memberResults = []"
+                                    placeholder="Search PW member (min 2 chars)..."
                                     class="input-field"
                                     :disabled="loading"
                                     autocomplete="off"
@@ -226,8 +223,13 @@
                                             </li>
                                         </template>
 
-                                        {{-- FIXED (Problem 2): Added "No results" message --}}
-                                        <template x-if="!memberSearching && memberResults.length === 0">
+                                        <template x-if="!memberSearching && memberSearch.length < 2">
+                                            <li class="px-4 py-3 text-gray-500 text-sm italic">
+                                                Type at least 2 characters to search
+                                            </li>
+                                        </template>
+
+                                        <template x-if="!memberSearching && memberResults.length === 0 && memberSearch.length >= 2">
                                             <li class="px-4 py-3 text-gray-500 text-sm italic">
                                                 No members found
                                             </li>
@@ -389,7 +391,7 @@ function humanitarianForm(isHor) {
         showBudgetModal: false,
         budgets: [],
         selectedBudget: '',
-        readyDate: '',
+        readyDate: new Date().toISOString().split('T')[0], // Default to today
         budgetPreview: null,
         userIsHor: isHor,
         
@@ -456,9 +458,11 @@ function humanitarianForm(isHor) {
         },
 
         async searchMembers() {
-            // FIXED: Removed manual setTimeout. @input.debounce handles this
-            // (or init() calls it directly).
-            
+            if (this.memberSearch.length < 2) {
+                this.memberResults = [];
+                return;
+            }
+
             this.memberSearching = true;
             try {
                 const response = await fetch(`{{ route('humanitarian.search-members') }}?search=${encodeURIComponent(this.memberSearch)}`);

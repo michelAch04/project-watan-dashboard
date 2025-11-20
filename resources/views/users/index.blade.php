@@ -96,12 +96,12 @@
                     <div class="flex items-start gap-3">
                         <!-- Avatar -->
                         <div class="avatar w-12 h-12 text-base flex-shrink-0">
-                            {{ strtoupper(substr($user->name, 0, 1)) }}
+                            {{ strtoupper(substr($user->username, 0, 1)) }}
                         </div>
 
                         <!-- Info -->
                         <div class="flex-1 min-w-0">
-                            <h3 class="font-bold text-[#622032] mb-1">{{ $user->name }}</h3>
+                            <h3 class="font-bold text-[#622032] mb-1">{{ $user->username }}</h3>
                             <p class="text-xs text-[#622032]/60 mb-2">{{ $user->email }}</p>
 
                             <!-- Role Badge -->
@@ -117,11 +117,9 @@
                                 </svg>
                                 <span>
                                     @if($user->zones()->count() > 0)
-                                    Zone: {{ $user->zones()->first()->name }}
+                                    Zone: {{ $user->zones()->first()->username }}
                                     @elseif($user->cities()->count() > 0)
-                                    City: {{ $user->cities()->first()->name }}
-                                    @elseif($user->villages()->count() > 0)
-                                    Village: {{ $user->villages()->first()->name }}
+                                    City: {{ $user->cities()->first()->username }}
                                     @else
                                     N/A
                                     @endif
@@ -134,7 +132,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
                                 <span>
-                                    Reports to: {{ $user->manager ? $user->manager->name : 'N/A' }}
+                                    Reports to: {{ $user->manager ? $user->manager->username : 'N/A' }}
                                 </span>
                             </div>
                         </div>

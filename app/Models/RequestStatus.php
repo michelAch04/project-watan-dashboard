@@ -17,11 +17,11 @@ class RequestStatus extends Model
     ];
 
     /**
-     * Get requests with this status
+     * Get request headers with this status
      */
-    public function requests()
+    public function requestHeaders()
     {
-        return $this->hasMany(Request::class, 'request_status_id');
+        return $this->hasMany(RequestHeader::class, 'request_status_id');
     }
 
     /**

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->integer('amount'); // positive for refill/additions, negative for deductions
             $table->integer('balance_after'); // budget balance after this transaction
             $table->unsignedBigInteger('request_id')->nullable(); // if transaction is from a request allocation
-            $table->foreign('request_id')->references('id')->on('requests')->onDelete('set null');
+            $table->foreign('request_id')->references('id')->on('request_headers')->onDelete('set null');
             $table->text('description')->nullable(); // description of the transaction
             $table->timestamps();
         });

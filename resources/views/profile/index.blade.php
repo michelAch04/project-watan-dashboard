@@ -49,7 +49,7 @@
             <div class="space-y-4">
                 <div class="flex justify-between items-center py-3 border-b border-[#f8f0e2]">
                     <span class="text-sm text-[#622032]/60">Role</span>
-                    <span class="text-sm font-semibold text-[#622032] capitalize">{{ auth()->user()->role()->name }}</span>
+                    <span class="text-sm font-semibold text-[#622032] uppercase">{{ auth()->user()->role()->name }}</span>
                 </div>
 
                 @if(auth()->user()->zone)

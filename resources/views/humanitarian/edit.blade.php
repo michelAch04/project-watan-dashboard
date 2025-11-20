@@ -4,12 +4,12 @@
 
 @section('content')
 @php
-$voterData = $request->voter ? [
-    'id' => $request->voter->id,
-    'full_name' => $request->voter->full_name,
-    'city_name' => $request->voter->city->name,
-    'ro_number' => $request->voter->ro_number,
-    'city_id' => $request->voter->city_id
+$voterData = $request->humanitarianRequest->voter ? [
+    'id' => $request->humanitarianRequest->voter->id,
+    'full_name' => $request->humanitarianRequest->voter->full_name,
+    'city_name' => $request->humanitarianRequest->voter->city->name,
+    'ro_number' => $request->humanitarianRequest->voter->ro_number,
+    'city_id' => $request->humanitarianRequest->voter->city_id
 ] : null;
 
 $memberData = $request->referenceMember ? [
@@ -186,9 +186,9 @@ $memberData = $request->referenceMember ? [
                                 <input
                                     type="text"
                                     x-model="memberSearch"
-                                    @focus="memberSearchOpen = true; searchMembers()"
-                                    @input="searchMembers()"
-                                    placeholder="Search PW member..."
+                                    @focus="memberSearchOpen = true; if(memberSearch.length >= 2) searchMembers()"
+                                    @input="if(memberSearch.length >= 2) { searchMembers() } else { memberResults = []; }"
+                                    placeholder="Search PW member (min 2 chars)..."
                                     class="input-field"
                                     :disabled="loading"
                                     autocomplete="off" />
@@ -273,24 +273,24 @@ $memberData = $request->referenceMember ? [
     function humanitarianEditForm() {
         return {
             form: {
-                voter_id: '{{ $request->voter_id ?? "" }}',
-                requester_first_name: '{{ $request->requester_first_name }}',
-                requester_father_name: '{{ $request->requester_father_name }}',
-                requester_last_name: '{{ $request->requester_last_name }}',
-                requester_city_id: '{{ $request->requester_city_id }}',
-                requester_ro_number: '{{ $request->requester_ro_number }}',
-                requester_phone: '{{ $request->requester_phone }}',
-                subtype: '{{ $request->subtype }}',
+                voter_id: '{{ $request->humanitarianRequest->voter_id ?? "" }}',
+                requester_first_name: '{{ $request->humanitarianRequest->requester_first_name }}',
+                requester_father_name: '{{ $request->humanitarianRequest->requester_father_name }}',
+                requester_last_name: '{{ $request->humanitarianRequest->requester_last_name }}',
+                requester_city_id: '{{ $request->humanitarianRequest->requester_city_id }}',
+                requester_ro_number: '{{ $request->humanitarianRequest->requester_ro_number }}',
+                requester_phone: '{{ $request->humanitarianRequest->requester_phone }}',
+                subtype: '{{ $request->humanitarianRequest->subtype }}',
                 reference_member_id: '{{ $request->reference_member_id }}',
-                amount: '{{ $request->amount }}',
-                notes: `{{ $request->notes }}`,
+                amount: '{{ $request->humanitarianRequest->amount }}',
+                notes: `{{ $request->humanitarianRequest->notes }}`,
                 action: 'save'
             },
             loading: false,
             submitAction: '',
             errorMessage: '',
 
-            voterSearch: '{{ $request->voter ? $request->voter->full_name : "" }}',
+            voterSearch: '{{ $request->humanitarianRequest->voter ? $request->humanitarianRequest->voter->full_name : "" }}',
             voterSearchOpen: false,
             voterSearching: false,
             voterResults: [],
@@ -342,6 +342,11 @@ $memberData = $request->referenceMember ? [
             },
 
             async searchMembers() {
+                if (this.memberSearch.length < 2) {
+                    this.memberResults = [];
+                    return;
+                }
+
                 clearTimeout(this.memberSearchTimeout);
                 this.memberSearchTimeout = setTimeout(async () => {
                     this.memberSearching = true;

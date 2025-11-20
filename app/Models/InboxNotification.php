@@ -29,9 +29,9 @@ class InboxNotification extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function request()
+    public function requestHeader()
     {
-        return $this->belongsTo(Request::class);
+        return $this->belongsTo(RequestHeader::class, 'request_id');
     }
 
     /**

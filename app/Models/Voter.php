@@ -12,8 +12,9 @@ class Voter extends Model
         'first_name',
         'father_name',
         'last_name',
+        'mother_full_name',
         'city_id',
-        'ro_number',
+        'register_number',
         'phone',
         'cancelled'
     ];
@@ -27,11 +28,11 @@ class Voter extends Model
     }
 
     /**
-     * Get requests linked to this voter
+     * Get humanitarian requests linked to this voter
      */
-    public function requests()
+    public function humanitarianRequests()
     {
-        return $this->hasMany(Request::class, 'voter_id');
+        return $this->hasMany(HumanitarianRequest::class, 'voter_id');
     }
 
     /**

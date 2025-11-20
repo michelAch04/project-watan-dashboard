@@ -11,21 +11,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('voters_list', function (Blueprint $table) {
+        Schema::create('pw_members', function (Blueprint $table) {
             $table->id();
             $table->string('first_name');
             $table->string('father_name');
             $table->string('last_name');
             $table->string('mother_full_name');
-            $table->unsignedBigInteger('city_id');
-            $table->string('register_number')->comment('رقم السجل');
-            $table->string('phone')->nullable();
+            $table->string('phone');
+            $table->string('email')->nullable();
+            $table->unsignedBigInteger('voter_id')->nullable();
+            $table->string('office_status')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->boolean('cancelled')->default(0);
             $table->timestamps();
 
-            $table->foreign('city_id')->references('id')->on('cities')->onDelete('cascade');
-            $table->index(['first_name', 'last_name']);
-            $table->index('register_number');
+            $table->foreign('voter_id')->references('id')->on('voters_list')->onDelete('set null');
         });
     }
 
@@ -34,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('voters_list');
+        Schema::dropIfExists('pw_members');
     }
 };

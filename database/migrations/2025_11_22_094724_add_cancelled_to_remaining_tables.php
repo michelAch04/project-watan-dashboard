@@ -53,13 +53,6 @@ return new class extends Migration
             });
         }
 
-        // Add cancelled field to villages table
-        if (!Schema::hasColumn('villages', 'cancelled')) {
-            Schema::table('villages', function (Blueprint $table) {
-                $table->boolean('cancelled')->default(0)->comment('Soft delete flag');
-            });
-        }
-
         // Add cancelled field to districts table
         if (!Schema::hasColumn('districts', 'cancelled')) {
             Schema::table('districts', function (Blueprint $table) {
@@ -112,12 +105,6 @@ return new class extends Migration
 
         if (Schema::hasColumn('cities', 'cancelled')) {
             Schema::table('cities', function (Blueprint $table) {
-                $table->dropColumn('cancelled');
-            });
-        }
-
-        if (Schema::hasColumn('villages', 'cancelled')) {
-            Schema::table('villages', function (Blueprint $table) {
                 $table->dropColumn('cancelled');
             });
         }

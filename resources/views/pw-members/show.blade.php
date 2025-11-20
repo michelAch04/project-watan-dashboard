@@ -28,20 +28,18 @@
                 <div class="flex items-start gap-4">
                     <!-- Avatar -->
                     <div class="avatar w-16 h-16 text-xl flex-shrink-0">
-                        {{ strtoupper(substr($member->name, 0, 1)) }}
+                        <svg class="w-6 h-6 inline" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
                     </div>
 
                     <!-- Info -->
                     <div class="flex-1">
-                        <h2 class="text-xl font-bold text-[#622032] mb-2">{{ $member->name }}</h2>
-
-                        <!-- Status Badge -->
-                        <span class="inline-block px-3 py-1 rounded-md text-sm font-medium mb-3 {{ $member->is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
-                            {{ $member->is_active ? 'Active' : 'Inactive' }}
-                        </span>
-
+                        <h2 class="text-xl font-bold text-[#622032] mb-1" lang="ar">{{ $member->first_name }} {{ $member->father_name }} {{ $member->last_name }}</h2>
+                        
                         <!-- Contact Info -->
-                        <div class="space-y-2">
+                        <div class="space-y-2 mb-2">
                             <div class="flex items-center gap-2 text-[#622032]/80">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
@@ -58,6 +56,11 @@
                             </div>
                             @endif
                         </div>
+
+                        <!-- Status Badge -->
+                        <span class="inline-block px-3 py-1 rounded-md text-sm font-medium {{ $member->is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
+                            {{ $member->is_active ? 'Active' : 'Inactive' }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -75,13 +78,20 @@
                 <div class="space-y-3">
                     <div>
                         <div class="text-sm font-semibold text-[#622032]/60 mb-1">Full Name</div>
-                        <div class="text-base text-[#622032]">{{ $member->voter->first_name }} {{ $member->voter->second_name }} {{ $member->voter->third_name }} {{ $member->voter->last_name }}</div>
+                        <div class="text-base text-[#622032]" lang="ar">{{ $member->voter->first_name }} {{ $member->voter->father_name }} {{ $member->voter->last_name }}</div>
                     </div>
 
-                    @if($member->voter->ro_number)
+                    @if($member->voter->mother_full_name)
                     <div>
-                        <div class="text-sm font-semibold text-[#622032]/60 mb-1">RO Number</div>
-                        <div class="text-base text-[#622032]">{{ $member->voter->ro_number }}</div>
+                        <div class="text-sm font-semibold text-[#622032]/60 mb-1">Mother Name</div>
+                        <div class="text-base text-[#622032]" lang="ar">{{ $member->voter->mother_full_name }}</div>
+                    </div>
+                    @endif
+
+                    @if($member->voter->register_number)
+                    <div>
+                        <div class="text-sm font-semibold text-[#622032]/60 mb-1">Register Number</div>
+                        <div class="text-base text-[#622032]" lang="ar">{{ $member->voter->register_number }}</div>
                     </div>
                     @endif
 

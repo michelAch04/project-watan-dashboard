@@ -14,8 +14,8 @@ class InboxController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
-        $notifications = InboxNotification::with(['request.requestType', 'request.requestStatus'])
+
+        $notifications = InboxNotification::with(['requestHeader.requestStatus'])
             ->forUser($user->id)
             ->orderBy('created_at', 'desc')
             ->paginate(20);

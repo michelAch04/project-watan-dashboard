@@ -44,7 +44,8 @@ class VotersListController extends Controller
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('father_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('ro_number', 'like', "%{$search}%")
+                  ->orWhere('mother_full_name', 'like', "%{$search}%")
+                  ->orWhere('register_number', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%");
             });
         }
@@ -68,7 +69,7 @@ class VotersListController extends Controller
                         ->appends($request->all());
 
         // Get filters data
-        $zones = $user->hasRole('admin') ? Zone::where('cancelled', 0)->orderBy('name_en')->get() : collect();
+        $zones = $user->hasRole('admin') ? Zone::where('cancelled', 0)->orderBy('name')->get() : collect();
         $cities = collect();
 
         if ($user->hasRole('admin')) {
@@ -88,6 +89,11 @@ class VotersListController extends Controller
     {
         $user = Auth::user();
         $search = $request->input('search', '');
+
+        // Enforce minimum 2 characters for performance
+        if (!$search || strlen($search) < 2) {
+            return response()->json([]);
+        }
 
         $query = Voter::with(['city.zone'])
             ->where('cancelled', 0);
@@ -110,7 +116,8 @@ class VotersListController extends Controller
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('father_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('ro_number', 'like', "%{$search}%")
+                  ->orWhere('mother_full_name', 'like', "%{$search}%")
+                  ->orWhere('register_number', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%");
             });
         }

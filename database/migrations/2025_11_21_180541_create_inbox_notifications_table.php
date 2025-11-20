@@ -23,7 +23,7 @@ return new class extends Migration
             $table->timestamps();
             
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('request_id')->references('id')->on('requests')->onDelete('cascade');
+            $table->foreign('request_id')->references('id')->on('request_headers')->onDelete('cascade');
             
             $table->index(['user_id', 'is_read']);
             $table->index('created_at');

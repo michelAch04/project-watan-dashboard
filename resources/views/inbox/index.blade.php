@@ -123,8 +123,8 @@
                                 <span class="text-xs text-[#622032]/50">{{ $notification->created_at->diffForHumans() }}</span>
                                 
                                 <div class="flex gap-2">
-                                    @if($notification->request)
-                                    <a href="{{ route('humanitarian.show', $notification->request_id) }}" 
+                                    @if($notification->requestHeader)
+                                    <a href="{{ route('humanitarian.show', $notification->request_id) }}"
                                        class="text-xs text-[#931335] hover:text-[#622032] font-semibold">
                                         View Request →
                                     </a>

@@ -36,7 +36,7 @@
                             Linked Voter (Cannot be changed)
                         </h3>
                         <div class="text-sm text-[#622032]">
-                            <div class="font-bold">{{ $member->voter->full_name ?: trim(($member->voter->first_name ?? '') . ' ' . ($member->voter->father_name ?? '') . ' ' . ($member->voter->last_name ?? '')) }}</div>
+                            <div class="font-bold">{{ $member->voter->first_name }} {{ $member->voter->father_name }} {{ $member->voter->last_name }}</div>
                             @if($member->voter->city)
                             <div class="text-xs text-[#622032]/60 mt-1">{{ $member->voter->city->name }}</div>
                             @endif
@@ -56,20 +56,71 @@
                     </div>
                     @endif
 
-                    <!-- Name -->
+                    <!-- First Name -->
                     <div>
-                        <label for="name" class="block text-sm font-semibold text-[#622032] mb-2">
-                            Name *
+                        <label for="first_name" class="block text-sm font-semibold text-[#622032] mb-2">
+                            First Name *
                         </label>
                         <input
                             type="text"
-                            id="name"
-                            x-model="form.name"
+                            id="first_name"
+                            x-model="form.first_name"
                             class="input-field"
-                            :class="{ 'border-red-500': !form.name && submitAttempted }"
+                            :class="{ 'border-red-500': !form.first_name && submitAttempted }"
                             :disabled="loading"
                             required
-                            placeholder="Enter full name"
+                            placeholder="Enter first name"
+                        />
+                    </div>
+
+                    <!-- Father Name -->
+                    <div>
+                        <label for="father_name" class="block text-sm font-semibold text-[#622032] mb-2">
+                            Father Name *
+                        </label>
+                        <input
+                            type="text"
+                            id="father_name"
+                            x-model="form.father_name"
+                            class="input-field"
+                            :class="{ 'border-red-500': !form.father_name && submitAttempted }"
+                            :disabled="loading"
+                            required
+                            placeholder="Enter father name"
+                        />
+                    </div>
+
+                    <!-- Last Name -->
+                    <div>
+                        <label for="last_name" class="block text-sm font-semibold text-[#622032] mb-2">
+                            Last Name *
+                        </label>
+                        <input
+                            type="text"
+                            id="last_name"
+                            x-model="form.last_name"
+                            class="input-field"
+                            :class="{ 'border-red-500': !form.last_name && submitAttempted }"
+                            :disabled="loading"
+                            required
+                            placeholder="Enter last name"
+                        />
+                    </div>
+
+                    <!-- Mother Full Name -->
+                    <div>
+                        <label for="mother_full_name" class="block text-sm font-semibold text-[#622032] mb-2">
+                            Mother Full Name *
+                        </label>
+                        <input
+                            type="text"
+                            id="mother_full_name"
+                            x-model="form.mother_full_name"
+                            class="input-field"
+                            :class="{ 'border-red-500': !form.mother_full_name && submitAttempted }"
+                            :disabled="loading"
+                            required
+                            placeholder="Enter mother full name"
                         />
                     </div>
 
@@ -165,7 +216,10 @@
     function pwMemberEditForm() {
         return {
             form: {
-                name: @json($member->name),
+                first_name: @json($member->first_name),
+                father_name: @json($member->father_name),
+                last_name: @json($member->last_name),
+                mother_full_name: @json($member->mother_full_name),
                 phone: @json($member->phone),
                 email: @json($member->email),
                 is_active: @json((bool)$member->is_active)
@@ -183,7 +237,7 @@
                 this.errorMessage = '';
 
                 // Validation
-                if (!this.form.name || !this.form.phone) {
+                if (!this.form.first_name || !this.form.father_name || !this.form.last_name || !this.form.mother_full_name || !this.form.phone) {
                     this.errorMessage = 'Please fill in all required fields';
                     return;
                 }

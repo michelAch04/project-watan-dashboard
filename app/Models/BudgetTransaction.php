@@ -26,9 +26,9 @@ class BudgetTransaction extends Model
         return $this->belongsTo(Budget::class);
     }
 
-    public function request()
+    public function requestHeader()
     {
-        return $this->belongsTo(Request::class);
+        return $this->belongsTo(RequestHeader::class, 'request_id');
     }
 
     // Scopes

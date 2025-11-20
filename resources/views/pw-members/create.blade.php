@@ -36,7 +36,7 @@
                         </h3>
                         <p class="text-xs text-[#622032]/70 mb-3">Search for a voter to link with this PW member</p>
 
-                        <div class="relative" @click.away="voterSearchOpen = false">
+                        <div class="relative" @click.away="voterSearchOpen = false" lang="ar">
                             <input
                                 type="text"
                                 x-model="voterSearch"
@@ -75,7 +75,7 @@
                                     <template x-for="voter in voterResults" :key="voter.id">
                                         <li @click.stop="selectVoter(voter)"
                                             class="px-4 py-3 hover:bg-[#f8f0e2] cursor-pointer transition-colors border-b border-gray-100 last:border-b-0">
-                                            <div class="text-sm font-semibold text-[#622032]" x-text="voter.full_name"></div>
+                                            <div class="text-sm font-semibold text-[#622032]" x-text="voter.first_name + ' ' + voter.father_name + ' ' + voter.last_name" lang="ar"></div>
                                             <div class="text-xs text-[#622032]/60" x-text="voter.city ? voter.city.name : 'N/A'"></div>
                                         </li>
                                     </template>
@@ -91,10 +91,11 @@
 
                         <!-- Selected Voter Display -->
                         <template x-if="form.voter_id && selectedVoter">
-                            <div class="mt-3 p-3 bg-white rounded-lg border-2 border-green-200">
+                            <div class="mt-3 p-3 bg-white rounded-lg border-2 border-[#931335]/70">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <div class="text-sm font-bold text-[#622032]" x-text="selectedVoter.full_name"></div>
+                                        <p class="text-xs font-semibold text-[#931335] mb-1">✓ Selected Voter:</p>
+                                        <div class="text-sm font-bold text-[#622032] mb-1" x-text="selectedVoter.first_name + ' ' + selectedVoter.father_name + ' ' + selectedVoter.last_name" lang="ar"></div>
                                         <div class="text-xs text-[#622032]/60" x-text="selectedVoter.city ? selectedVoter.city.name : 'N/A'"></div>
                                     </div>
                                     <button type="button" @click="clearVoter()" class="text-red-600 hover:text-red-800">
@@ -107,23 +108,80 @@
                         </template>
                     </div>
 
-                    <!-- Name (Auto-filled from voter) -->
+                    <!-- First Name (Auto-filled from voter) -->
                     <div>
-                        <label for="name" class="block text-sm font-semibold text-[#622032] mb-2">
-                            Name (Auto-filled) *
+                        <label for="first_name" class="block text-sm font-semibold text-[#622032] mb-2">
+                            First Name (Auto-filled) *
                         </label>
                         <input
                             type="text"
-                            id="name"
-                            x-model="form.name"
+                            id="first_name"
+                            x-model="form.first_name"
                             class="input-field bg-gray-50"
-                            :class="{ 'border-red-500': !form.name && submitAttempted }"
+                            :class="{ 'border-red-500': !form.first_name && submitAttempted }"
                             disabled
                             readonly
                             required
                             placeholder="Will be auto-filled from voter selection"
+                            lang="ar"
                         />
-                        <p class="text-xs text-[#622032]/60 mt-1">This field is automatically filled from the selected voter</p>
+                    </div>
+
+                    <!-- Father Name (Auto-filled from voter) -->
+                    <div>
+                        <label for="father_name" class="block text-sm font-semibold text-[#622032] mb-2">
+                            Father Name (Auto-filled) *
+                        </label>
+                        <input
+                            type="text"
+                            id="father_name"
+                            x-model="form.father_name"
+                            class="input-field bg-gray-50"
+                            :class="{ 'border-red-500': !form.father_name && submitAttempted }"
+                            disabled
+                            readonly
+                            required
+                            placeholder="Will be auto-filled from voter selection"
+                            lang="ar"
+                        />
+                    </div>
+
+                    <!-- Last Name (Auto-filled from voter) -->
+                    <div>
+                        <label for="last_name" class="block text-sm font-semibold text-[#622032] mb-2">
+                            Last Name (Auto-filled) *
+                        </label>
+                        <input
+                            type="text"
+                            id="last_name"
+                            x-model="form.last_name"
+                            class="input-field bg-gray-50"
+                            :class="{ 'border-red-500': !form.last_name && submitAttempted }"
+                            disabled
+                            readonly
+                            required
+                            placeholder="Will be auto-filled from voter selection"
+                            lang="ar"
+                        />
+                    </div>
+
+                    <!-- Mother Full Name (Auto-filled from voter) -->
+                    <div>
+                        <label for="mother_full_name" class="block text-sm font-semibold text-[#622032] mb-2">
+                            Mother Full Name (Auto-filled) *
+                        </label>
+                        <input
+                            type="text"
+                            id="mother_full_name"
+                            x-model="form.mother_full_name"
+                            class="input-field bg-gray-50"
+                            :class="{ 'border-red-500': !form.mother_full_name && submitAttempted }"
+                            disabled
+                            readonly
+                            required
+                            placeholder="Will be auto-filled from voter selection"
+                            lang="ar"
+                        />
                     </div>
 
                     <!-- Phone (Auto-filled from voter) -->
@@ -142,7 +200,6 @@
                             required
                             placeholder="Will be auto-filled from voter selection"
                         />
-                        <p class="text-xs text-[#622032]/60 mt-1">This field is automatically filled from the selected voter</p>
                     </div>
 
                     <!-- Email -->
@@ -221,7 +278,10 @@
         return {
             form: {
                 voter_id: @json(request('voter_id') ?? null),
-                name: '',
+                first_name: '',
+                father_name: '',
+                last_name: '',
+                mother_full_name: '',
                 phone: '',
                 email: '',
                 is_active: true
@@ -240,10 +300,13 @@
                 // If voter_id is pre-filled from URL, load voter data
                 @if(isset($voter))
                 this.selectedVoter = @json($voter);
-                this.form.voter_id = {{ $voter->id }};
-                this.voterSearch = '{{ $voter->full_name ?: trim(($voter->first_name ?? '') . ' ' . ($voter->father_name ?? '') . ' ' . ($voter->last_name ?? '')) }}';
-                this.form.name = this.voterSearch.trim();
-                this.form.phone = '{{ $voter->phone ?? '' }}';
+                this.form.voter_id = '{{ $voter->id }}';
+                this.voterSearch = "{{ trim(($voter->first_name ?? '') . ' ' . ($voter->father_name ?? '') . ' ' . ($voter->last_name ?? '')) }}";
+                this.form.first_name = "{{ $voter->first_name ?? '' }}";
+                this.form.father_name = "{{ $voter->father_name ?? '' }}";
+                this.form.last_name = "{{ $voter->last_name ?? '' }}";
+                this.form.mother_full_name = "{{ $voter->mother_full_name ?? '' }}";
+                this.form.phone = "{{ $voter->phone ?? '' }}";
                 this.voterPreFilled = true;
                 @endif
             },
@@ -273,8 +336,11 @@
                 this.form.voter_id = voter.id;
                 this.selectedVoter = voter;
                 this.voterSearch = voter.full_name;
-                // Auto-fill name and phone from voter
-                this.form.name = voter.full_name;
+                // Auto-fill fields from voter
+                this.form.first_name = voter.first_name || '';
+                this.form.father_name = voter.father_name || '';
+                this.form.last_name = voter.last_name || '';
+                this.form.mother_full_name = voter.mother_full_name || '';
                 this.form.phone = voter.phone || '';
                 this.voterSearchOpen = false;
                 this.voterResults = [];
@@ -285,7 +351,10 @@
                     this.form.voter_id = null;
                     this.selectedVoter = null;
                     this.voterSearch = '';
-                    this.form.name = '';
+                    this.form.first_name = '';
+                    this.form.father_name = '';
+                    this.form.last_name = '';
+                    this.form.mother_full_name = '';
                     this.form.phone = '';
                 }
             },
@@ -299,7 +368,7 @@
                     this.errorMessage = 'Please select a voter';
                     return;
                 }
-                if (!this.form.name || !this.form.phone) {
+                if (!this.form.first_name || !this.form.father_name || !this.form.last_name || !this.form.mother_full_name || !this.form.phone) {
                     this.errorMessage = 'Please fill in all required fields';
                     return;
                 }

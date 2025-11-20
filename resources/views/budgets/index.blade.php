@@ -182,8 +182,8 @@
                                 </div>
                                 <div class="flex items-center gap-3 sm:gap-4">
                                     <div class="text-right">
-                                        <div class="text-base sm:text-lg font-bold {{ $transaction->amount >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                            {{ $transaction->amount >= 0 ? '+' : '-' }}${{ number_format(abs($transaction->amount)) }}
+                                        <div class="text-base sm:text-lg font-bold {{ $transaction->type === 'allocation' ? 'text-gray-600' : ($transaction->amount >= 0 ? 'text-green-600' : 'text-red-600') }}">
+                                            {{ $transaction->type === 'allocation' ? ' ' : ($transaction->amount >= 0 ? '+' : '-') }}${{ number_format(abs($transaction->amount)) }}
                                         </div>
                                         <div class="text-xs text-gray-500">
                                             Balance: ${{ number_format($transaction->balance_after) }}

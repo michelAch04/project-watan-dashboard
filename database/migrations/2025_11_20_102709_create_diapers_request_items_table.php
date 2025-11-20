@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('pw_members', function (Blueprint $table) {
+        Schema::create('diapers_request_items', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('phone');
-            $table->string('email')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->foreignId('diapers_request_id')->constrained('diapers_requests')->onDelete('cascade');
+            $table->string('size'); // XS, S, M, L, XL, XXL, etc.
+            $table->integer('count');
             $table->timestamps();
+
+            // Indexes
+            $table->index('diapers_request_id');
         });
     }
 
@@ -26,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('pw_members');
+        Schema::dropIfExists('diapers_request_items');
     }
 };

@@ -16,38 +16,6 @@ class HumanitarianDataSeeder extends Seeder
 {
     public function run(): void
     {
-        // Create Request Types
-        $requestTypes = [
-            [
-                'name' => 'public',
-                'name_ar' => 'عام',
-                'description' => 'Public institutions requests (churches, municipalities)',
-                'format' => null
-            ],
-            [
-                'name' => 'humanitarian',
-                'name_ar' => 'إنساني',
-                'description' => 'Humanitarian aid (educational, medical, healing, social)',
-                'format' => null
-            ],
-            [
-                'name' => 'diapers',
-                'name_ar' => 'حفاضات',
-                'description' => 'Diaper distribution requests',
-                'format' => null
-            ],
-            [
-                'name' => 'others',
-                'name_ar' => 'أخرى',
-                'description' => 'Other types of requests',
-                'format' => null
-            ]
-        ];
-
-        foreach ($requestTypes as $type) {
-            RequestType::create($type);
-        }
-
         // Create Request Statuses
         $requestStatuses = [
             [
@@ -98,98 +66,166 @@ class HumanitarianDataSeeder extends Seeder
             RequestStatus::create($status);
         }
 
-        // Create PW Members
-        $pwMembers = [
-            ['name' => 'Michel Achkouti', 'phone' => '70048170', 'email' => 'michel@projectwatan.org', 'is_active' => true],
-            ['name' => 'Jean Khoury', 'phone' => '71123456', 'email' => 'jean@projectwatan.org', 'is_active' => true],
-            ['name' => 'Marie Haddad', 'phone' => '76234567', 'email' => 'marie@projectwatan.org', 'is_active' => true],
-            ['name' => 'Antoine Sleiman', 'phone' => '70345678', 'email' => 'antoine@projectwatan.org', 'is_active' => true],
-            ['name' => 'Nadia Frem', 'phone' => '71456789', 'email' => 'nadia@projectwatan.org', 'is_active' => true],
-        ];
-
-        foreach ($pwMembers as $member) {
-            PwMember::create($member);
-        }
-
-        // Create test user Michel Achkouti
+        // Create admin user Michel Achkouti
         $testUser = User::updateOrCreate(
             ['mobile' => '96170048170'],
             [
                 'name' => 'Michel Achkouti',
+                'mobile' => '96170048170',
                 'email' => 'michel.achkouti@projectwatan.org',
                 'password' => Hash::make('@MA0404ach'),
                 'manager_id' => null, // Reports to self
             ]
         );
 
-        // Assign HOR role (we'll need to create this role)
-        if (!$testUser->hasRole('hor')) {
-            $testUser->assignRole('hor');
+        // Assign admin role (we'll need to create this role)
+        if (!$testUser->hasRole('admin')) {
+            $testUser->assignRole('admin');
         }
 
         // Create sample voters (we'll need at least one city)
-        $sampleCity = City::first();
-        
-        if ($sampleCity) {
-            $voters = [
-                [
-                    'first_name' => 'جورج',
-                    'father_name' => 'أنطوان',
-                    'last_name' => 'خوري',
-                    'city_id' => $sampleCity->id,
-                    'ro_number' => '1234567',
-                    'phone' => '76111222'
-                ],
-                [
-                    'first_name' => 'ماري',
-                    'father_name' => 'جوزيف',
-                    'last_name' => 'حداد',
-                    'city_id' => $sampleCity->id,
-                    'ro_number' => '2345678',
-                    'phone' => '71222333'
-                ],
-                [
-                    'first_name' => 'بيار',
-                    'father_name' => 'ميشال',
-                    'last_name' => 'عون',
-                    'city_id' => $sampleCity->id,
-                    'ro_number' => '3456789',
-                    'phone' => '70333444'
-                ]
-            ];
+        $voters = [
+            [
+                'first_name' => 'جورج',
+                'father_name' => 'أنطوان',
+                'last_name' => 'خوري',
+                'mother_full_name' => 'سلمى يوسف',
+                'city_id' => 1,
+                'register_number' => '9',
+                'phone' => '76111222'
+            ],
+            [
+                'first_name' => 'ماري',
+                'father_name' => 'جوزيف',
+                'last_name' => 'حداد',
+                'mother_full_name' => 'ليلى سمير',
+                'city_id' => 1,
+                'register_number' => '23',
+                'phone' => '71222333'
+            ],
+            [
+                'first_name' => 'بيار',
+                'father_name' => 'ميشال',
+                'last_name' => 'عون',
+                'mother_full_name' => 'ناديا جورج',
+                'city_id' => 2,
+                'register_number' => '24',
+                'phone' => '70333444'
+            ],
+            [
+                'first_name' => 'سارة',
+                'father_name' => 'إبراهيم',
+                'last_name' => 'نعيم',
+                'mother_full_name' => 'ناديا جورج',
+                'city_id' => 2,
+                'register_number' => '45',
+                'phone' => '70999888'
+            ],
+            [
+                'first_name' => 'ليلى',
+                'father_name' => 'سمير',
+                'last_name' => 'حسن',
+                'mother_full_name' => 'ناديا جورج',
+                'city_id' => 3,
+                'register_number' => '67',
+                'phone' => '70111222'
+            ],
+            [
+                'first_name' => 'كريم',
+                'father_name' => 'جمال',
+                'last_name' => 'يوسف',
+                'mother_full_name' => 'ناديا جورج',
+                'city_id' => 3,
+                'register_number' => '89',
+                'phone' => '70222333'
+            ],
+            [
+                'first_name' => 'نور',
+                'father_name' => 'فادي',
+                'last_name' => 'سعيد',
+                'mother_full_name' => 'ناديا جورج',
+                'city_id' => 4,
+                'register_number' => '90',
+                'phone' => '70333445'
+            ],
+            [
+                'first_name' => 'رامي',
+                'father_name' => 'زياد',
+                'last_name' => 'جميل',
+                'mother_full_name' => 'ناديا جورج',
+                'city_id' => 4,
+                'register_number' => '101',
+                'phone' => '70444556'
+            ],
+            [
+                'first_name' => 'هدى',
+                'father_name' => 'علي',
+                'last_name' => 'موسى',
+                'mother_full_name' => 'ناديا جورج',
+                'city_id' => 5,
+                'register_number' => '112',
+                'phone' => '70555667'
+            ],
+            [
+                'first_name' => 'سامر',
+                'father_name' => 'خالد',
+                'last_name' => 'شريف',
+                'mother_full_name' => 'ناديا جورج',
+                'city_id' => 5,
+                'register_number' => '123',
+                'phone' => '70666778'
+            ],
+            [
+                'first_name' => 'جميلة',
+                'father_name' => 'سمير',
+                'last_name' => 'فارس',
+                'mother_full_name' => 'ناديا جورج',
+                'city_id' => 6,
+                'register_number' => '134',
+                'phone' => '70777889'
+            ],
+            [
+                'first_name' => 'زياد',
+                'father_name' => 'رامي',
+                'last_name' => 'كريم',
+                'mother_full_name' => 'ناديا جورج',
+                'city_id' => 6,
+                'register_number' => '145',
+                'phone' => '70888990'
+            ]
+        ];
 
-            foreach ($voters as $voter) {
-                Voter::create($voter);
-            }
+        foreach ($voters as $voter) {
+            Voter::create($voter);
+        }
 
-            // Create sample public institutions
-            $institutions = [
-                [
-                    'name' => 'بلدية جبيل',
-                    'description' => 'Municipality of Jbeil',
-                    'city_id' => $sampleCity->id,
-                    'contact_person' => 'رئيس البلدية',
-                    'phone' => '09540540'
-                ],
-                [
-                    'name' => 'كنيسة مار جرجس',
-                    'description' => 'Saint George Church',
-                    'city_id' => $sampleCity->id,
-                    'contact_person' => 'الأب بولس',
-                    'phone' => '09545678'
-                ],
-                [
-                    'name' => 'مدرسة القديس يوسف',
-                    'description' => 'Saint Joseph School',
-                    'city_id' => $sampleCity->id,
-                    'contact_person' => 'المدير العام',
-                    'phone' => '09556789'
-                ]
-            ];
+        // Create sample public institutions
+        $institutions = [
+            [
+                'name' => 'بلدية جبيل',
+                'description' => 'Municipality of Jbeil',
+                'city_id' => 1,
+                'contact_person' => 'رئيس البلدية',
+                'phone' => '09540540'
+            ],
+            [
+                'name' => 'كنيسة مار جرجس',
+                'description' => 'Saint George Church',
+                'city_id' => 2,
+                'contact_person' => 'الأب بولس',
+                'phone' => '09545678'
+            ],
+            [
+                'name' => 'مدرسة القديس يوسف',
+                'description' => 'Saint Joseph School',
+                'city_id' => 3,
+                'contact_person' => 'المدير العام',
+                'phone' => '09556789'
+            ]
+        ];
 
-            foreach ($institutions as $institution) {
-                PublicInstitution::create($institution);
-            }
+        foreach ($institutions as $institution) {
+            PublicInstitution::create($institution);
         }
 
         $this->command->info('✅ Humanitarian data seeded successfully!');

@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Request;
-use App\Models\RequestType;
+use App\Models\RequestHeader;
+use App\Models\HumanitarianRequest;
 use App\Models\RequestStatus;
 use App\Models\Voter;
 use App\Models\PwMember;
 use App\Models\InboxNotification;
 use App\Models\BudgetTransaction;
+use App\Models\Budget;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -23,25 +24,26 @@ class HumanitarianRequestController extends Controller
     {
         $user = Auth::user();
 
-        // Get counts for dashboard
-        $activeCount = Request::ofType('humanitarian')
-            ->active()
+        // Get counts for dashboard - now using RequestHeader with humanitarian relationship
+        $activeCount = RequestHeader::active()
             ->forUser($user)
+            ->whereHas('humanitarianRequest')
             ->count();
 
-        $draftCount = Request::ofType('humanitarian')
-            ->draftsAndRejects($user)
+        $draftCount = RequestHeader::draftsAndRejects($user)
+            ->whereHas('humanitarianRequest')
             ->count();
 
-        $completedCount = Request::ofType('humanitarian')
-            ->completed()
+        $completedCount = RequestHeader::completed()
             ->forUser($user)
+            ->whereHas('humanitarianRequest')
             ->count();
 
         // Get budgets if user is HOR
         $budgets = null;
         if ($user->hasRole('hor')) {
-            $budgets = \App\Models\Budget::with('zone')
+            $budgets = Budget::notCancelled()
+                ->with('zone')
                 ->whereHas('zone', function($q) use ($user) {
                     $q->where('user_id', $user->id);
                 })
@@ -71,19 +73,17 @@ class HumanitarianRequestController extends Controller
     {
         $user = Auth::user();
 
-        $query = Request::with([
-            'requestType',
+        $query = RequestHeader::with([
             'requestStatus',
             'sender',
             'currentUser',
-            'requesterCity',
-            'voter',
             'referenceMember',
-            'budget'
+            'humanitarianRequest.voter.city',
+            'humanitarianRequest.budget'
         ])
-            ->ofType('humanitarian')
             ->active()
-            ->forUser($user);
+            ->forUser($user)
+            ->whereHas('humanitarianRequest');
 
         // Filter by month if provided
         $month = $httpRequest->input('month');
@@ -118,22 +118,20 @@ class HumanitarianRequestController extends Controller
     {
         $user = Auth::user();
 
-        $query = Request::with([
-            'requestType',
+        $query = RequestHeader::with([
             'requestStatus',
             'sender',
-            'requesterCity',
-            'voter',
             'referenceMember',
-            'budget'
+            'humanitarianRequest.voter.city',
+            'humanitarianRequest.budget'
         ])
-            ->ofType('humanitarian')
             ->completed()
-            ->forUser($user);
+            ->forUser($user)
+            ->whereHas('humanitarianRequest');
 
-        // Filter by month/year if provided
-        $month = $httpRequest->input('month');
-        $year = $httpRequest->input('year');
+        // Filter by month/year if provided, default to current month
+        $month = $httpRequest->input('month', now()->month);
+        $year = $httpRequest->input('year', now()->year);
 
         if ($month && $year) {
             $query->whereYear('ready_date', $year)
@@ -163,15 +161,13 @@ class HumanitarianRequestController extends Controller
     {
         $user = Auth::user();
 
-        $requests = Request::with([
-            'requestType',
+        $requests = RequestHeader::with([
             'requestStatus',
-            'requesterCity',
-            'voter',
-            'referenceMember'
+            'referenceMember',
+            'humanitarianRequest.voter.city'
         ])
-            ->ofType('humanitarian')
             ->draftsAndRejects($user)
+            ->whereHas('humanitarianRequest')
             ->orderBy('updated_at', 'desc')
             ->paginate(15);
 
@@ -194,13 +190,7 @@ class HumanitarianRequestController extends Controller
     public function store(HttpRequest $httpRequest)
     {
         $validated = $httpRequest->validate([
-            'voter_id' => 'nullable|exists:voters_list,id',
-            'requester_first_name' => 'required_without:voter_id|string|max:255',
-            'requester_father_name' => 'required_without:voter_id|string|max:255',
-            'requester_last_name' => 'required_without:voter_id|string|max:255',
-            'requester_city_id' => 'required|exists:cities,id',
-            'requester_ro_number' => 'nullable|string|max:255',
-            'requester_phone' => 'nullable|string|max:255',
+            'voter_id' => 'required|exists:voters_list,id',
             'subtype' => 'required|string|max:255',
             'reference_member_id' => 'required|exists:pw_members,id',
             'amount' => 'required|numeric|min:0',
@@ -211,7 +201,6 @@ class HumanitarianRequestController extends Controller
         ]);
 
         $user = Auth::user();
-        $humanitarianType = RequestType::getByName('humanitarian');
 
         DB::beginTransaction();
         try {
@@ -230,43 +219,20 @@ class HumanitarianRequestController extends Controller
                 }
             }
 
-            $requestData = [
-                'request_type_id' => $humanitarianType->id,
+            // Create RequestHeader
+            $headerData = [
+                'request_number' => RequestHeader::generateRequestNumber(),
+                'request_date' => now(),
                 'request_status_id' => $status->id,
+                'reference_member_id' => $validated['reference_member_id'],
                 'sender_id' => $user->id,
                 'current_user_id' => $currentUserId,
             ];
 
-            // If voter selected, use voter data
-            if ($validated['voter_id']) {
-                $voter = Voter::find($validated['voter_id']);
-                $requestData['voter_id'] = $voter->id;
-                $requestData['requester_first_name'] = $voter->first_name;
-                $requestData['requester_father_name'] = $voter->father_name;
-                $requestData['requester_last_name'] = $voter->last_name;
-                $requestData['requester_city_id'] = $voter->city_id;
-                $requestData['requester_ro_number'] = $voter->ro_number;
-                $requestData['requester_phone'] = $voter->phone;
-            } else {
-                $requestData = array_merge($requestData, [
-                    'requester_first_name' => $validated['requester_first_name'],
-                    'requester_father_name' => $validated['requester_father_name'],
-                    'requester_last_name' => $validated['requester_last_name'],
-                    'requester_city_id' => $validated['requester_city_id'],
-                    'requester_ro_number' => $validated['requester_ro_number'] ?? null,
-                    'requester_phone' => $validated['requester_phone'] ?? null,
-                ]);
-            }
-
-            $requestData['subtype'] = $validated['subtype'];
-            $requestData['reference_member_id'] = $validated['reference_member_id'];
-            $requestData['amount'] = $validated['amount'];
-            $requestData['notes'] = $validated['notes'] ?? null;
-
             // Handle budget allocation for HOR users who publish with budget
             if ($user->hasRole('hor') && $validated['action'] === 'publish' && !empty($validated['budget_id']) && !empty($validated['ready_date'])) {
                 // Verify budget belongs to HOR's zone
-                $budget = \App\Models\Budget::with('zone')->findOrFail($validated['budget_id']);
+                $budget = Budget::notCancelled()->with('zone')->findOrFail($validated['budget_id']);
                 if ($budget->zone->user_id !== $user->id) {
                     DB::rollBack();
                     return response()->json([
@@ -293,32 +259,43 @@ class HumanitarianRequestController extends Controller
                     ], 400);
                 }
 
-                // Add budget and ready date to request data
-                $requestData['budget_id'] = $validated['budget_id'];
-                $requestData['ready_date'] = $validated['ready_date'];
+                // Add ready date to header data
+                $headerData['ready_date'] = $validated['ready_date'];
             }
 
-            // Create the request
-            $request = Request::create($requestData);
+            // Create the request header
+            $requestHeader = RequestHeader::create($headerData);
+
+            // Create the humanitarian request
+            $humanitarianData = [
+                'request_header_id' => $requestHeader->id,
+                'voter_id' => $validated['voter_id'],
+                'subtype' => $validated['subtype'],
+                'amount' => $validated['amount'],
+                'notes' => $validated['notes'] ?? null,
+            ];
+
+            // Add budget_id if provided
+            if (!empty($validated['budget_id'])) {
+                $humanitarianData['budget_id'] = $validated['budget_id'];
+            }
+
+            $humanitarianRequest = HumanitarianRequest::create($humanitarianData);
 
             // Record budget allocation if HOR user allocated budget
             if ($user->hasRole('hor') && $validated['action'] === 'publish' && !empty($validated['budget_id'])) {
-                $budget = \App\Models\Budget::findOrFail($validated['budget_id']);
+                $budget = Budget::notCancelled()->findOrFail($validated['budget_id']);
                 $readyDate = \Carbon\Carbon::parse($validated['ready_date']);
-                $readyMonth = $readyDate->month;
-                $readyYear = $readyDate->year;
 
-                Log::info("Allocating amount: " . $validated['amount'] . " for new request id: " . $request->id . " to budget month: " . $readyDate->format('F Y'));
+                Log::info("Allocating amount: " . $validated['amount'] . " for new request id: " . $requestHeader->id . " to budget month: " . $readyDate->format('F Y'));
 
-                // Record transaction for tracking purposes (but don't modify current_balance)
-                BudgetTransaction::create([
-                    'budget_id' => $validated['budget_id'],
-                    'type' => 'allocation',
-                    'amount' => -$validated['amount'],
-                    'balance_after' => $budget->getRemainingBudgetForMonth($readyYear, $readyMonth) - $validated['amount'],
-                    'request_id' => $request->id,
-                    'description' => "Request #{$request->request_number} allocated to " . $readyDate->format('F Y')
-                ]);
+                // Allocate budget (deduct immediately if current month, or schedule for future month)
+                $budget->allocateForRequest(
+                    $validated['amount'],
+                    $validated['ready_date'],
+                    $requestHeader->id,
+                    "Request #{$requestHeader->request_number} allocated to " . $readyDate->format('F Y')
+                );
 
                 Log::info("Budget allocated successfully to " . $readyDate->format('F Y'));
             }
@@ -326,14 +303,14 @@ class HumanitarianRequestController extends Controller
             // Create inbox notification if published
             if ($validated['action'] === 'publish' && $currentUserId) {
                 // Increment published count
-                $request->increment('published_count');
+                $requestHeader->increment('published_count');
 
                 InboxNotification::createForUser(
                     $currentUserId,
-                    $request->id,
+                    $requestHeader->id,
                     'request_published',
                     'New Request for Approval',
-                    "{$user->name} has published a humanitarian request #{$request->request_number} for your approval."
+                    "{$user->name} has published a humanitarian request #{$requestHeader->request_number} for your approval."
                 );
             }
 
@@ -359,14 +336,13 @@ class HumanitarianRequestController extends Controller
      */
     public function show($id)
     {
-        $request = Request::with([
-            'requestType',
+        $request = RequestHeader::with([
             'requestStatus',
             'sender',
             'currentUser',
-            'requesterCity',
-            'voter',
-            'referenceMember'
+            'referenceMember',
+            'humanitarianRequest.voter.city',
+            'humanitarianRequest.budget'
         ])->findOrFail($id);
 
         $user = Auth::user();
@@ -388,7 +364,7 @@ class HumanitarianRequestController extends Controller
      */
     public function edit($id)
     {
-        $request = Request::findOrFail($id);
+        $request = RequestHeader::with('humanitarianRequest')->findOrFail($id);
         $user = Auth::user();
 
         if (!$request->canEdit($user)) {
@@ -405,10 +381,10 @@ class HumanitarianRequestController extends Controller
      */
     public function update(HttpRequest $httpRequest, $id)
     {
-        $request = Request::findOrFail($id);
+        $requestHeader = RequestHeader::with('humanitarianRequest')->findOrFail($id);
         $user = Auth::user();
 
-        if (!$request->canEdit($user)) {
+        if (!$requestHeader->canEdit($user)) {
             return response()->json([
                 'success' => false,
                 'message' => 'You cannot edit this request'
@@ -416,13 +392,7 @@ class HumanitarianRequestController extends Controller
         }
 
         $validated = $httpRequest->validate([
-            'voter_id' => 'nullable|exists:voters_list,id',
-            'requester_first_name' => 'required_without:voter_id|string|max:255',
-            'requester_father_name' => 'required_without:voter_id|string|max:255',
-            'requester_last_name' => 'required_without:voter_id|string|max:255',
-            'requester_city_id' => 'required|exists:cities,id',
-            'requester_ro_number' => 'nullable|string|max:255',
-            'requester_phone' => 'nullable|string|max:255',
+            'voter_id' => 'required|exists:voters_list,id',
             'subtype' => 'required|string|max:255',
             'reference_member_id' => 'required|exists:pw_members,id',
             'amount' => 'required|numeric|min:0',
@@ -430,60 +400,43 @@ class HumanitarianRequestController extends Controller
             'action' => 'required|in:save,publish'
         ]);
 
-        // Update request data
-        $updateData = [];
+        // Update header data
+        $headerUpdateData = [];
+        $headerUpdateData['reference_member_id'] = $validated['reference_member_id'];
 
-        if ($validated['voter_id']) {
-            $voter = Voter::find($validated['voter_id']);
-            $updateData['voter_id'] = $voter->id;
-            $updateData['requester_first_name'] = $voter->first_name;
-            $updateData['requester_father_name'] = $voter->father_name;
-            $updateData['requester_last_name'] = $voter->last_name;
-            $updateData['requester_city_id'] = $voter->city_id;
-            $updateData['requester_ro_number'] = $voter->ro_number;
-            $updateData['requester_phone'] = $voter->phone;
-        } else {
-            $updateData = [
-                'voter_id' => null,
-                'requester_first_name' => $validated['requester_first_name'],
-                'requester_father_name' => $validated['requester_father_name'],
-                'requester_last_name' => $validated['requester_last_name'],
-                'requester_city_id' => $validated['requester_city_id'],
-                'requester_ro_number' => $validated['requester_ro_number'] ?? null,
-                'requester_phone' => $validated['requester_phone'] ?? null,
-            ];
-        }
-
-        $updateData['subtype'] = $validated['subtype'];
-        $updateData['reference_member_id'] = $validated['reference_member_id'];
-        $updateData['amount'] = $validated['amount'];
-        $updateData['notes'] = $validated['notes'] ?? null;
+        // Update humanitarian request data
+        $humanitarianUpdateData = [
+            'voter_id' => $validated['voter_id'],
+            'subtype' => $validated['subtype'],
+            'amount' => $validated['amount'],
+            'notes' => $validated['notes'] ?? null,
+        ];
 
         // Handle status change if publishing
         if ($validated['action'] === 'publish') {
             $publishedStatus = RequestStatus::getByName(RequestStatus::STATUS_PUBLISHED);
-            $updateData['request_status_id'] = $publishedStatus->id;
+            $headerUpdateData['request_status_id'] = $publishedStatus->id;
 
             if ($user->hasRole('hor')) {
                 $finalStatus = RequestStatus::getByName(RequestStatus::STATUS_FINAL_APPROVAL);
-                $updateData['request_status_id'] = $finalStatus->id;
-                $updateData['current_user_id'] = null;
+                $headerUpdateData['request_status_id'] = $finalStatus->id;
+                $headerUpdateData['current_user_id'] = null;
             } else {
-                $updateData['current_user_id'] = $user->manager_id;
+                $headerUpdateData['current_user_id'] = $user->manager_id;
 
                 // Increment published count before creating notification
-                $request->increment('published_count');
+                $requestHeader->increment('published_count');
 
                 // Create notification with correct message based on published count
                 if ($user->manager_id) {
-                    $isFirstPublish = $request->published_count === 1;
+                    $isFirstPublish = $requestHeader->published_count === 1;
                     $message = $isFirstPublish
-                        ? "{$user->name} has published a humanitarian request #{$request->request_number} for your approval."
-                        : "{$user->name} has republished humanitarian request #{$request->request_number} for your approval.";
+                        ? "{$user->name} has published a humanitarian request #{$requestHeader->request_number} for your approval."
+                        : "{$user->name} has republished humanitarian request #{$requestHeader->request_number} for your approval.";
 
                     InboxNotification::createForUser(
                         $user->manager_id,
-                        $request->id,
+                        $requestHeader->id,
                         'request_published',
                         $isFirstPublish ? 'New Request for Approval' : 'Request Republished for Approval',
                         $message
@@ -492,7 +445,8 @@ class HumanitarianRequestController extends Controller
             }
         }
 
-        $request->update($updateData);
+        $requestHeader->update($headerUpdateData);
+        $requestHeader->humanitarianRequest->update($humanitarianUpdateData);
 
         return response()->json([
             'success' => true,
@@ -506,10 +460,10 @@ class HumanitarianRequestController extends Controller
      */
     public function approve(HttpRequest $httpRequest, $id)
     {
-        $request = Request::findOrFail($id);
+        $requestHeader = RequestHeader::findOrFail($id);
         $user = Auth::user();
 
-        if (!$request->canApproveReject($user)) {
+        if (!$requestHeader->canApproveReject($user)) {
             return response()->json([
                 'success' => false,
                 'message' => 'You cannot approve this request'
@@ -521,17 +475,17 @@ class HumanitarianRequestController extends Controller
             // Check if user has manager (move up hierarchy)
             if ($user->manager_id && $user->manager_id != $user->id) {
                 // Move to next level
-                $request->update([
+                $requestHeader->update([
                     'current_user_id' => $user->manager_id
                 ]);
 
                 // Create notification
                 InboxNotification::createForUser(
                     $user->manager_id,
-                    $request->id,
+                    $requestHeader->id,
                     'request_approved',
                     'Request Approved - Awaiting Your Review',
-                    "{$user->name} has approved humanitarian request #{$request->request_number}. It now requires your approval."
+                    "{$user->name} has approved humanitarian request #{$requestHeader->request_number}. It now requires your approval."
                 );
 
                 DB::commit();
@@ -566,7 +520,7 @@ class HumanitarianRequestController extends Controller
      */
     public function finalApprove(HttpRequest $httpRequest, $id)
     {
-        $request = Request::findOrFail($id);
+        $requestHeader = RequestHeader::with('humanitarianRequest')->findOrFail($id);
         $user = Auth::user();
 
         if (!$user->hasRole('hor')) {
@@ -584,7 +538,7 @@ class HumanitarianRequestController extends Controller
         DB::beginTransaction();
         try {
             // Verify budget belongs to HOR's zone
-            $budget = \App\Models\Budget::with('zone')->findOrFail($validated['budget_id']);
+            $budget = Budget::notCancelled()->with('zone')->findOrFail($validated['budget_id']);
             if ($budget->zone->user_id !== $user->id) {
                 return response()->json([
                     'success' => false,
@@ -601,7 +555,8 @@ class HumanitarianRequestController extends Controller
             $budget->checkAndRefill();
 
             // Verify there's enough budget for the specified month
-            if (!$budget->hasEnoughBudget($request->amount, $readyYear, $readyMonth)) {
+            $requestAmount = $requestHeader->humanitarianRequest->amount;
+            if (!$budget->hasEnoughBudget($requestAmount, $readyYear, $readyMonth)) {
                 $remaining = $budget->getRemainingBudgetForMonth($readyYear, $readyMonth);
                 return response()->json([
                     'success' => false,
@@ -609,37 +564,36 @@ class HumanitarianRequestController extends Controller
                 ], 400);
             }
 
-            Log::info("Allocating amount: " . $request->amount . " for request id: " . $request->id . " to budget month: " . $readyDate->format('F Y'));
+            Log::info("Allocating amount: " . $requestAmount . " for request id: " . $requestHeader->id . " to budget month: " . $readyDate->format('F Y'));
 
-            // Update request with final approval, budget, and ready date
-            // NOTE: We don't deduct from current_balance here because budget allocation
-            // is tracked monthly via ready_date. The getRemainingBudgetForMonth() method
-            // calculates the monthly budget correctly based on ready_date.
+            // Update request header with final approval and ready date
             $finalStatus = RequestStatus::getByName(RequestStatus::STATUS_FINAL_APPROVAL);
-            $request->update([
+            $requestHeader->update([
                 'request_status_id' => $finalStatus->id,
                 'current_user_id' => null,
-                'budget_id' => $validated['budget_id'],
                 'ready_date' => $validated['ready_date']
             ]);
 
-            // Record transaction for tracking purposes (but don't modify current_balance)
-            BudgetTransaction::create([
-                'budget_id' => $validated['budget_id'],
-                'type' => 'allocation',
-                'amount' => -$request->amount,
-                'balance_after' => $budget->getRemainingBudgetForMonth($readyYear, $readyMonth) - $request->amount,
-                'request_id' => $request->id,
-                'description' => "Request #{$request->request_number} allocated to " . $readyDate->format('F Y')
+            // Update humanitarian request with budget_id
+            $requestHeader->humanitarianRequest->update([
+                'budget_id' => $validated['budget_id']
             ]);
+
+            // Allocate budget (deduct immediately if current month, or schedule for future month)
+            $budget->allocateForRequest(
+                $requestAmount,
+                $validated['ready_date'],
+                $requestHeader->id,
+                "Request #{$requestHeader->request_number} allocated to " . $readyDate->format('F Y')
+            );
 
             // Notify sender
             InboxNotification::createForUser(
-                $request->sender_id,
-                $request->id,
+                $requestHeader->sender_id,
+                $requestHeader->id,
                 'request_final_approved',
                 'Request Finally Approved',
-                "Your humanitarian request #{$request->request_number} has received final approval and is scheduled for {$readyDate->format('M d, Y')}."
+                "Your humanitarian request #{$requestHeader->request_number} has received final approval and is scheduled for {$readyDate->format('M d, Y')}."
             );
 
             DB::commit();
@@ -667,10 +621,10 @@ class HumanitarianRequestController extends Controller
             'rejection_reason' => 'required|string|max:1000'
         ]);
 
-        $request = Request::findOrFail($id);
+        $requestHeader = RequestHeader::findOrFail($id);
         $user = Auth::user();
 
-        if (!$request->canApproveReject($user)) {
+        if (!$requestHeader->canApproveReject($user)) {
             return response()->json([
                 'success' => false,
                 'message' => 'You cannot reject this request'
@@ -681,7 +635,7 @@ class HumanitarianRequestController extends Controller
         try {
             $rejectedStatus = RequestStatus::getByName(RequestStatus::STATUS_REJECTED);
 
-            $request->update([
+            $requestHeader->update([
                 'request_status_id' => $rejectedStatus->id,
                 'current_user_id' => null,
                 'rejection_reason' => $validated['rejection_reason']
@@ -689,11 +643,11 @@ class HumanitarianRequestController extends Controller
 
             // Notify sender
             InboxNotification::createForUser(
-                $request->sender_id,
-                $request->id,
+                $requestHeader->sender_id,
+                $requestHeader->id,
                 'request_rejected',
                 'Request Rejected',
-                "{$user->name} has rejected your humanitarian request #{$request->request_number}. Reason: {$validated['rejection_reason']}"
+                "{$user->name} has rejected your humanitarian request #{$requestHeader->request_number}. Reason: {$validated['rejection_reason']}"
             );
 
             DB::commit();
@@ -717,7 +671,7 @@ class HumanitarianRequestController extends Controller
      */
     public function markReady($id)
     {
-        $request = Request::findOrFail($id);
+        $requestHeader = RequestHeader::findOrFail($id);
         $user = Auth::user();
 
         if (!$user->can('mark_ready_humanitarian')) {
@@ -728,7 +682,7 @@ class HumanitarianRequestController extends Controller
         }
 
         $finalApprovalStatus = RequestStatus::getByName(RequestStatus::STATUS_FINAL_APPROVAL);
-        if ($request->request_status_id !== $finalApprovalStatus->id) {
+        if ($requestHeader->request_status_id !== $finalApprovalStatus->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Request must be finally approved first'
@@ -736,15 +690,15 @@ class HumanitarianRequestController extends Controller
         }
 
         $readyStatus = RequestStatus::getByName(RequestStatus::STATUS_READY_FOR_COLLECTION);
-        $request->update(['request_status_id' => $readyStatus->id]);
+        $requestHeader->update(['request_status_id' => $readyStatus->id]);
 
         // Notify sender
         InboxNotification::createForUser(
-            $request->sender_id,
-            $request->id,
+            $requestHeader->sender_id,
+            $requestHeader->id,
             'request_ready',
             'Request Ready for Collection',
-            "Humanitarian request #{$request->request_number} is now ready for collection."
+            "Humanitarian request #{$requestHeader->request_number} is now ready for collection."
         );
 
         return response()->json([
@@ -758,7 +712,7 @@ class HumanitarianRequestController extends Controller
      */
     public function markCollected($id)
     {
-        $request = Request::findOrFail($id);
+        $requestHeader = RequestHeader::findOrFail($id);
         $user = Auth::user();
 
         if (!$user->can('mark_collected_humanitarian')) {
@@ -769,7 +723,7 @@ class HumanitarianRequestController extends Controller
         }
 
         $readyStatus = RequestStatus::getByName(RequestStatus::STATUS_READY_FOR_COLLECTION);
-        if ($request->request_status_id !== $readyStatus->id) {
+        if ($requestHeader->request_status_id !== $readyStatus->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Request must be ready for collection first'
@@ -777,15 +731,15 @@ class HumanitarianRequestController extends Controller
         }
 
         $collectedStatus = RequestStatus::getByName(RequestStatus::STATUS_COLLECTED);
-        $request->update(['request_status_id' => $collectedStatus->id]);
+        $requestHeader->update(['request_status_id' => $collectedStatus->id]);
 
         // Notify sender
         InboxNotification::createForUser(
-            $request->sender_id,
-            $request->id,
+            $requestHeader->sender_id,
+            $requestHeader->id,
             'request_collected',
             'Request Collected',
-            "Humanitarian request #{$request->request_number} has been collected."
+            "Humanitarian request #{$requestHeader->request_number} has been collected."
         );
 
         return response()->json([
@@ -800,18 +754,18 @@ class HumanitarianRequestController extends Controller
      */
     public function destroy($id)
     {
-        $request = Request::findOrFail($id);
+        $requestHeader = RequestHeader::findOrFail($id);
         $user = Auth::user();
 
-        if (!$request->canDelete($user)) {
+        if (!$requestHeader->canDelete($user)) {
             return response()->json([
                 'success' => false,
                 'message' => 'You can only delete drafts that you created'
             ], 403);
         }
 
-        $requestNumber = $request->request_number;
-        $request->update(['cancelled' => 1]);
+        $requestNumber = $requestHeader->request_number;
+        $requestHeader->update(['cancelled' => 1]);
 
         return response()->json([
             'success' => true,
@@ -824,13 +778,11 @@ class HumanitarianRequestController extends Controller
      */
     public function download($id)
     {
-        $request = Request::with([
-            'requestType',
+        $request = RequestHeader::with([
             'requestStatus',
             'sender',
-            'requesterCity',
-            'voter',
-            'referenceMember'
+            'referenceMember',
+            'humanitarianRequest.voter.city'
         ])->findOrFail($id);
 
         $user = Auth::user();
@@ -856,6 +808,12 @@ class HumanitarianRequestController extends Controller
     public function searchVoters(HttpRequest $httpRequest)
     {
         $search = $httpRequest->input('search');
+
+        // Enforce minimum 2 characters for performance
+        if (!$search || strlen($search) < 2) {
+            return response()->json([]);
+        }
+
         $user = Auth::user();
         $query = Voter::with('city');
 
@@ -878,9 +836,7 @@ class HumanitarianRequestController extends Controller
             }
         }
 
-        if ($search) {
-            $query->search($search);
-        }
+        $query->search($search);
 
         $voters = $query->limit(20)->get()->map(function ($voter) {
             return [
@@ -907,6 +863,11 @@ class HumanitarianRequestController extends Controller
     {
         $search = $httpRequest->input('search');
 
+        // Enforce minimum 2 characters for performance
+        if (!$search || strlen($search) < 2) {
+            return response()->json([]);
+        }
+
         $members = PwMember::active()
             ->where('name', 'like', "%{$search}%")
             ->limit(20)
@@ -927,9 +888,9 @@ class HumanitarianRequestController extends Controller
      */
     public function getAmount($id)
     {
-        $request = Request::findOrFail($id);
+        $requestHeader = RequestHeader::with('humanitarianRequest')->findOrFail($id);
         return response()->json([
-            'amount' => $request->amount
+            'amount' => $requestHeader->humanitarianRequest->amount
         ]);
     }
 
@@ -948,18 +909,16 @@ class HumanitarianRequestController extends Controller
         }
 
         // Get all completed requests for the specified month
-        $requests = Request::with([
-            'requestType',
+        $requests = RequestHeader::with([
             'requestStatus',
             'sender',
-            'requesterCity',
-            'voter',
             'referenceMember',
-            'budget'
+            'humanitarianRequest.voter.city',
+            'humanitarianRequest.budget'
         ])
-            ->ofType('humanitarian')
             ->completed()
             ->forUser($user)
+            ->whereHas('humanitarianRequest')
             ->whereYear('ready_date', $year)
             ->whereMonth('ready_date', $month)
             ->orderBy('request_number')
@@ -983,18 +942,16 @@ class HumanitarianRequestController extends Controller
         }
 
         // Get all active requests for the specified month
-        $requests = Request::with([
-            'requestType',
+        $requests = RequestHeader::with([
             'requestStatus',
             'sender',
-            'requesterCity',
-            'voter',
             'referenceMember',
-            'budget'
+            'humanitarianRequest.voter.city',
+            'humanitarianRequest.budget'
         ])
-            ->ofType('humanitarian')
             ->active()
             ->forUser($user)
+            ->whereHas('humanitarianRequest')
             ->whereYear('ready_date', $year)
             ->whereMonth('ready_date', $month)
             ->orderBy('request_number')
