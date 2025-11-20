@@ -62,7 +62,8 @@ class Budget extends Model
         // 1. Use this budget
         // 2. Have ready_date in the specified month
         // 3. Are in final_approval or later status (actually deducted from budget)
-        $totalUsed = Request::where('budget_id', $this->id)
+        $totalUsed = Request::notCancelled()
+            ->where('budget_id', $this->id)
             ->whereBetween('ready_date', [$startDate, $endDate])
             ->whereHas('requestStatus', function($q) {
                 $q->whereIn('name', [
@@ -86,7 +87,8 @@ class Budget extends Model
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
         // Get all requests with ready_date in the specified month that are approved or higher
-        $totalPredicted = Request::where('budget_id', $this->id)
+        $totalPredicted = Request::notCancelled()
+            ->where('budget_id', $this->id)
             ->whereBetween('ready_date', [$startDate, $endDate])
             ->whereHas('requestStatus', function($q) {
                 $q->whereIn('name', [
@@ -114,6 +116,14 @@ class Budget extends Model
     public function hasEnoughBudget($amount, $year, $month)
     {
         return $this->getRemainingBudgetForMonth($year, $month) >= $amount;
+    }
+
+    /**
+     * Scope to exclude cancelled budgets
+     */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
     }
 
     /**

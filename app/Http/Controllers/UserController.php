@@ -75,14 +75,14 @@ class UserController extends Controller
             return true;
         }
 
-        $userCities = City::whereJsonContains('user_id', $targetUser->id)->get();
+        $userCities = City::notCancelled()->whereJsonContains('user_id', $targetUser->id)->get();
         foreach ($userCities as $city) {
             if ($city->zone_id === $horZone->id) {
                 return true;
             }
         }
 
-        $userVillages = Village::whereJsonContains('user_id', $targetUser->id)->get();
+        $userVillages = Village::notCancelled()->whereJsonContains('user_id', $targetUser->id)->get();
         foreach ($userVillages as $village) {
             if ($village->city && $village->city->zone_id === $horZone->id) {
                 return true;
@@ -97,7 +97,7 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::with(['roles', 'manager', 'zones', 'pwMember']);
+        $query = User::notCancelled()->with(['roles', 'manager', 'zones', 'pwMember']);
 
         // If HOR, restrict to their zone only
         $horZone = $this->getUserZone();
@@ -162,7 +162,7 @@ class UserController extends Controller
         $users = $query->orderBy('name')->paginate(15)->withQueryString();
 
         // For HOR, only show their zone; for admin, show all zones
-        $zones = $horZone ? Zone::where('id', $horZone->id)->get() : Zone::orderBy('name')->get();
+        $zones = $horZone ? Zone::notCancelled()->where('id', $horZone->id)->get() : Zone::notCancelled()->orderBy('name')->get();
 
         return view('users.index', compact('users', 'zones'));
     }
@@ -203,7 +203,7 @@ class UserController extends Controller
                 ->orderBy('name')
                 ->get();
         } else {
-            $users = User::orderBy('name')->get();
+            $users = User::notCancelled()->orderBy('name')->get();
         }
 
         // Get PW members that don't have users yet
@@ -641,12 +641,12 @@ class UserController extends Controller
         }
 
         // Remove user from all cities they're assigned to
-        City::whereJsonContains('user_id', $user->id)->each(function ($city) use ($user) {
+        City::notCancelled()->whereJsonContains('user_id', $user->id)->each(function ($city) use ($user) {
             $city->removeUser($user->id);
         });
 
         // Remove user from all villages they're assigned to
-        Village::whereJsonContains('user_id', $user->id)->each(function ($village) use ($user) {
+        Village::notCancelled()->whereJsonContains('user_id', $user->id)->each(function ($village) use ($user) {
             $village->removeUser($user->id);
         });
 
@@ -701,19 +701,20 @@ class UserController extends Controller
         Zone::where('user_id', $user->id)->update(['user_id' => null]);
 
         // Remove user from all cities
-        City::whereJsonContains('user_id', $user->id)->each(function ($city) use ($user) {
+        City::notCancelled()->whereJsonContains('user_id', $user->id)->each(function ($city) use ($user) {
             $city->removeUser($user->id);
         });
 
         // Remove user from all villages
-        Village::whereJsonContains('user_id', $user->id)->each(function ($village) use ($user) {
+        Village::notCancelled()->whereJsonContains('user_id', $user->id)->each(function ($village) use ($user) {
             $village->removeUser($user->id);
         });
 
-        // Update users who report to this user
-        User::where('manager_id', $user->id)->update(['manager_id' => null]);
+        // Update users who report to this user (only non-cancelled users)
+        User::notCancelled()->where('manager_id', $user->id)->update(['manager_id' => null]);
 
-        $user->delete();
+        $user->setAttribute('cancelled', 1);
+        $user->save();
 
         return response()->json([
             'success' => true,

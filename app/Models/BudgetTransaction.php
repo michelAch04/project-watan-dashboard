@@ -32,6 +32,11 @@ class BudgetTransaction extends Model
     }
 
     // Scopes
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
+
     public function scopeForMonth($query, $year, $month)
     {
         return $query->whereYear('created_at', $year)

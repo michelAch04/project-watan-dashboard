@@ -77,4 +77,12 @@ class Village extends Model
     {
         $this->update(['user_id' => null]);
     }
+
+    /**
+     * Scope to exclude cancelled villages
+     */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
 }

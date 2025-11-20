@@ -32,6 +32,14 @@ class PublicInstitution extends Model
     }
 
     /**
+     * Scope to exclude cancelled institutions
+     */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
+
+    /**
      * Search scope
      */
     public function scopeSearch($query, $search)

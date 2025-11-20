@@ -31,10 +31,18 @@ class RequestType extends Model
     const TYPE_OTHERS = 'others';
 
     /**
+     * Scope to exclude cancelled request types
+     */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
+
+    /**
      * Get type by name
      */
     public static function getByName($name)
     {
-        return static::where('name', $name)->first();
+        return static::notCancelled()->where('name', $name)->first();
     }
 }

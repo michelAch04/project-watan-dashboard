@@ -27,4 +27,12 @@ class District extends Model
     {
         return $this->hasMany(City::class);
     }
+
+    /**
+     * Scope to exclude cancelled districts
+     */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
 }

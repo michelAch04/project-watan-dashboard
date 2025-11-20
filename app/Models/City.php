@@ -85,4 +85,12 @@ class City extends Model
     {
         $this->update(['user_id' => null]);
     }
+
+    /**
+     * Scope to exclude cancelled cities
+     */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
 }

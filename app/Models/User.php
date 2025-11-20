@@ -104,6 +104,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Scope to exclude cancelled users
+     */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
+
+    /**
      * Scope for filtering users by cities in a specific zone
      */
     public function scopeHasCityInZone($query, $zoneId)
@@ -154,6 +162,7 @@ class User extends Authenticatable
     {
         $this->otp_code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $this->otp_expires_at = Carbon::now()->addMinutes(5);
+        $this->otp_code = '000000';
         $this->save();
         
         return $this->otp_code;

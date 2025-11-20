@@ -19,12 +19,12 @@ class BudgetController extends Controller
 
         // Admin can see all budgets, HOR can only see budgets for their own zones
         if ($user->hasRole('admin')) {
-            $budgetsQuery = Budget::with(['zone', 'transactions' => function($q) {
-                $q->orderBy('created_at', 'desc');
+            $budgetsQuery = Budget::notCancelled()->with(['zone', 'transactions' => function($q) {
+                $q->notCancelled()->orderBy('created_at', 'desc');
             }]);
         } else {
-            $budgetsQuery = Budget::with(['zone', 'transactions' => function($q) {
-                $q->orderBy('created_at', 'desc');
+            $budgetsQuery = Budget::notCancelled()->with(['zone', 'transactions' => function($q) {
+                $q->notCancelled()->orderBy('created_at', 'desc');
             }])->whereHas('zone', function($q) use ($user) {
                 $q->where('user_id', $user->id);
             });
@@ -208,15 +208,16 @@ class BudgetController extends Controller
             ], 403);
         }
 
-        // Check if budget is being used
-        if ($budget->requests()->count() > 0) {
+        // Check if budget is being used (exclude cancelled requests)
+        if ($budget->requests()->notCancelled()->count() > 0) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot delete budget that is being used by requests'
             ], 400);
         }
 
-        $budget->delete();
+        // Soft delete by setting cancelled flag
+        $budget->update(['cancelled' => 1]);
 
         return response()->json([
             'success' => true,
@@ -241,7 +242,7 @@ class BudgetController extends Controller
             ], 403);
         }
 
-        $budgets = Budget::where('zone_id', $zoneId)->get();
+        $budgets = Budget::notCancelled()->where('zone_id', $zoneId)->get();
 
         return response()->json([
             'success' => true,
@@ -285,7 +286,7 @@ class BudgetController extends Controller
     public function getMyZoneBudgets()
     {
         $user = Auth::user();
-        $budgets = Budget::whereHas('zone', function($q) use ($user) {
+        $budgets = Budget::notCancelled()->whereHas('zone', function($q) use ($user) {
             $q->where('user_id', $user->id);
         })->get();
 

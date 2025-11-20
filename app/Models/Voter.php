@@ -51,6 +51,14 @@ class Voter extends Model
     }
 
     /**
+     * Scope to exclude cancelled voters
+     */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
+
+    /**
      * Search scope
      */
     public function scopeSearch($query, $search)

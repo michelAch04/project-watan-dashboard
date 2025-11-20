@@ -26,4 +26,12 @@ class Governorate extends Model
     {
         return $this->hasManyThrough(City::class, District::class);
     }
+
+    /**
+     * Scope to exclude cancelled governorates
+     */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
 }

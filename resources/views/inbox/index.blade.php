@@ -10,7 +10,7 @@
             <div class="page-container py-4">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <a href="{{ route('dashboard') }}" @click.prevent="window.history.length > 1 ? window.history.back() : window.location.href = '{{ route('dashboard') }}'" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all mr-2">
+                        <a href="{{ route('dashboard') }}" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all mr-2">
                             <svg class="w-5 h-5 text-[#622032]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                             </svg>

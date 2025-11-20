@@ -36,10 +36,18 @@ class RequestStatus extends Model
     const STATUS_COLLECTED = 'collected';
 
     /**
+     * Scope to exclude cancelled request statuses
+     */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
+
+    /**
      * Get status by name
      */
     public static function getByName($name)
     {
-        return static::where('name', $name)->first();
+        return static::notCancelled()->where('name', $name)->first();
     }
 }

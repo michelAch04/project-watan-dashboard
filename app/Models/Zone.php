@@ -33,4 +33,12 @@ class Zone extends Model
     {
         return $this->hasMany(Budget::class);
     }
+
+    /**
+     * Scope to exclude cancelled zones
+     */
+    public function scopeNotCancelled($query)
+    {
+        return $query->where('cancelled', 0);
+    }
 }
