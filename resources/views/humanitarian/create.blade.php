@@ -24,7 +24,7 @@
         <div class="page-container">
             <div class="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-[#f8f0e2]">
                 <form @submit.prevent="submitForm" class="space-y-8">
-                    
+
                     <div class="bg-[#f8f0e2] p-4 rounded-lg border-2 border-[#931335]/20">
                         <h3 class="text-sm font-bold text-[#622032] mb-2 flex items-center">
                             <svg class="w-5 h-5 mr-2 text-[#931335]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,7 +33,7 @@
                             Select Voter (Required) *
                         </h3>
                         <p class="text-xs text-[#622032]/70 mb-3">You can only select voters from your assigned location</p>
-                        
+
                         <div class="relative" @click.away="voterSearchOpen = false">
                             <input
                                 type="text"
@@ -51,18 +51,18 @@
                                 :disabled="loading"
                                 autocomplete="off"
                                 required
-                            />
-                            
+                                lang="ar" />
+
                             <div x-show="voterSearchOpen"
-                                 {{-- FIXED (Problem 1): Removed @click.away from here --}}
-                                 x-transition:enter="transition ease-out duration-100"
-                                 x-transition:enter-start="opacity-0 transform scale-95"
-                                 x-transition:enter-end="opacity-100 transform scale-100"
-                                 x-transition:leave="transition ease-in duration-75"
-                                 x-transition:leave-start="opacity-100 transform scale-100"
-                                 x-transition:leave-end="opacity-0 transform scale-95"
-                                 class="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-xl max-h-60 overflow-y-auto border-2 border-[#931335]/20"
-                                 style="display: none;"> {{-- style="display: none;" is OK here, x-show overrides it --}}
+                                {{-- FIXED (Problem 1): Removed @click.away from here --}}
+                                x-transition:enter="transition ease-out duration-100"
+                                x-transition:enter-start="opacity-0 transform scale-95"
+                                x-transition:enter-end="opacity-100 transform scale-100"
+                                x-transition:leave="transition ease-in duration-75"
+                                x-transition:leave-start="opacity-100 transform scale-100"
+                                x-transition:leave-end="opacity-0 transform scale-95"
+                                class="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-xl max-h-60 overflow-y-auto border-2 border-[#931335]/20"
+                                style="display: none;"> {{-- style="display: none;" is OK here, x-show overrides it --}}
                                 <ul class="py-1">
                                     <template x-if="voterSearching">
                                         <li class="px-4 py-3 text-gray-500 text-sm">
@@ -75,12 +75,12 @@
                                             </div>
                                         </li>
                                     </template>
-                                    
+
                                     <template x-for="voter in voterResults" :key="voter.id">
                                         <li @click.stop="selectVoter(voter)"
                                             @mousedown.prevent
                                             class="px-4 py-3 hover:bg-[#f8f0e2] cursor-pointer border-b border-gray-100 last:border-0 transition-colors">
-                                            <div class="font-semibold text-[#622032]" x-text="voter.full_name"></div>
+                                            <div class="font-semibold text-[#622032]" x-text="voter.first_name + ' ' + voter.father_name + ' ' + voter.last_name" lang="ar"></div>
                                             <div class="text-xs text-[#622032]/60 flex items-center gap-2 mt-1">
                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
@@ -88,17 +88,17 @@
                                                 </svg>
                                                 <span x-text="voter.city_name"></span>
                                                 <span>•</span>
-                                                <span x-text="voter.ro_number"></span>
+                                                <span x-text="voter.register_number"></span>
                                             </div>
                                         </li>
                                     </template>
-                                    
+
                                     <template x-if="!voterSearching && voterResults.length === 0 && voterSearch.length >= 2">
                                         <li class="px-4 py-3 text-gray-500 text-sm italic">
                                             No voters found in your location
                                         </li>
                                     </template>
-                                    
+
                                     <template x-if="!voterSearching && voterSearch.length < 2">
                                         <li class="px-4 py-3 text-gray-500 text-sm italic">
                                             Type at least 2 characters to search
@@ -107,13 +107,14 @@
                                 </ul>
                             </div>
                         </div>
-                        
+
                         {{-- ... (Selected Voter display is unchanged and correct) ... --}}
                         <div x-show="form.voter_id" x-cloak class="mt-3 p-3 bg-white rounded-lg border-2 border-[#931335]/30">
                             <div class="flex items-start justify-between">
                                 <div class="flex-1">
                                     <p class="text-xs font-semibold text-[#931335] mb-1">✓ Selected Voter:</p>
-                                    <p class="text-sm font-bold text-[#622032]" x-text="selectedVoter?.full_name"></p>
+                                    <p class="text-sm font-bold text-[#622032]" x-text="selectedVoter?.first_name + ' ' + selectedVoter?.father_name + ' ' + selectedVoter?.last_name" lang="ar"></p>
+                                    <p class="text-xs font-bold text-[#622032]/60" x-text="selectedVoter?.mother_full_name" lang="ar"></p>
                                     <div class="flex items-center gap-2 text-xs text-[#622032]/60 mt-1">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
@@ -121,7 +122,7 @@
                                         </svg>
                                         <span x-text="selectedVoter?.city_name"></span>
                                         <span>•</span>
-                                        <span x-text="selectedVoter?.ro_number"></span>
+                                        <span x-text="selectedVoter?.register_number"></span>
                                     </div>
                                 </div>
                                 <button type="button" @click="clearVoter()" class="text-red-600 hover:text-red-700 p-1">
@@ -131,7 +132,7 @@
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div x-show="!form.voter_id && submitAttempted" x-cloak class="mt-2 text-xs text-red-600">
                             Please select a voter from your location
                         </div>
@@ -143,15 +144,19 @@
                         <div class="space-y-2 text-sm">
                             <div class="flex justify-between">
                                 <span class="text-[#622032]/60">Full Name:</span>
-                                <span class="font-semibold text-[#622032]" x-text="selectedVoter?.full_name"></span>
+                                <span class="font-semibold text-[#622032]" x-text="selectedVoter?.first_name + ' ' + selectedVoter?.father_name + ' ' + selectedVoter?.last_name" lang="ar"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-[#622032]/60">Mother's Full Name:</span>
+                                <span class="font-semibold text-[#622032]" x-text="selectedVoter?.mother_full_name" lang="ar"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-[#622032]/60">رقم السجل:</span>
+                                <span class="font-semibold text-[#622032]" x-text="selectedVoter?.register_number"></span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-[#622032]/60">City:</span>
                                 <span class="font-semibold text-[#622032]" x-text="selectedVoter?.city_name"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-[#622032]/60">رقم السجل:</span>
-                                <span class="font-semibold text-[#622032]" x-text="selectedVoter?.ro_number"></span>
                             </div>
                             <div x-show="selectedVoter?.phone" class="flex justify-between">
                                 <span class="text-[#622032]/60">Phone:</span>
@@ -162,7 +167,7 @@
 
                     <div class="space-y-4 border-t border-[#f8f0e2]">
                         <h3 class="text-base font-bold text-[#622032]">Request Details</h3>
-                        
+
                         {{-- ... (Request Type is unchanged and correct) ... --}}
                         <div>
                             <label class="block text-sm font-semibold text-[#622032] mb-2">
@@ -192,15 +197,15 @@
                                     class="input-field"
                                     :disabled="loading"
                                     autocomplete="off"
-                                />
-                                
+                                    lang="ar" />
+
                                 {{--
                                     FIXED (Problem 2): Simplified x-show.
                                     It now stays open even if results are empty.
                                 --}}
                                 <div x-show="memberSearchOpen"
-                                     x-transition
-                                     class="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg max-h-60 overflow-y-auto border border-gray-200">
+                                    x-transition
+                                    class="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg max-h-60 overflow-y-auto border border-gray-200">
                                     <ul class="py-1">
                                         <template x-if="memberSearching">
                                             {{-- FIXED (Problem 2): Added spinner --}}
@@ -214,11 +219,11 @@
                                                 </div>
                                             </li>
                                         </template>
-                                        
+
                                         <template x-for="member in memberResults" :key="member.id">
                                             <li @click="selectMember(member)"
                                                 class="px-4 py-3 hover:bg-[#f8f0e2] cursor-pointer border-b border-gray-100 last:border-0">
-                                                <div class="font-semibold text-[#622032]" x-text="member.name"></div>
+                                                <div class="font-semibold text-[#622032]" x-text="member.first_name + ' ' + member.last_name" lang="ar"></div>
                                                 <div class="text-xs text-[#622032]/60" x-text="member.phone"></div>
                                             </li>
                                         </template>
@@ -237,9 +242,9 @@
                                     </ul>
                                 </div>
                             </div>
-                            
+
                             <div x-show="form.reference_member_id" x-cloak class="mt-2 text-sm text-[#622032]">
-                                Selected: <span class="font-semibold" x-text="selectedMember?.name"></span>
+                                Selected: <span class="font-semibold" x-text="selectedMember?.first_name + ' ' + selectedMember?.last_name" lang="ar"></span>
                             </div>
                         </div>
 
@@ -367,259 +372,259 @@
 
 @push('scripts')
 <script>
-const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-function humanitarianForm(isHor) {
-    return {
-        form: {
-            voter_id: '',
-            requester_city_id: '',
-            subtype: '',
-            reference_member_id: '',
-            amount: '',
-            notes: '',
-            action: 'draft',
-            budget_id: '',
-            ready_date: ''
-        },
-        loading: false,
-        submitAction: '',
-        submitAttempted: false,
-        errorMessage: '',
-        
-        // Budget modal for HOR
-        showBudgetModal: false,
-        budgets: [],
-        selectedBudget: '',
-        readyDate: new Date().toISOString().split('T')[0], // Default to today
-        budgetPreview: null,
-        userIsHor: isHor,
-        
-        // Voter search
-        voterSearch: '',
-        voterSearchOpen: false,
-        voterSearching: false,
-        voterResults: [],
-        selectedVoter: null,
-        voterSearchTimeout: null,
-        
-        // Member search
-        memberSearch: '',
-        memberSearchOpen: false,
-        memberSearching: false,
-        memberResults: [],
-        selectedMember: null,
-        memberSearchTimeout: null,
+    function humanitarianForm(isHor) {
+        return {
+            form: {
+                voter_id: '',
+                requester_city_id: '',
+                subtype: '',
+                reference_member_id: '',
+                amount: '',
+                notes: '',
+                action: 'draft',
+                budget_id: '',
+                ready_date: ''
+            },
+            loading: false,
+            submitAction: '',
+            submitAttempted: false,
+            errorMessage: '',
 
-        init() {
-            // Load all PW members initially
-            this.searchMembers();
-        },
+            // Budget modal for HOR
+            showBudgetModal: false,
+            budgets: [],
+            selectedBudget: '',
+            readyDate: new Date().toISOString().split('T')[0], // Default to today
+            budgetPreview: null,
+            userIsHor: isHor,
 
-        async searchVoters() {
-            if (this.voterSearch.length < 2) {
+            // Voter search
+            voterSearch: '',
+            voterSearchOpen: false,
+            voterSearching: false,
+            voterResults: [],
+            selectedVoter: null,
+            voterSearchTimeout: null,
+
+            // Member search
+            memberSearch: '',
+            memberSearchOpen: false,
+            memberSearching: false,
+            memberResults: [],
+            selectedMember: null,
+            memberSearchTimeout: null,
+
+            init() {
+                // Load all PW members initially
+                this.searchMembers();
+            },
+
+            async searchVoters() {
+                if (this.voterSearch.length < 2) {
+                    this.voterResults = [];
+                    return;
+                }
+
+                this.voterSearching = true;
+                try {
+                    const response = await fetch(`{{ route('humanitarian.search-voters') }}?search=${encodeURIComponent(this.voterSearch)}`, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        }
+                    });
+                    const data = await response.json();
+                    this.voterResults = data;
+                } catch (error) {
+                    console.error('Voter search error:', error);
+                    this.voterResults = [];
+                } finally {
+                    this.voterSearching = false;
+                }
+            },
+
+            selectVoter(voter) {
+                this.selectedVoter = voter;
+                this.form.voter_id = voter.id;
+                this.form.requester_city_id = voter.city_id;
+                this.voterSearch = voter.full_name;
+                this.voterSearchOpen = false;
+                this.submitAttempted = false;
+            },
+
+            clearVoter() {
+                this.selectedVoter = null;
+                this.form.voter_id = '';
+                this.form.requester_city_id = '';
+                this.voterSearch = '';
                 this.voterResults = [];
-                return;
-            }
-            
-            this.voterSearching = true;
-            try {
-                const response = await fetch(`{{ route('humanitarian.search-voters') }}?search=${encodeURIComponent(this.voterSearch)}`, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    }
-                });
-                const data = await response.json();
-                this.voterResults = data;
-            } catch (error) {
-                console.error('Voter search error:', error);
-                this.voterResults = [];
-            } finally {
-                this.voterSearching = false;
-            }
-        },
+            },
 
-        selectVoter(voter) {
-            this.selectedVoter = voter;
-            this.form.voter_id = voter.id;
-            this.form.requester_city_id = voter.city_id;
-            this.voterSearch = voter.full_name;
-            this.voterSearchOpen = false;
-            this.submitAttempted = false;
-        },
+            async searchMembers() {
+                if (this.memberSearch.length < 2) {
+                    this.memberResults = [];
+                    return;
+                }
 
-        clearVoter() {
-            this.selectedVoter = null;
-            this.form.voter_id = '';
-            this.form.requester_city_id = '';
-            this.voterSearch = '';
-            this.voterResults = [];
-        },
+                this.memberSearching = true;
+                try {
+                    const response = await fetch(`{{ route('humanitarian.search-members') }}?search=${encodeURIComponent(this.memberSearch)}`);
+                    this.memberResults = await response.json();
+                } catch (error) {
+                    console.error('Member search error:', error);
+                } finally {
+                    this.memberSearching = false;
+                }
+            },
 
-        async searchMembers() {
-            if (this.memberSearch.length < 2) {
-                this.memberResults = [];
-                return;
-            }
+            selectMember(member) {
+                this.selectedMember = member;
+                this.form.reference_member_id = member.id;
+                this.memberSearch = member.name;
+                this.memberSearchOpen = false;
+            },
 
-            this.memberSearching = true;
-            try {
-                const response = await fetch(`{{ route('humanitarian.search-members') }}?search=${encodeURIComponent(this.memberSearch)}`);
-                this.memberResults = await response.json();
-            } catch (error) {
-                console.error('Member search error:', error);
-            } finally {
-                this.memberSearching = false;
-            }
-        },
-
-        selectMember(member) {
-            this.selectedMember = member;
-            this.form.reference_member_id = member.id;
-            this.memberSearch = member.name;
-            this.memberSearchOpen = false;
-        },
-
-        submitAsDraft() {
-            this.form.action = 'draft';
-            this.submitAction = 'draft';
-            this.submitForm();
-        },
-
-        async submitAndPublish() {
-            this.submitAttempted = true;
-            
-            if (!this.form.voter_id) {
-                this.errorMessage = 'Please select a voter from your assigned location';
-                return;
-            }
-
-            if (!this.form.subtype || !this.form.reference_member_id || !this.form.amount) {
-                this.errorMessage = 'Please fill in all required fields';
-                return;
-            }
-
-            // If HOR, show budget modal before publishing
-            if (this.userIsHor) {
-                this.form.action = 'publish';
-                this.submitAction = 'publish';
-                await this.showBudgetSelectionModal();
-            } else {
-                // Non-HOR users just publish normally
-                this.form.action = 'publish';
-                this.submitAction = 'publish';
+            submitAsDraft() {
+                this.form.action = 'draft';
+                this.submitAction = 'draft';
                 this.submitForm();
-            }
-        },
+            },
 
-        async showBudgetSelectionModal() {
-            try {
-                // Fetch user's zone budgets
-                const response = await fetch('/api/budgets/my-zones', {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    }
-                });
-                const data = await response.json();
+            async submitAndPublish() {
+                this.submitAttempted = true;
 
-                if (response.ok && data.success) {
-                    this.budgets = data.budgets;
+                if (!this.form.voter_id) {
+                    this.errorMessage = 'Please select a voter from your assigned location';
+                    return;
+                }
 
-                    // Reset selections
-                    this.selectedBudget = '';
-                    this.readyDate = '';
-                    this.budgetPreview = null;
+                if (!this.form.subtype || !this.form.reference_member_id || !this.form.amount) {
+                    this.errorMessage = 'Please fill in all required fields';
+                    return;
+                }
 
-                    this.showBudgetModal = true;
+                // If HOR, show budget modal before publishing
+                if (this.userIsHor) {
+                    this.form.action = 'publish';
+                    this.submitAction = 'publish';
+                    await this.showBudgetSelectionModal();
                 } else {
+                    // Non-HOR users just publish normally
+                    this.form.action = 'publish';
+                    this.submitAction = 'publish';
+                    this.submitForm();
+                }
+            },
+
+            async showBudgetSelectionModal() {
+                try {
+                    // Fetch user's zone budgets
+                    const response = await fetch('/api/budgets/my-zones', {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken
+                        }
+                    });
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        this.budgets = data.budgets;
+
+                        // Reset selections
+                        this.selectedBudget = '';
+                        this.readyDate = '';
+                        this.budgetPreview = null;
+
+                        this.showBudgetModal = true;
+                    } else {
+                        this.errorMessage = 'Failed to load budgets';
+                    }
+                } catch (error) {
                     this.errorMessage = 'Failed to load budgets';
                 }
-            } catch (error) {
-                this.errorMessage = 'Failed to load budgets';
-            }
-        },
+            },
 
-        async updateBudgetPreview() {
-            if (!this.selectedBudget || !this.readyDate) {
-                this.budgetPreview = null;
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/budgets/preview', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        budget_id: this.selectedBudget,
-                        amount: this.form.amount,
-                        ready_date: this.readyDate
-                    })
-                });
-
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    this.budgetPreview = data;
+            async updateBudgetPreview() {
+                if (!this.selectedBudget || !this.readyDate) {
+                    this.budgetPreview = null;
+                    return;
                 }
-            } catch (error) {
-                console.error('Failed to fetch budget preview');
-            }
-        },
 
-        async confirmPublishWithBudget() {
-            this.form.budget_id = this.selectedBudget;
-            this.form.ready_date = this.readyDate;
-            this.showBudgetModal = false;
-            await this.submitForm();
-        },
+                try {
+                    const response = await fetch('/api/budgets/preview', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            budget_id: this.selectedBudget,
+                            amount: this.form.amount,
+                            ready_date: this.readyDate
+                        })
+                    });
 
-        async submitForm() {
-            this.submitAttempted = true;
-            
-            if (!this.form.voter_id) {
-                this.errorMessage = 'Please select a voter from your assigned location';
-                return;
-            }
-
-            if (!this.form.subtype || !this.form.reference_member_id || !this.form.amount) {
-                this.errorMessage = 'Please fill in all required fields';
-                return;
-            }
-
-            this.loading = true;
-            this.errorMessage = '';
-
-            try {
-                const response = await fetch('{{ route("humanitarian.store") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(this.form)
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    window.location.href = data.redirect;
-                } else {
-                    this.errorMessage = data.message || 'Failed to create request';
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        this.budgetPreview = data;
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch budget preview');
                 }
-            } catch (error) {
-                this.errorMessage = 'Network error. Please try again.';
-                console.error('Submit error:', error);
-            } finally {
-                this.loading = false;
+            },
+
+            async confirmPublishWithBudget() {
+                this.form.budget_id = this.selectedBudget;
+                this.form.ready_date = this.readyDate;
+                this.showBudgetModal = false;
+                await this.submitForm();
+            },
+
+            async submitForm() {
+                this.submitAttempted = true;
+
+                if (!this.form.voter_id) {
+                    this.errorMessage = 'Please select a voter from your assigned location';
+                    return;
+                }
+
+                if (!this.form.subtype || !this.form.reference_member_id || !this.form.amount) {
+                    this.errorMessage = 'Please fill in all required fields';
+                    return;
+                }
+
+                this.loading = true;
+                this.errorMessage = '';
+
+                try {
+                    const response = await fetch('{{ route("humanitarian.store") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(this.form)
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        window.location.href = data.redirect;
+                    } else {
+                        this.errorMessage = data.message || 'Failed to create request';
+                    }
+                } catch (error) {
+                    this.errorMessage = 'Network error. Please try again.';
+                    console.error('Submit error:', error);
+                } finally {
+                    this.loading = false;
+                }
             }
         }
     }
-}
 </script>
 @endpush

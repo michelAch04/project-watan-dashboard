@@ -55,7 +55,7 @@ class HumanitarianRequestController extends Controller
                     return [
                         'id' => $budget->id,
                         'description' => $budget->description,
-                        'zone' => $budget->zone->name_en,
+                        'zone' => $budget->zone->name,
                         'monthly_amount' => $budget->monthly_amount_in_usd,
                         'current_remaining' => $budget->getRemainingBudgetForMonth($currentYear, $currentMonth),
                         'predicted_end_of_month' => $budget->getPredictedBudgetForMonth($currentYear, $currentMonth)
@@ -179,7 +179,7 @@ class HumanitarianRequestController extends Controller
      */
     public function create()
     {
-        $pwMembers = PwMember::active()->orderBy('name')->get();
+        $pwMembers = PwMember::active()->orderBy('first_name')->get();
 
         return view('humanitarian.create', compact('pwMembers'));
     }
@@ -310,7 +310,7 @@ class HumanitarianRequestController extends Controller
                     $requestHeader->id,
                     'request_published',
                     'New Request for Approval',
-                    "{$user->name} has published a humanitarian request #{$requestHeader->request_number} for your approval."
+                    "{$user->username} has published a humanitarian request #{$requestHeader->request_number} for your approval."
                 );
             }
 
@@ -371,7 +371,7 @@ class HumanitarianRequestController extends Controller
             abort(403, 'You cannot edit this request');
         }
 
-        $pwMembers = PwMember::active()->orderBy('name')->get();
+        $pwMembers = PwMember::active()->orderBy('first_name')->orderBy('last_name')->get();
 
         return view('humanitarian.edit', compact('request', 'pwMembers'));
     }
@@ -431,8 +431,8 @@ class HumanitarianRequestController extends Controller
                 if ($user->manager_id) {
                     $isFirstPublish = $requestHeader->published_count === 1;
                     $message = $isFirstPublish
-                        ? "{$user->name} has published a humanitarian request #{$requestHeader->request_number} for your approval."
-                        : "{$user->name} has republished humanitarian request #{$requestHeader->request_number} for your approval.";
+                        ? "{$user->username} has published a humanitarian request #{$requestHeader->request_number} for your approval."
+                        : "{$user->username} has republished humanitarian request #{$requestHeader->request_number} for your approval.";
 
                     InboxNotification::createForUser(
                         $user->manager_id,
@@ -485,7 +485,7 @@ class HumanitarianRequestController extends Controller
                     $requestHeader->id,
                     'request_approved',
                     'Request Approved - Awaiting Your Review',
-                    "{$user->name} has approved humanitarian request #{$requestHeader->request_number}. It now requires your approval."
+                    "{$user->username} has approved humanitarian request #{$requestHeader->request_number}. It now requires your approval."
                 );
 
                 DB::commit();
@@ -647,7 +647,7 @@ class HumanitarianRequestController extends Controller
                 $requestHeader->id,
                 'request_rejected',
                 'Request Rejected',
-                "{$user->name} has rejected your humanitarian request #{$requestHeader->request_number}. Reason: {$validated['rejection_reason']}"
+                "{$user->username} has rejected your humanitarian request #{$requestHeader->request_number}. Reason: {$validated['rejection_reason']}"
             );
 
             DB::commit();
@@ -841,15 +841,15 @@ class HumanitarianRequestController extends Controller
         $voters = $query->limit(20)->get()->map(function ($voter) {
             return [
                 'id' => $voter->id,
-                'full_name' => $voter->full_name,
                 'first_name' => $voter->first_name,
                 'father_name' => $voter->father_name,
                 'last_name' => $voter->last_name,
+                'mother_full_name' => $voter->mother_full_name,
                 'city_id' => $voter->city_id,
                 'city_name' => $voter->city->name,
-                'ro_number' => $voter->ro_number,
+                'register_number' => $voter->register_number,
                 'phone' => $voter->phone,
-                'display_text' => "{$voter->full_name} - {$voter->city->name} ({$voter->ro_number})"
+                'display_text' => "{$voter->first_name} {$voter->father_name} {$voter->last_name} - {$voter->city->name} ({$voter->register_number})"
             ];
         });
 
@@ -869,13 +869,14 @@ class HumanitarianRequestController extends Controller
         }
 
         $members = PwMember::active()
-            ->where('name', 'like', "%{$search}%")
+            ->where('first_name', 'like', "%{$search}%")
             ->limit(20)
             ->get()
             ->map(function ($member) {
                 return [
                     'id' => $member->id,
-                    'name' => $member->name,
+                    'first_name' => $member->first_name,
+                    'last_name' => $member->last_name,
                     'phone' => $member->phone
                 ];
             });

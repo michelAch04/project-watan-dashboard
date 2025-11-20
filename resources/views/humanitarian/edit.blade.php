@@ -5,17 +5,18 @@
 @section('content')
 @php
 $voterData = $request->humanitarianRequest->voter ? [
-    'id' => $request->humanitarianRequest->voter->id,
-    'full_name' => $request->humanitarianRequest->voter->full_name,
-    'city_name' => $request->humanitarianRequest->voter->city->name,
-    'ro_number' => $request->humanitarianRequest->voter->ro_number,
-    'city_id' => $request->humanitarianRequest->voter->city_id
+'id' => $request->humanitarianRequest->voter->id,
+'full_name' => $request->humanitarianRequest->voter->full_name,
+'city_name' => $request->humanitarianRequest->voter->city->name,
+'register_number' => $request->humanitarianRequest->voter->register_number,
+'city_id' => $request->humanitarianRequest->voter->city_id
 ] : null;
 
 $memberData = $request->referenceMember ? [
-    'id' => $request->referenceMember->id,
-    'name' => $request->referenceMember->name,
-    'phone' => $request->referenceMember->phone
+'id' => $request->referenceMember->id,
+'first_name' => $request->referenceMember->first_name,
+'last_name' => $request->referenceMember->last_name,
+'phone' => $request->referenceMember->phone
 ] : null;
 @endphp
 <div class="min-h-screen bg-[#fcf7f8]" x-data="humanitarianEditForm()" x-init="init()">
@@ -23,7 +24,7 @@ $memberData = $request->referenceMember ? [
         <div class="safe-area">
             <div class="page-container py-4">
                 <div class="flex items-center">
-                    <a href="{{ route('humanitarian.show', $request->id) }}" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all mr-2">
+                    <a href="{{ route('humanitarian.drafts') }}" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all mr-2">
                         <svg class="w-5 h-5 text-[#622032]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                         </svg>
@@ -67,7 +68,8 @@ $memberData = $request->referenceMember ? [
                                 :class="{ 'border-red-500': !form.voter_id && submitAttempted }"
                                 :disabled="loading"
                                 autocomplete="off"
-                                required />
+                                required
+                                lang="ar" />
 
                             <div x-show="voterSearchOpen"
                                 @click.away="voterSearchOpen = false"
@@ -96,7 +98,7 @@ $memberData = $request->referenceMember ? [
                                         <li @click.stop="selectVoter(voter)"
                                             @mousedown.prevent
                                             class="px-4 py-3 hover:bg-[#f8f0e2] cursor-pointer border-b border-gray-100 last:border-0 transition-colors">
-                                            <div class="font-semibold text-[#622032]" x-text="voter.full_name"></div>
+                                            <div class="font-semibold text-[#622032]" x-text="voter.full_name" lang="ar"></div>
                                             <div class="text-xs text-[#622032]/60 flex items-center gap-2 mt-1">
                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
@@ -104,7 +106,7 @@ $memberData = $request->referenceMember ? [
                                                 </svg>
                                                 <span x-text="voter.city_name"></span>
                                                 <span>•</span>
-                                                <span x-text="voter.ro_number"></span>
+                                                <span x-text="voter.register_number" lang="ar"></span>
                                             </div>
                                         </li>
                                     </template>
@@ -122,7 +124,7 @@ $memberData = $request->referenceMember ? [
                             <div class="flex items-start justify-between">
                                 <div class="flex-1">
                                     <p class="text-xs font-semibold text-[#931335] mb-1">✓ Selected Voter:</p>
-                                    <p class="text-sm font-bold text-[#622032]" x-text="selectedVoter?.full_name"></p>
+                                    <p class="text-sm font-bold text-[#622032]" x-text="selectedVoter?.full_name" lang="ar"></p>
                                     <div class="flex items-center gap-2 text-xs text-[#622032]/60 mt-1">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
@@ -130,7 +132,7 @@ $memberData = $request->referenceMember ? [
                                         </svg>
                                         <span x-text="selectedVoter?.city_name"></span>
                                         <span>•</span>
-                                        <span x-text="selectedVoter?.ro_number"></span>
+                                        <span x-text="selectedVoter?.register_number" lang="ar"></span>
                                     </div>
                                 </div>
                                 <button type="button" @click="clearVoter()" class="text-red-600 hover:text-red-700 p-1">
@@ -148,15 +150,15 @@ $memberData = $request->referenceMember ? [
                         <div class="space-y-2 text-sm">
                             <div class="flex justify-between">
                                 <span class="text-[#622032]/60">Full Name:</span>
-                                <span class="font-semibold text-[#622032]" x-text="selectedVoter?.full_name"></span>
+                                <span class="font-semibold text-[#622032]" x-text="selectedVoter?.full_name" lang="ar"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-[#622032]/60">Register Number:</span>
+                                <span class="font-semibold text-[#622032]" x-text="selectedVoter?.register_number" lang="ar"></span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-[#622032]/60">City:</span>
                                 <span class="font-semibold text-[#622032]" x-text="selectedVoter?.city_name"></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-[#622032]/60">رقم السجل:</span>
-                                <span class="font-semibold text-[#622032]" x-text="selectedVoter?.ro_number"></span>
                             </div>
                             <div x-show="selectedVoter?.phone" class="flex justify-between">
                                 <span class="text-[#622032]/60">Phone:</span>
@@ -191,7 +193,8 @@ $memberData = $request->referenceMember ? [
                                     placeholder="Search PW member (min 2 chars)..."
                                     class="input-field"
                                     :disabled="loading"
-                                    autocomplete="off" />
+                                    autocomplete="off"
+                                    lang="ar" />
 
                                 <div x-show="memberSearchOpen && (memberResults.length > 0 || memberSearching)"
                                     x-transition
@@ -204,7 +207,7 @@ $memberData = $request->referenceMember ? [
                                         <template x-for="member in memberResults" :key="member.id">
                                             <li @click="selectMember(member)"
                                                 class="px-4 py-3 hover:bg-[#f8f0e2] cursor-pointer border-b border-gray-100 last:border-0">
-                                                <div class="font-semibold text-[#622032]" x-text="member.name"></div>
+                                                <div class="font-semibold text-[#622032]" x-text="member.first_name + ' ' + member.last_name" lang="ar"></div>
                                                 <div class="text-xs text-[#622032]/60" x-text="member.phone"></div>
                                             </li>
                                         </template>
@@ -213,7 +216,7 @@ $memberData = $request->referenceMember ? [
                             </div>
 
                             <div x-show="form.reference_member_id" x-cloak class="mt-2 text-sm text-[#622032]">
-                                Selected: <span class="font-semibold" x-text="selectedMember?.name"></span>
+                                Selected: <span class="font-semibold" x-text="selectedMember?.first_name + ' ' + selectedMember?.last_name" lang="ar"></span>
                             </div>
                         </div>
 
@@ -278,7 +281,7 @@ $memberData = $request->referenceMember ? [
                 requester_father_name: '{{ $request->humanitarianRequest->requester_father_name }}',
                 requester_last_name: '{{ $request->humanitarianRequest->requester_last_name }}',
                 requester_city_id: '{{ $request->humanitarianRequest->requester_city_id }}',
-                requester_ro_number: '{{ $request->humanitarianRequest->requester_ro_number }}',
+                requester_register_number: '{{ $request->humanitarianRequest->requester_register_number }}',
                 requester_phone: '{{ $request->humanitarianRequest->requester_phone }}',
                 subtype: '{{ $request->humanitarianRequest->subtype }}',
                 reference_member_id: '{{ $request->reference_member_id }}',
@@ -297,7 +300,7 @@ $memberData = $request->referenceMember ? [
             selectedVoter: @json($voterData),
             voterSearchTimeout: null,
 
-            memberSearch: '{{ $request->referenceMember ? $request->referenceMember->name : "" }}',
+            memberSearch: "{{ $request->referenceMember ? ($request->referenceMember->first_name . ' ' . $request->referenceMember->last_name) : "" }}",
             memberSearchOpen: false,
             memberSearching: false,
             memberResults: [],
@@ -364,7 +367,7 @@ $memberData = $request->referenceMember ? [
             selectMember(member) {
                 this.selectedMember = member;
                 this.form.reference_member_id = member.id;
-                this.memberSearch = member.name;
+                this.memberSearch = member.first_name + ' ' + member.last_name;
                 this.memberSearchOpen = false;
             },
 

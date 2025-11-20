@@ -68,7 +68,7 @@ class Voter extends Model
             $q->where('first_name', 'like', "%{$search}%")
               ->orWhere('father_name', 'like', "%{$search}%")
               ->orWhere('last_name', 'like', "%{$search}%")
-              ->orWhere('ro_number', 'like', "%{$search}%");
+              ->orWhere('register_number', 'like', "%{$search}%");
         });
     }
 }

@@ -36,7 +36,7 @@
                             Linked Voter (Cannot be changed)
                         </h3>
                         <div class="text-sm text-[#622032]">
-                            <div class="font-bold">{{ $member->voter->first_name }} {{ $member->voter->father_name }} {{ $member->voter->last_name }}</div>
+                            <div class="font-bold" lang="ar">{{ $member->voter->first_name }} {{ $member->voter->father_name }} {{ $member->voter->last_name }}</div>
                             @if($member->voter->city)
                             <div class="text-xs text-[#622032]/60 mt-1">{{ $member->voter->city->name }}</div>
                             @endif
@@ -70,6 +70,8 @@
                             :disabled="loading"
                             required
                             placeholder="Enter first name"
+                            readonly
+                            lang="ar"
                         />
                     </div>
 
@@ -87,6 +89,8 @@
                             :disabled="loading"
                             required
                             placeholder="Enter father name"
+                            readonly
+                            lang="ar"
                         />
                     </div>
 
@@ -104,6 +108,8 @@
                             :disabled="loading"
                             required
                             placeholder="Enter last name"
+                            readonly
+                            lang="ar"
                         />
                     </div>
 
@@ -121,6 +127,8 @@
                             :disabled="loading"
                             required
                             placeholder="Enter mother full name"
+                            readonly
+                            lang="ar"
                         />
                     </div>
 

@@ -87,13 +87,13 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                             <div class="flex-1">
-                                <p class="text-sm font-semibold text-[#622032]">{{ $request->humanitarianRequest->requester_full_name }}</p>
+                                <p class="text-sm font-semibold text-[#622032]" lang="ar">{{ $request->humanitarianRequest->requester_full_name }}</p>
                                 <p class="text-xs text-[#622032]/60">{{ $request->humanitarianRequest->voter->city->name }} @if($request->humanitarianRequest->voter->ro_number) • {{ $request->humanitarianRequest->voter->ro_number }} @endif</p>
                             </div>
                         </div>
 
                         <div class="flex items-center gap-2 text-xs text-[#622032]/60">
-                            <span class="px-2 py-1 bg-[#fef9de] rounded">{{ $request->humanitarianRequest->subtype }}</span>
+                            <span class="px-2 py-1 bg-[#fef9de] rounded" lang="ar">{{ $request->humanitarianRequest->subtype }}</span>
                             <span>•</span>
                             <span class="font-semibold text-[#931335]">${{ number_format($request->humanitarianRequest->amount, 2) }}</span>
                         </div>
@@ -104,7 +104,7 @@
                         @if($request->referenceMember)
                         <div class="flex items-center gap-2">
                             <span class="text-[#622032]/60">Reference:</span>
-                            <span class="font-semibold text-[#622032]">{{ $request->referenceMember->name }}</span>
+                            <span class="font-semibold text-[#622032]" lang="ar">{{ $request->referenceMember->first_name }} {{ $request->referenceMember->last_name }}</span>
                         </div>
                         @endif
                         @if($request->humanitarianRequest->notes)

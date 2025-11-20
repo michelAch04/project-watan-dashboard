@@ -117,9 +117,9 @@
                                 </svg>
                                 <span>
                                     @if($user->zones()->count() > 0)
-                                    Zone: {{ $user->zones()->first()->username }}
+                                    Zone: {{ $user->zones()->first()->name }}
                                     @elseif($user->cities()->count() > 0)
-                                    City: {{ $user->cities()->first()->username }}
+                                    City: {{ $user->cities()->first()->name }}
                                     @else
                                     N/A
                                     @endif
