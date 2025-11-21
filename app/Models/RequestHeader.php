@@ -79,7 +79,7 @@ class RequestHeader extends Model
     public function scopeActive($query)
     {
         return $query->notCancelled()
-            ->whereHas('requestStatus', function($q) {
+            ->whereHas('requestStatus', function ($q) {
                 $q->whereNotIn('name', [
                     RequestStatus::STATUS_DRAFT,
                     RequestStatus::STATUS_COLLECTED
@@ -90,7 +90,7 @@ class RequestHeader extends Model
     public function scopeCompleted($query)
     {
         return $query->notCancelled()
-            ->whereHas('requestStatus', function($q) {
+            ->whereHas('requestStatus', function ($q) {
                 $q->where('name', RequestStatus::STATUS_COLLECTED);
             });
     }
@@ -99,7 +99,7 @@ class RequestHeader extends Model
     {
         return $query->notCancelled()
             ->where('sender_id', $user->id)
-            ->whereHas('requestStatus', function($q) {
+            ->whereHas('requestStatus', function ($q) {
                 $q->whereIn('name', [
                     RequestStatus::STATUS_DRAFT,
                     RequestStatus::STATUS_REJECTED
@@ -109,13 +109,13 @@ class RequestHeader extends Model
 
     public function scopeForUser($query, $user)
     {
-        return $query->where(function($q) use ($user) {
+        return $query->where(function ($q) use ($user) {
             $q->where('sender_id', $user->id)
-              ->orWhere('current_user_id', $user->id);
+                ->orWhere('current_user_id', $user->id);
 
             // If user has a manager, include requests where user's subordinates are involved
             if ($user->hasRole('manager') || $user->hasRole('hor')) {
-                $q->orWhereHas('sender', function($subq) use ($user) {
+                $q->orWhereHas('sender', function ($subq) use ($user) {
                     $subq->where('manager_id', $user->id);
                 });
             }
@@ -145,23 +145,25 @@ class RequestHeader extends Model
     public function canEdit($user)
     {
         return $this->sender_id === $user->id &&
-               in_array($this->requestStatus->name, [
-                   RequestStatus::STATUS_DRAFT,
-                   RequestStatus::STATUS_REJECTED
-               ]);
+            in_array($this->requestStatus->name, [
+                RequestStatus::STATUS_DRAFT,
+                RequestStatus::STATUS_REJECTED
+            ]);
     }
 
     public function canDelete($user)
     {
-        return $user->hasRole('hor') &&
-               $this->sender_id === $user->id &&
-               $this->requestStatus->name === RequestStatus::STATUS_DRAFT;
+        return
+            $this->sender_id === $user->id && (
+                $this->requestStatus->name === RequestStatus::STATUS_DRAFT ||
+                $this->requestStatus->name === RequestStatus::STATUS_REJECTED
+            );
     }
 
     public function canApproveReject($user)
     {
         return $this->current_user_id === $user->id &&
-               $this->requestStatus->name === RequestStatus::STATUS_PUBLISHED;
+            $this->requestStatus->name === RequestStatus::STATUS_PUBLISHED;
     }
 
     /**
