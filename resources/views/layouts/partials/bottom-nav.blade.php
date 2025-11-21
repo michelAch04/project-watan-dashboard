@@ -61,7 +61,7 @@
                     </svg>
 
                     <span x-show="unreadCount > 0"
-                        class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold"
+                        class="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold"
                         x-text="unreadCount > 9 ? '9+' : unreadCount"></span>
                 </div>
                 <span class="text-xs font-medium mt-1">Inbox</span>

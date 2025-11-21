@@ -15,6 +15,7 @@ $voterData = $request->humanitarianRequest->voter ? [
 $memberData = $request->referenceMember ? [
 'id' => $request->referenceMember->id,
 'first_name' => $request->referenceMember->first_name,
+'father_name' => $request->referenceMember->father_name,
 'last_name' => $request->referenceMember->last_name,
 'phone' => $request->referenceMember->phone
 ] : null;
@@ -207,7 +208,7 @@ $memberData = $request->referenceMember ? [
                                         <template x-for="member in memberResults" :key="member.id">
                                             <li @click="selectMember(member)"
                                                 class="px-4 py-3 hover:bg-[#f8f0e2] cursor-pointer border-b border-gray-100 last:border-0">
-                                                <div class="font-semibold text-[#622032]" x-text="member.first_name + ' ' + member.last_name" lang="ar"></div>
+                                                <div class="font-semibold text-[#622032]" x-text="member.first_name + ' ' + member.father_name + ' ' + member.last_name" lang="ar"></div>
                                                 <div class="text-xs text-[#622032]/60" x-text="member.phone"></div>
                                             </li>
                                         </template>
@@ -216,7 +217,7 @@ $memberData = $request->referenceMember ? [
                             </div>
 
                             <div x-show="form.reference_member_id" x-cloak class="mt-2 text-sm text-[#622032]">
-                                Selected: <span class="font-semibold" x-text="selectedMember?.first_name + ' ' + selectedMember?.last_name" lang="ar"></span>
+                                Selected: <span class="font-semibold" x-text="selectedMember?.first_name + ' ' + selectedMember?.father_name + ' ' + selectedMember?.last_name" lang="ar"></span>
                             </div>
                         </div>
 
@@ -300,7 +301,7 @@ $memberData = $request->referenceMember ? [
             selectedVoter: @json($voterData),
             voterSearchTimeout: null,
 
-            memberSearch: "{{ $request->referenceMember ? ($request->referenceMember->first_name . ' ' . $request->referenceMember->last_name) : "" }}",
+            memberSearch: "{{ $request->referenceMember ? ($request->referenceMember->first_name . ' ' . $request->referenceMember->father_name . ' ' . $request->referenceMember->last_name) : "" }}",
             memberSearchOpen: false,
             memberSearching: false,
             memberResults: [],
@@ -367,7 +368,7 @@ $memberData = $request->referenceMember ? [
             selectMember(member) {
                 this.selectedMember = member;
                 this.form.reference_member_id = member.id;
-                this.memberSearch = member.first_name + ' ' + member.last_name;
+                this.memberSearch = member.first_name + ' ' + member.father_name + ' ' + member.last_name;
                 this.memberSearchOpen = false;
             },
 

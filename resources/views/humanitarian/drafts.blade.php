@@ -88,7 +88,7 @@
                             </svg>
                             <div class="flex-1">
                                 <p class="text-sm font-semibold text-[#622032]" lang="ar">{{ $request->humanitarianRequest->requester_full_name }}</p>
-                                <p class="text-xs text-[#622032]/60">{{ $request->humanitarianRequest->voter->city->name }} @if($request->humanitarianRequest->voter->ro_number) • {{ $request->humanitarianRequest->voter->ro_number }} @endif</p>
+                                <p class="text-xs text-[#622032]/60">{{ $request->humanitarianRequest->voter->city->name }} @if($request->humanitarianRequest->voter->register_number) • {{ $request->humanitarianRequest->voter->register_number }} @endif</p>
                             </div>
                         </div>
 
@@ -104,7 +104,7 @@
                         @if($request->referenceMember)
                         <div class="flex items-center gap-2">
                             <span class="text-[#622032]/60">Reference:</span>
-                            <span class="font-semibold text-[#622032]" lang="ar">{{ $request->referenceMember->first_name }} {{ $request->referenceMember->last_name }}</span>
+                            <span class="font-semibold text-[#622032]" lang="ar">{{ trim($request->referenceMember->first_name . ' ' . $request->referenceMember->father_name . ' ' . $request->referenceMember->last_name) }}</span>
                         </div>
                         @endif
                         @if($request->humanitarianRequest->notes)

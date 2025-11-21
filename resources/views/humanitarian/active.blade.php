@@ -149,7 +149,7 @@
                         @if($request->referenceMember)
                         <div class="flex items-center gap-2">
                             <span class="text-[#622032]/60">Reference:</span>
-                            <span class="font-semibold text-[#622032]" lang="ar">{{ $request->referenceMember->first_name }} {{ $request->referenceMember->last_name }}</span>
+                            <span class="font-semibold text-[#622032]" lang="ar">{{ trim($request->referenceMember->first_name . ' ' . $request->referenceMember->father_name . ' ' . $request->referenceMember->last_name) }}</span>
                         </div>
                         @endif
                         @if($request->humanitarianRequest->budget)

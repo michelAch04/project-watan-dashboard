@@ -782,7 +782,8 @@ class HumanitarianRequestController extends Controller
             'requestStatus',
             'sender',
             'referenceMember',
-            'humanitarianRequest.voter.city'
+            'humanitarianRequest.voter.city.zone',
+            'humanitarianRequest.budget'
         ])->findOrFail($id);
 
         $user = Auth::user();
@@ -869,15 +870,22 @@ class HumanitarianRequestController extends Controller
         }
 
         $members = PwMember::active()
-            ->where('first_name', 'like', "%{$search}%")
+            ->where(function($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('father_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%");
+            })
             ->limit(20)
             ->get()
             ->map(function ($member) {
                 return [
                     'id' => $member->id,
                     'first_name' => $member->first_name,
+                    'father_name' => $member->father_name,
                     'last_name' => $member->last_name,
-                    'phone' => $member->phone
+                    'mother_full_name' => $member->mother_full_name,
+                    'phone' => $member->phone,
+                    'display_text' => trim("{$member->first_name} {$member->father_name} {$member->last_name}")
                 ];
             });
 
@@ -914,7 +922,7 @@ class HumanitarianRequestController extends Controller
             'requestStatus',
             'sender',
             'referenceMember',
-            'humanitarianRequest.voter.city',
+            'humanitarianRequest.voter.city.zone',
             'humanitarianRequest.budget'
         ])
             ->completed()
@@ -947,7 +955,7 @@ class HumanitarianRequestController extends Controller
             'requestStatus',
             'sender',
             'referenceMember',
-            'humanitarianRequest.voter.city',
+            'humanitarianRequest.voter.city.zone',
             'humanitarianRequest.budget'
         ])
             ->active()

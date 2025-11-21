@@ -23,13 +23,13 @@
             <span class="form-label">البلدة :</span>
             <span class="form-value medium">{{ $request->humanitarianRequest->voter->city->name ?? '' }}</span>
             <span class="form-label">رقم السجل:</span>
-            <span class="form-value small">{{ $request->humanitarianRequest->voter->ro_number ?? '' }}</span>
+            <span class="form-value small">{{ $request->humanitarianRequest->voter->register_number ?? '' }}</span>
         </div>
 
-        <!-- Row 2: Birth Date, Spouse Name -->
+        <!-- Row 2: Mother Name, Spouse Name -->
         <div class="form-row">
-            <span class="form-label">تاريخ الولادة :</span>
-            <span class="form-value medium">{{ $request->humanitarianRequest->voter->birth_date ?? '' }}</span>
+            <span class="form-label">إسم الأم الثلاثي :</span>
+            <span class="form-value medium">{{ $request->humanitarianRequest->voter->mother_full_name ?? '' }}</span>
             <span class="form-label">أسم الزوج/ة :</span>
             <span class="form-value medium"></span>
         </div>
@@ -71,7 +71,7 @@
             <span class="form-label">الهاتف :</span>
             <span class="form-value medium">{{ $request->humanitarianRequest->voter->phone ?? '' }}</span>
             <span class="form-label">المرجع</span>
-            <span class="form-value large">{{ $request->referenceMember->name ?? '' }}</span>
+            <span class="form-value large">{{ $request->referenceMember ? trim($request->referenceMember->first_name . ' ' . $request->referenceMember->father_name . ' ' . $request->referenceMember->last_name) : '' }}</span>
         </div>
     </div>
 
@@ -79,7 +79,7 @@
     <div class="form-section">
         <div class="checkbox-row">
             <div class="checkbox-item">
-                <span class="checkbox {{ (isset($request->humanitarianRequest->subtype) && (str_contains(mb_strtolower($request->humanitarianRequest->subtype), 'اجتماعية') || str_contains(strtolower($request->humanitarianRequest->subtype), 'social'))) ? 'checked' : '' }}"></span>
+                <span class="checkbox {{ (isset($request->humanitarianRequest->subtype) && (str_contains(mb_strtolower($request->humanitarianRequest->subtype), 'إجتماعية') || str_contains(strtolower($request->humanitarianRequest->subtype), 'social'))) ? 'checked' : '' }}"></span>
                 <span>اجتماعية</span>
             </div>
             <div class="checkbox-item">
@@ -236,15 +236,15 @@
     <div class="approval-section" style="display: flex; gap: 0;">
         <div class="notes-section" style="flex: 1; border-left: 1px solid #000; padding: 4px;">
             <div class="notes-label" style="text-align: center;">مكتب الشؤون الإجتماعية</div>
-            <div class="notes-box" style="min-height: 30px;"></div>
+            <div class="notes-box" style="min-height: 60px;"></div>
         </div>
         <div class="notes-section" style="flex: 1; border-left: 1px solid #000; padding: 4px;">
             <div class="notes-label" style="text-align: center;">مسؤول القطاع</div>
-            <div class="notes-box" style="min-height: 30px;"></div>
+            <div class="notes-box" style="min-height: 60px;"></div>
         </div>
         <div class="notes-section" style="flex: 1; padding: 4px;">
             <div class="notes-label" style="text-align: center;">الموافقة</div>
-            <div class="notes-box" style="min-height: 30px;"></div>
+            <div class="notes-box" style="min-height: 60px;"></div>
         </div>
     </div>
 </div>

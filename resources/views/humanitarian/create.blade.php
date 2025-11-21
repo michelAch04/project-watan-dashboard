@@ -151,8 +151,8 @@
                                 <span class="font-semibold text-[#622032]" x-text="selectedVoter?.mother_full_name" lang="ar"></span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-[#622032]/60">رقم السجل:</span>
-                                <span class="font-semibold text-[#622032]" x-text="selectedVoter?.register_number"></span>
+                                <span class="text-[#622032]/60">Register Number:</span>
+                                <span class="font-semibold text-[#622032]" x-text="selectedVoter?.register_number" lang="ar"></span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-[#622032]/60">City:</span>
@@ -171,7 +171,7 @@
                         {{-- ... (Request Type is unchanged and correct) ... --}}
                         <div>
                             <label class="block text-sm font-semibold text-[#622032] mb-2">
-                                Request Type * <span class="text-xs font-normal">(نوع الطلب)</span>
+                                Request Type *
                             </label>
                             <select x-model="form.subtype" class="input-field" required :disabled="loading">
                                 <option value="">Select Type</option>
@@ -223,7 +223,7 @@
                                         <template x-for="member in memberResults" :key="member.id">
                                             <li @click="selectMember(member)"
                                                 class="px-4 py-3 hover:bg-[#f8f0e2] cursor-pointer border-b border-gray-100 last:border-0">
-                                                <div class="font-semibold text-[#622032]" x-text="member.first_name + ' ' + member.last_name" lang="ar"></div>
+                                                <div class="font-semibold text-[#622032]" x-text="member.first_name + ' ' + member.father_name + ' ' + member.last_name" lang="ar"></div>
                                                 <div class="text-xs text-[#622032]/60" x-text="member.phone"></div>
                                             </li>
                                         </template>
@@ -244,7 +244,7 @@
                             </div>
 
                             <div x-show="form.reference_member_id" x-cloak class="mt-2 text-sm text-[#622032]">
-                                Selected: <span class="font-semibold" x-text="selectedMember?.first_name + ' ' + selectedMember?.last_name" lang="ar"></span>
+                                Selected: <span class="font-semibold" x-text="selectedMember?.first_name + ' ' + selectedMember?.father_name + ' ' + selectedMember?.last_name" lang="ar"></span>
                             </div>
                         </div>
 
@@ -482,7 +482,7 @@
             selectMember(member) {
                 this.selectedMember = member;
                 this.form.reference_member_id = member.id;
-                this.memberSearch = member.name;
+                this.memberSearch = member.first_name + ' ' + member.father_name + ' ' + member.last_name;
                 this.memberSearchOpen = false;
             },
 
