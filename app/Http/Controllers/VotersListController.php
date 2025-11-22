@@ -32,7 +32,7 @@ class VotersListController extends Controller
                 });
             } else {
                 // Other users can see voters from their cities
-                $cityIds = $user->cities()->pluck('cities.id');
+                $cityIds = $user->cities()->pluck('id');
                 $query->whereIn('city_id', $cityIds);
             }
         }

@@ -29,7 +29,7 @@
     <div class="safe-area py-4">
         <div class="page-container space-y-4">
             <!-- Create Button -->
-            @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('hor'))
+            @if(auth()->user()->can('create_pw_members'))
             <div class="flex justify-end">
                 <a href="{{ route('pw-members.create') }}" class="block btn-primary text-center flex align-center">
                     <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,7 +189,7 @@
                                 </svg>
                             </a>
 
-                            @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('hor'))
+                            @if(auth()->user()->can('edit_pw_members'))
                             <a href="{{ route('pw-members.edit', $member->id) }}"
                                 class="p-2 bg-[#f8f0e2] hover:bg-[#dfd1ba] rounded-lg transition-all active:scale-95">
                                 <svg class="w-4 h-4 text-[#622032]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

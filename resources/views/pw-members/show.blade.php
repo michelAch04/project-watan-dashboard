@@ -144,7 +144,7 @@
                 </div>
             </div>
             @else
-            @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('hor'))
+            @if(auth()->user()->can('create_users'))
             <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
                 <div class="flex items-start gap-3">
                     <svg class="w-6 h-6 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

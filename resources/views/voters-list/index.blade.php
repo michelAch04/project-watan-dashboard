@@ -34,7 +34,7 @@
                     <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    <p class="text-sm text-blue-700">This is a read-only view of voters. You can create PW members from voters listed here.</p>
+                    <p class="text-sm text-blue-700">This is a read-only view of voters.@if(auth()->user()->can('create_pw_members')) You can create PW members from voters listed here.@endif</p>
                 </div>
             </div>
 
@@ -169,7 +169,7 @@
                         </div>
 
                         <!-- Actions -->
-                        @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('hor'))
+                        @if(auth()->user()->can('create_pw_members'))
                         <div class="flex flex-col gap-2">
                             @if(!$hasPwMember)
                             <a href="{{ route('pw-members.create', ['voter_id' => $voter->id]) }}"

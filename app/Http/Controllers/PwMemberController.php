@@ -33,7 +33,7 @@ class PwMemberController extends Controller
                 });
             } else {
                 // Other users can see members from their cities
-                $cityIds = $user->cities()->pluck('cities.id');
+                $cityIds = $user->cities()->pluck('id');
                 $query->whereHas('voter.city', function($q) use ($cityIds) {
                     $q->whereIn('id', $cityIds);
                 });

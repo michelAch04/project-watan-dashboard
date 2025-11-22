@@ -79,7 +79,6 @@
                             :disabled="loading">
                             <option value="none">No Location</option>
                             <option value="city" {{ $locationType === 'city' ? 'selected' : '' }}>City</option>
-                            <option value="village" {{ $locationType === 'village' ? 'selected' : '' }}>Village</option>
                         </select>
 
                         <!-- Current Location Info -->

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\MonthlyList;
 use App\Models\RequestHeader;
 use App\Models\HumanitarianRequest;
+use App\Models\PublicRequest;
+use App\Models\DiapersRequest;
 use App\Models\RequestStatus;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\Auth;
@@ -21,17 +23,20 @@ class MonthlyListController extends Controller
         $currentMonth = now()->month;
         $currentYear = now()->year;
 
-        // Get current monthly list
+        // Get current monthly list with all request types
         $monthlyListItems = MonthlyList::with([
             'requestHeader.requestStatus',
             'requestHeader.sender',
-            'requestHeader.humanitarianRequest.voter.city'
+            'requestHeader.referenceMember',
+            'requestHeader.humanitarianRequest.voter.city',
+            'requestHeader.publicRequest.city',
+            'requestHeader.diapersRequest.voter.city'
         ])
             ->forUser($user->id)
             ->forMonth($currentMonth, $currentYear)
             ->get();
 
-        return view('humanitarian.monthly-list', compact('monthlyListItems', 'currentMonth', 'currentYear'));
+        return view('monthly-list.index', compact('monthlyListItems', 'currentMonth', 'currentYear'));
     }
 
     /**
@@ -121,7 +126,11 @@ class MonthlyListController extends Controller
 
         DB::beginTransaction();
         try {
-            $monthlyListItems = MonthlyList::with(['requestHeader.humanitarianRequest'])
+            $monthlyListItems = MonthlyList::with([
+                'requestHeader.humanitarianRequest',
+                'requestHeader.publicRequest',
+                'requestHeader.diapersRequest'
+            ])
                 ->forUser($user->id)
                 ->forMonth($validated['month'], $validated['year'])
                 ->get();
@@ -137,7 +146,7 @@ class MonthlyListController extends Controller
 
             foreach ($monthlyListItems as $item) {
                 $originalHeader = $item->requestHeader;
-                $originalHumanitarian = $originalHeader->humanitarianRequest;
+                $requestType = $originalHeader->getRequestType();
 
                 // Determine status based on user role
                 $statusName = $user->hasRole('hor')
@@ -158,25 +167,51 @@ class MonthlyListController extends Controller
                     'ready_date' => now()->addDays(7), // Default ready date
                 ]);
 
-                // Create new humanitarian request
-                HumanitarianRequest::create([
-                    'request_header_id' => $newRequestHeader->id,
-                    'voter_id' => $originalHumanitarian->voter_id,
-                    'subtype' => $originalHumanitarian->subtype,
-                    'amount' => $originalHumanitarian->amount,
-                    'budget_id' => $originalHumanitarian->budget_id,
-                ]);
+                // Create new request based on type
+                if ($requestType === 'humanitarian') {
+                    $original = $originalHeader->humanitarianRequest;
+                    HumanitarianRequest::create([
+                        'request_header_id' => $newRequestHeader->id,
+                        'voter_id' => $original->voter_id,
+                        'subtype' => $original->subtype,
+                        'amount' => $original->amount,
+                        'budget_id' => $original->budget_id,
+                        'notes' => $original->notes,
+                    ]);
+                } elseif ($requestType === 'public') {
+                    $original = $originalHeader->publicRequest;
+                    PublicRequest::create([
+                        'request_header_id' => $newRequestHeader->id,
+                        'city_id' => $original->city_id,
+                        'description' => $original->description,
+                        'requester_full_name' => $original->requester_full_name,
+                        'requester_phone' => $original->requester_phone,
+                        'amount' => $original->amount,
+                        'budget_id' => $original->budget_id,
+                        'notes' => $original->notes,
+                    ]);
+                } elseif ($requestType === 'diapers') {
+                    $original = $originalHeader->diapersRequest;
+                    DiapersRequest::create([
+                        'request_header_id' => $newRequestHeader->id,
+                        'voter_id' => $original->voter_id,
+                        'amount' => $original->amount,
+                        'budget_id' => $original->budget_id,
+                        'notes' => $original->notes,
+                    ]);
+                }
 
                 $publishedCount++;
 
                 // Create notification for manager if not HOR
                 if (!$user->hasRole('hor') && $user->manager_id) {
+                    $requestTypeLabel = ucfirst($requestType);
                     \App\Models\InboxNotification::createForUser(
                         $user->manager_id,
                         $newRequestHeader->id,
                         'request_published',
                         'Monthly Request Published',
-                        "{$user->name} has published a recurring humanitarian request for your approval."
+                        "{$user->username} has published a recurring {$requestTypeLabel} request for your approval."
                     );
                 }
             }
@@ -186,7 +221,7 @@ class MonthlyListController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => "Successfully published {$publishedCount} request(s)",
-                'redirect' => route('humanitarian.index')
+                'redirect' => route('dashboard.index')
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

@@ -14,7 +14,11 @@
       "Bash(if [ -d \"resources/views/voters-list\" ])",
       "Bash(else mkdir -p resources/views/voters-list)",
       "Bash(nul)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(if [ -d \"resources/views/public-requests\" ])",
+      "Bash(else mkdir -p resources/views/public-requests)",
+      "Bash(/tmp/edit_base.blade.php)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

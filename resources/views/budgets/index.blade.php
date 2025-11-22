@@ -30,7 +30,7 @@
     <div class="safe-area py-4">
         <div class="page-container space-y-4">
             <!-- Create Button -->
-            @if(auth()->user()->hasRole('hor'))
+            @if(auth()->user()->can('create_budget'))
             <div class="flex justify-end">
                 <a href="{{ route('budgets.create') }}" class="block btn-primary text-center flex align-center">
                     <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,7 +107,7 @@
 
                     <!-- Action Buttons -->
                     @can('edit_budget')
-                    @if(auth()->user()->hasRole('hor') && $budget->zone->user_id === auth()->id())
+                    @if(auth()->user()->can('edit_budget') && $budget->zone->user_id === auth()->id())
                     <div class="mt-4 flex gap-2">
                         <a href="{{ route('budgets.edit', $budget->id) }}"
                             class="flex-1 sm:flex-initial bg-white/20 hover:bg-white/30 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-colors">
@@ -204,13 +204,13 @@
                 </svg>
                 <h3 class="text-lg sm:text-xl font-bold text-gray-700 mb-2">No Budgets Found</h3>
                 <p class="text-sm sm:text-base text-gray-500 mb-4">
-                    @if(auth()->user()->hasRole('hor'))
+                    @if(auth()->user()->can('create_budget'))
                     Get started by creating your first budget
                     @else
                     No budgets have been created yet
                     @endif
                 </p>
-                @if(auth()->user()->hasRole('hor'))
+                @if(auth()->user()->can('create_budget'))
                 <a href="{{ route('budgets.create') }}" class="btn-primary inline-flex items-center">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>

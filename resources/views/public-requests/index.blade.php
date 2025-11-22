@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Humanitarian Requests')
+@section('title', 'Public Facilities Requests')
 
 @section('content')
 <div class="min-h-screen bg-[#fcf7f8]">
@@ -16,9 +16,9 @@
                     </a>
                     <h1 class="text-lg sm:text-xl font-bold text-[#622032] flex items-center gap-2">
                         <svg class="w-5 h-5 sm:w-6 sm:h-6 text-[#931335]" fill="currentColor" viewBox="0 0 24 24">
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+                            <path fill-rule="evenodd" d="M4.5 2.25a.75.75 0 000 1.5v16.5h-.75a.75.75 0 000 1.5h16.5a.75.75 0 000-1.5h-.75V3.75a.75.75 0 000-1.5h-15zM9 6a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5H9zm-.75 3.75A.75.75 0 019 9h1.5a.75.75 0 010 1.5H9a.75.75 0 01-.75-.75zM9 12a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5H9zm3.75-5.25A.75.75 0 0113.5 6H15a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75zM13.5 9a.75.75 0 000 1.5H15A.75.75 0 0015 9h-1.5zm-.75 3.75a.75.75 0 01.75-.75H15a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75zM9 19.5v-2.25a.75.75 0 01.75-.75h4.5a.75.75 0 01.75.75v2.25a.75.75 0 01-.75.75h-4.5A.75.75 0 019 19.5z" clip-rule="evenodd" />
                         </svg>
-                        Humanitarian Requests
+                        Public Facilities Requests
                     </h1>
                 </div>
             </div>
@@ -28,11 +28,11 @@
     <!-- Content -->
     <div class="safe-area py-6">
         <div class="page-container space-y-4">
-            
+
             <!-- Action Buttons -->
             <div class="flex flex-col sm:flex-row justify-end gap-2">
-                @can('create_humanitarian')
-                <a href="{{ route('humanitarian.create') }}" class="btn-primary flex items-center justify-center w-full sm:w-auto">
+                @can('create_public')
+                <a href="{{ route('public-requests.create') }}" class="btn-primary flex items-center justify-center w-full sm:w-auto">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
@@ -107,7 +107,7 @@
             <!-- Stats Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <!-- Active Requests -->
-                <a href="{{ route('humanitarian.active') }}"
+                <a href="{{ route('public-requests.active') }}"
                    class="bg-white rounded-xl p-6 shadow-sm border border-[#f8f0e2] hover:shadow-md transition-all active:scale-[0.98]">
                     <div class="flex items-center justify-between mb-2">
                         <h3 class="text-sm font-semibold text-[#622032]/70">Active Requests</h3>
@@ -122,7 +122,7 @@
                 </a>
 
                 <!-- Drafts & Rejected -->
-                <a href="{{ route('humanitarian.drafts') }}"
+                <a href="{{ route('public-requests.drafts') }}"
                    class="bg-white rounded-xl p-6 shadow-sm border border-[#f8f0e2] hover:shadow-md transition-all active:scale-[0.98]">
                     <div class="flex items-center justify-between mb-2">
                         <h3 class="text-sm font-semibold text-[#622032]/70">Drafts & Rejected</h3>
@@ -137,7 +137,7 @@
                 </a>
 
                 <!-- Completed -->
-                <a href="{{ route('humanitarian.completed') }}"
+                <a href="{{ route('public-requests.completed') }}"
                    class="bg-white rounded-xl p-6 shadow-sm border border-[#f8f0e2] hover:shadow-md transition-all active:scale-[0.98]">
                     <div class="flex items-center justify-between mb-2">
                         <h3 class="text-sm font-semibold text-[#622032]/70">Completed</h3>

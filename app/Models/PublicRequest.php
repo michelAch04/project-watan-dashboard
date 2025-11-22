@@ -8,7 +8,10 @@ class PublicRequest extends Model
 {
     protected $fillable = [
         'request_header_id',
-        'public_institution_id',
+        'city_id',
+        'description',
+        'requester_full_name',
+        'requester_phone',
         'amount',
         'budget_id',
         'notes'
@@ -26,9 +29,9 @@ class PublicRequest extends Model
         return $this->belongsTo(RequestHeader::class);
     }
 
-    public function publicInstitution()
+    public function city()
     {
-        return $this->belongsTo(PublicInstitution::class);
+        return $this->belongsTo(City::class);
     }
 
     public function budget()

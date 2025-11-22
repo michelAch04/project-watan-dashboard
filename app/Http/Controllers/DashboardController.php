@@ -46,6 +46,22 @@ class DashboardController extends Controller
             ];
         }
 
+        // Public Requests Management
+        if ($user->can('view_public')) {
+            $features[] = [
+                'name' => 'Public Facilities Requests',
+                'description' => 'Manage public infrastructure requests',
+                'icon' => 'building',
+                'color' => 'madder',
+                'route' => 'public-requests.index',
+                'permissions' => [
+                    'view' => $user->can('view_public'),
+                    'create' => $user->can('create_public'),
+                    'edit' => $user->can('edit_public'),
+                ]
+            ];
+        }
+
         // Budgets (HOR and Admin only)
         if (($user->hasRole('hor') || $user->hasRole('admin')) && $user->can('view_budget')) {
             $features[] = [

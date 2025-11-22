@@ -115,6 +115,56 @@ Route::middleware('auth')->group(function () {
         Route::get('/{id}/amount', [App\Http\Controllers\HumanitarianRequestController::class, 'getAmount'])->name('humanitarian.get-amount');
     });
 
+    // Public Request Management (Public Facilities)
+    Route::prefix('public-requests')->middleware('can:view_public')->group(function () {
+        Route::get('/', [App\Http\Controllers\PublicRequestController::class, 'index'])->name('public-requests.index');
+        Route::get('/active', [App\Http\Controllers\PublicRequestController::class, 'active'])->name('public-requests.active');
+        Route::get('/completed', [App\Http\Controllers\PublicRequestController::class, 'completed'])->name('public-requests.completed');
+        Route::get('/drafts', [App\Http\Controllers\PublicRequestController::class, 'drafts'])->name('public-requests.drafts');
+
+        Route::middleware('can:create_public')->group(function () {
+            Route::get('/create', [App\Http\Controllers\PublicRequestController::class, 'create'])->name('public-requests.create');
+            Route::post('/', [App\Http\Controllers\PublicRequestController::class, 'store'])->name('public-requests.store');
+        });
+
+        // Export routes (must come before /{id} wildcard route)
+        Route::middleware('can:final_approve_public')->group(function () {
+            Route::get('/export-monthly-pdf', [App\Http\Controllers\PublicRequestController::class, 'exportMonthlyPDF'])->name('public-requests.export-monthly-pdf');
+            Route::get('/export-active-pdf', [App\Http\Controllers\PublicRequestController::class, 'exportActivePDF'])->name('public-requests.export-active-pdf');
+        });
+
+        Route::get('/{id}', [App\Http\Controllers\PublicRequestController::class, 'show'])->name('public-requests.show');
+
+        Route::middleware('can:edit_public')->group(function () {
+            Route::get('/{id}/edit', [App\Http\Controllers\PublicRequestController::class, 'edit'])->name('public-requests.edit');
+            Route::put('/{id}', [App\Http\Controllers\PublicRequestController::class, 'update'])->name('public-requests.update');
+            Route::delete('/{id}', [App\Http\Controllers\PublicRequestController::class, 'destroy'])->name('public-requests.destroy');
+        });
+
+        Route::middleware('can:approve_public')->group(function () {
+            Route::post('/{id}/approve', [App\Http\Controllers\PublicRequestController::class, 'approve'])->name('public-requests.approve');
+            Route::post('/{id}/reject', [App\Http\Controllers\PublicRequestController::class, 'reject'])->name('public-requests.reject');
+        });
+
+        Route::middleware('can:mark_ready_public')->group(function () {
+            Route::post('/{id}/mark-ready', [App\Http\Controllers\PublicRequestController::class, 'markReady'])->name('public-requests.mark-ready');
+        });
+
+        Route::middleware('can:mark_collected_public')->group(function () {
+            Route::post('/{id}/mark-collected', [App\Http\Controllers\PublicRequestController::class, 'markCollected'])->name('public-requests.mark-collected');
+        });
+
+        Route::middleware('can:final_approve_public')->group(function () {
+            Route::get('/{id}/download', [App\Http\Controllers\PublicRequestController::class, 'download'])->name('public-requests.download');
+            Route::post('/{id}/final-approve', [App\Http\Controllers\PublicRequestController::class, 'finalApprove'])->name('public-requests.final-approve');
+        });
+
+        // AJAX routes
+        Route::get('/api/search-cities', [App\Http\Controllers\PublicRequestController::class, 'searchCities'])->name('public-requests.search-cities');
+        Route::get('/api/search-members', [App\Http\Controllers\PublicRequestController::class, 'searchMembers'])->name('public-requests.search-members');
+        Route::get('/{id}/amount', [App\Http\Controllers\PublicRequestController::class, 'getAmount'])->name('public-requests.get-amount');
+    });
+
     // Budget Management (HOR and Admin)
     Route::prefix('budgets')->middleware('can:view_humanitarian')->group(function () {
         // Index accessible by both HOR and Admin
@@ -153,6 +203,11 @@ Route::middleware('auth')->group(function () {
     Route::prefix('api/budgets')->middleware(['can:view_humanitarian', 'role:hor'])->group(function () {
         Route::post('/preview', [App\Http\Controllers\BudgetController::class, 'getBudgetPreview'])->name('api.budgets.preview');
         Route::get('/my-zones', [App\Http\Controllers\BudgetController::class, 'getMyZoneBudgets'])->name('api.budgets.my-zones');
+    });
+
+    // User API Routes (for PW member info)
+    Route::prefix('api/user')->middleware('auth')->group(function () {
+        Route::get('/pw-member-info', [App\Http\Controllers\UserController::class, 'getPwMemberInfo'])->name('api.user.pw-member-info');
     });
 
     // Monthly List Management

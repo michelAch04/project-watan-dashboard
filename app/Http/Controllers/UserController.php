@@ -419,7 +419,7 @@ class UserController extends Controller
             if ($request->location_type === 'zone') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'You cannot assign zones. Only cities and villages in your zone.'
+                    'message' => 'You cannot assign zones. Only cities in your zone.'
                 ], 403);
             }
 
@@ -485,9 +485,6 @@ class UserController extends Controller
         } elseif ($user->cities()->count() > 0) {
             $currentLocation = $user->cities()->first();
             $locationType = 'city';
-        } elseif ($user->villages()->count() > 0) {
-            $currentLocation = $user->villages()->first();
-            $locationType = 'village';
         }
 
         // Get manager's zone for filtering
@@ -520,8 +517,8 @@ class UserController extends Controller
 
         $request->validate([
             'role' => ['required', 'exists:roles,name'],
-            'location_type' => ['nullable', 'in:zone,city,village,none'],
-            'location_id' => ['nullable', 'integer', 'required_if:location_type,zone,city,village'],
+            'location_type' => ['nullable', 'in:zone,city,none'],
+            'location_id' => ['nullable', 'integer', 'required_if:location_type,zone,city'],
         ]);
 
         // HOR validation
@@ -538,7 +535,7 @@ class UserController extends Controller
             if ($request->location_type === 'zone') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'You cannot assign zones. Only cities and villages in your zone.'
+                    'message' => 'You cannot assign zones. Only cities in your zone.'
                 ], 403);
             }
 
@@ -569,11 +566,6 @@ class UserController extends Controller
             $city->removeUser($user->id);
         });
 
-        // Remove user from all villages they're assigned to
-        Village::notCancelled()->whereJsonContains('user_id', $user->id)->each(function ($village) use ($user) {
-            $village->removeUser($user->id);
-        });
-
         // Assign new location
         if ($request->location_type !== 'none') {
             switch ($request->location_type) {
@@ -583,10 +575,6 @@ class UserController extends Controller
                 case 'city':
                     $city = City::findOrFail($request->location_id);
                     $city->assignUser($user->id);
-                    break;
-                case 'village':
-                    $village = Village::findOrFail($request->location_id);
-                    $village->assignUser($user->id);
                     break;
             }
         }
@@ -629,11 +617,6 @@ class UserController extends Controller
             $city->removeUser($user->id);
         });
 
-        // Remove user from all villages
-        Village::notCancelled()->whereJsonContains('user_id', $user->id)->each(function ($village) use ($user) {
-            $village->removeUser($user->id);
-        });
-
         // Update users who report to this user (only non-cancelled users)
         User::notCancelled()->where('manager_id', $user->id)->update(['manager_id' => null]);
 
@@ -647,20 +630,44 @@ class UserController extends Controller
     }
 
     /**
+     * Get authenticated user's PW member info (for auto-filling public requests)
+     */
+    public function getPwMemberInfo()
+    {
+        $user = Auth::user();
+        $pwMember = $user->pwMember;
+
+        if (!$pwMember) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Your account is not linked to a PW member profile'
+            ], 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'info' => [
+                'full_name' => trim("{$pwMember->first_name} {$pwMember->father_name} {$pwMember->last_name}"),
+                'phone' => $pwMember->phone ?? 'N/A'
+            ]
+        ]);
+    }
+
+    /**
      * Format mobile number to 961XXXXXXXX
      */
     private function formatMobile($mobile)
     {
         $mobile = preg_replace('/[\s\-\+]/', '', $mobile);
-        
+
         if (substr($mobile, 0, 1) === '0') {
             $mobile = substr($mobile, 1);
         }
-        
+
         if (substr($mobile, 0, 3) !== '961') {
             $mobile = '961' . $mobile;
         }
-        
+
         return $mobile;
     }
 }
