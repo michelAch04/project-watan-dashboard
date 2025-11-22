@@ -28,7 +28,15 @@
       "Bash(/c/xampp/apache/bin/httpd.exe:*)",
       "Bash(openssl req:*)",
       "Bash(openssl x509:*)",
-      "Bash(ipconfig:*)"
+      "Bash(ipconfig:*)",
+      "Bash(composer show:*)",
+      "Bash(npm run build:*)",
+      "Bash(php -i:*)",
+      "Bash(php:*)",
+      "Bash(export OPENSSL_CONF=\"C:/xampp/htdocs/pwdashboard/openssl.cnf\")",
+      "Bash(where:*)",
+      "Bash(dir \"C:\\xampp\\php\\ext\")",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

@@ -38,9 +38,9 @@
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-[#f8f0e2]">
             <div class="text-center mb-6">
                 <div class="avatar w-20 h-20 mx-auto text-3xl mb-4">
-                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                    {{ strtoupper(substr(auth()->user()->username, 0, 1)) }}
                 </div>
-                <h2 class="text-xl font-bold text-[#622032] mb-1">{{ auth()->user()->name }}</h2>
+                <h2 class="text-xl font-bold text-[#622032] mb-1">{{ auth()->user()->username }}</h2>
                 <p class="text-sm text-[#622032]/60 mb-2">{{ auth()->user()->email }}</p>
                 <p class="text-sm text-[#622032]/60">{{ auth()->user()->mobile }}</p>
             </div>

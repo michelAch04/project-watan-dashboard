@@ -51,15 +51,20 @@
     </style>
 </head>
 
-<body class="bg-gray-50 min-h-screen antialiased" 
-      x-data="{ menuOpen: false }" 
+<body class="bg-gray-50 min-h-screen antialiased"
+      x-data="{ menuOpen: false }"
       :class="{ 'modal-open': menuOpen }"
+      data-authenticated="{{ Auth::check() ? 'true' : 'false' }}"
       x-cloak>
+    @if(Auth::check())
+    @include('components.notification-permission')
+    @endif
+
     <div class="page-wrapper">
         <div class="page-content">
             @yield('content')
         </div>
-        
+
         @if(Auth::check())
         @include('layouts.partials.bottom-nav')
         @endif

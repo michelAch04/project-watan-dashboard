@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Notifications\InboxPushNotification;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class InboxNotification extends Model
 {
@@ -63,12 +65,55 @@ class InboxNotification extends Model
      */
     public static function createForUser($userId, $requestId, $type, $title, $message)
     {
-        return static::create([
+        $notification = static::create([
             'user_id' => $userId,
             'request_id' => $requestId,
             'type' => $type,
             'title' => $title,
             'message' => $message
         ]);
+
+        // Send push notification
+        $notification->sendPushNotification();
+
+        return $notification;
+    }
+
+    /**
+     * Send push notification to user
+     */
+    public function sendPushNotification()
+    {
+        try {
+            $user = $this->user;
+
+            if (!$user) {
+                Log::warning('InboxNotification: User not found for notification ID ' . $this->id);
+                return;
+            }
+
+            // Check if user has push subscriptions
+            if ($user->pushSubscriptions()->exists()) {
+                $user->notify(new InboxPushNotification($this));
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to send push notification: ' . $e->getMessage(), [
+                'notification_id' => $this->id,
+                'user_id' => $this->user_id,
+                'exception' => $e
+            ]);
+        }
+    }
+
+    /**
+     * Boot method to handle model events
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::created(function ($notification) {
+            $notification->sendPushNotification();
+        });
     }
 }

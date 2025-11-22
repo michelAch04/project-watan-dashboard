@@ -10,11 +10,12 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles, HasPushSubscriptions;
 
     /**
      * The attributes that are mass assignable.
@@ -164,5 +165,13 @@ class User extends Authenticatable
     public function isOTPExpired()
     {
         return !$this->otp_expires_at || Carbon::now()->greaterThan($this->otp_expires_at);
+    }
+
+    /**
+     * Get push subscriptions for this user
+     */
+    public function pushSubscriptions()
+    {
+        return $this->hasMany(PushSubscription::class);
     }
 }
