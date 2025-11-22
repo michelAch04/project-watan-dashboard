@@ -68,7 +68,7 @@
 
             <!-- Budgets List -->
             @forelse($allBudgets as $budget)
-            <div class="bg-white rounded-xl shadow-sm border border-[#f8f0e2] overflow-hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-[#f8f0e2] overflow-hidden" x-data="{ transactionsOpen: false }">
                 <!-- Budget Header -->
                 <div class="bg-gradient-to-r from-[#622032] to-[#8b2f45] p-4 sm:p-6">
                     <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
@@ -154,24 +154,34 @@
 
                 <!-- Transactions List -->
                 <div class="p-4 sm:p-6">
-                    <h3 class="text-base sm:text-lg font-bold text-[#622032] mb-3 sm:mb-4">
-                        Transactions
-                        @if($month && $year)
-                        <span class="text-sm font-normal text-gray-600">
-                            ({{ \Carbon\Carbon::create($year, $month, 1)->format('F Y') }})
+                    <button @click="transactionsOpen = !transactionsOpen"
+                            class="w-full flex items-center justify-between text-base sm:text-lg font-bold text-[#622032] mb-3 sm:mb-4 hover:text-[#8b2f45] transition-colors">
+                        <span>
+                            Transactions
+                            @if($month && $year)
+                            <span class="text-sm font-normal text-gray-600">
+                                ({{ \Carbon\Carbon::create($year, $month, 1)->format('F Y') }})
+                            </span>
+                            @endif
                         </span>
-                        @endif
-                    </h3>
-
-                    @if($budget->filtered_transactions->isEmpty())
-                    <div class="text-center py-8 text-gray-500">
-                        <svg class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        <svg class="w-5 h-5 transition-transform duration-300"
+                             :class="{ 'rotate-180': transactionsOpen }"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
-                        <p class="text-sm sm:text-base">No transactions found</p>
-                    </div>
-                    @else
-                    <div class="space-y-2 sm:space-y-3">
+                    </button>
+
+                    <div x-show="transactionsOpen"
+                         x-collapse>
+                        @if($budget->filtered_transactions->isEmpty())
+                        <div class="text-center py-8 text-gray-500">
+                            <svg class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <p class="text-sm sm:text-base">No transactions found</p>
+                        </div>
+                        @else
+                        <div class="space-y-2 sm:space-y-3">
                         @foreach($budget->filtered_transactions as $transaction)
                         <div class="bg-gray-50 rounded-lg gap-2 sm:gap-4 border-l-4 p-2
                                 {{ $transaction->type === 'refill' ? 'border-green-500' :
@@ -252,8 +262,9 @@
                             </div>
                         </div>
                         @endforeach
+                        </div>
+                        @endif
                     </div>
-                    @endif
                 </div>
             </div>
             @empty
