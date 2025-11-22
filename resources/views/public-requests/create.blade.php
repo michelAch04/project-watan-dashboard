@@ -520,7 +520,7 @@
 
                         // Reset selections
                         this.selectedBudget = '';
-                        this.readyDate = '';
+                        this.readyDate = new Date().toISOString().split('T')[0];
                         this.budgetPreview = null;
 
                         this.showBudgetModal = true;

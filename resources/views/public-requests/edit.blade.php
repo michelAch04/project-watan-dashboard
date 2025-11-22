@@ -23,7 +23,7 @@ $requesterInfo = [
     'phone' => $request->publicRequest->requester_phone
 ];
 @endphp
-<div class="min-h-screen bg-[#fcf7f8]" x-data="publicRequestEditForm()" x-init="init()">
+<div class="min-h-screen bg-[#fcf7f8]" x-data="publicRequestEditForm(@json(auth()->user()->hasRole('hor') || auth()->user()->hasRole('admin')), @json(auth()->user()->hasRole('admin')))" x-init="init()">
     <div class="mobile-header">
         <div class="safe-area">
             <div class="page-container py-4">
@@ -290,7 +290,7 @@ $requesterInfo = [
             </div>
         </div>
 
-        <!-- Budget Selection Modal (HOR only) -->
+        <!-- Budget Selection Modal (HOR/Admin only) -->
         <div x-show="showBudgetModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" @keydown.escape.window="showBudgetModal = false">
             <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="showBudgetModal = false"></div>
             <div class="flex items-end sm:items-center justify-center min-h-screen p-0 sm:p-4">
@@ -370,7 +370,7 @@ $requesterInfo = [
     const memberData = @json($memberData);
     const requesterInfo = @json($requesterInfo);
 
-    function publicRequestEditForm() {
+    function publicRequestEditForm(canAllocateBudget, isAdmin) {
         return {
             form: {
                 city_id: '{{ $request->publicRequest->city_id }}',
@@ -378,12 +378,23 @@ $requesterInfo = [
                 reference_member_id: '{{ $request->reference_member_id }}',
                 amount: '{{ $request->publicRequest->amount }}',
                 notes: `{{ str_replace(["\r", "\n"], '', addslashes($request->publicRequest->notes ?? '')) }}`,
-                action: 'draft'
+                action: 'draft',
+                budget_id: '',
+                ready_date: ''
             },
             loading: false,
             submitAction: '',
             submitAttempted: false,
             errorMessage: '',
+
+            // Budget modal for HOR/Admin
+            showBudgetModal: false,
+            budgets: [],
+            selectedBudget: '',
+            readyDate: new Date().toISOString().split('T')[0],
+            budgetPreview: null,
+            canAllocateBudget: canAllocateBudget,
+            isAdmin: isAdmin,
 
             citySearch: cityData ? cityData.name : '',
             citySearchOpen: false,
@@ -468,6 +479,71 @@ $requesterInfo = [
                 this.memberSearchOpen = false;
             },
 
+            async showBudgetSelectionModal() {
+                try {
+                    // Fetch user's zone budgets
+                    const response = await fetch('/api/budgets/my-zones', {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken
+                        }
+                    });
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        this.budgets = data.budgets;
+
+                        // Reset selections
+                        this.selectedBudget = '';
+                        this.readyDate = new Date().toISOString().split('T')[0];
+                        this.budgetPreview = null;
+
+                        this.showBudgetModal = true;
+                    } else {
+                        this.errorMessage = 'Failed to load budgets';
+                    }
+                } catch (error) {
+                    this.errorMessage = 'Failed to load budgets';
+                }
+            },
+
+            async updateBudgetPreview() {
+                if (!this.selectedBudget || !this.readyDate) {
+                    this.budgetPreview = null;
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/budgets/preview', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            budget_id: this.selectedBudget,
+                            amount: this.form.amount,
+                            ready_date: this.readyDate
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        this.budgetPreview = data;
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch budget preview');
+                }
+            },
+
+            async confirmPublishWithBudget() {
+                this.form.budget_id = this.selectedBudget;
+                this.form.ready_date = this.readyDate;
+                this.showBudgetModal = false;
+                await this.submitForm();
+            },
+
             submitAsDraft() {
                 this.form.action = 'draft';
                 this.submitAction = 'draft';
@@ -475,9 +551,29 @@ $requesterInfo = [
             },
 
             async submitAndPublish() {
-                this.form.action = 'publish';
-                this.submitAction = 'publish';
-                this.submitForm();
+                this.submitAttempted = true;
+
+                if (!this.form.city_id) {
+                    this.errorMessage = 'Please select a city for this request';
+                    return;
+                }
+
+                if (!this.form.description || !this.form.reference_member_id || !this.form.amount) {
+                    this.errorMessage = 'Please fill in all required fields';
+                    return;
+                }
+
+                // If user can allocate budget (HOR/Admin), show budget modal before publishing
+                if (this.canAllocateBudget) {
+                    this.form.action = 'publish';
+                    this.submitAction = 'publish';
+                    await this.showBudgetSelectionModal();
+                } else {
+                    // Other users just publish normally
+                    this.form.action = 'publish';
+                    this.submitAction = 'publish';
+                    this.submitForm();
+                }
             },
 
             async submitForm() {

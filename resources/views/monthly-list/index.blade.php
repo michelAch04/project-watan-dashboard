@@ -39,6 +39,11 @@
                     <div class="flex-1">
                         <h3 class="font-semibold text-blue-900 mb-1">About Monthly Lists</h3>
                         <p class="text-sm text-blue-800">Add recurring requests here. When you publish, all requests will be created as new submissions for this month.</p>
+                        @if(auth()->user()->hasRole('hor'))
+                        <p class="text-sm text-blue-800 mt-2 font-medium">
+                            <strong>Note for HOR:</strong> Publishing will use the same budget as the original request and set the ready date to today. Budget allocations will be automatically processed.
+                        </p>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -164,15 +169,17 @@ function monthlyList() {
     return {
         showPublishModal: false,
         processing: false,
-        hasRequests: {{ $monthlyListItems->count() > 0 ? 'true' : 'false' }},
+        hasRequests: "{{ $monthlyListItems->count() > 0 ? 'true' : 'false' }}",
 
         async removeRequest(id) {
             if (!confirm('Remove this request from monthly list?')) return;
 
             try {
-                const response = await fetch(`/monthly-list/${id}`, {
-                    method: 'DELETE',
+                const url = `{{ url('/monthly-list/remove') }}/${id}`;
+                const response = await fetch(url, {
+                    method: 'POST',
                     headers: {
+                        'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json'
                     }
@@ -192,7 +199,8 @@ function monthlyList() {
         async confirmPublish() {
             this.processing = true;
             try {
-                const response = await fetch('/monthly-list/publish-all', {
+                const url = `{{ url('/monthly-list/publish-all') }}`;
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -200,8 +208,8 @@ function monthlyList() {
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify({
-                        month: {{ $currentMonth }},
-                        year: {{ $currentYear }}
+                        month: "{{ $currentMonth }}",
+                        year: "{{ $currentYear }}"
                     })
                 });
 

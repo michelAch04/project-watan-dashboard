@@ -294,7 +294,7 @@ class HumanitarianRequestController extends Controller
                     $validated['amount'],
                     $validated['ready_date'],
                     $requestHeader->id,
-                    "Request #{$requestHeader->request_number} allocated to " . $readyDate->format('F Y')
+                    "Humanitarian Request #{$requestHeader->request_number} allocated to " . $readyDate->format('F Y')
                 );
 
                 Log::info("Budget allocated successfully to " . $readyDate->format('F Y'));
@@ -698,7 +698,7 @@ class HumanitarianRequestController extends Controller
             $requestHeader->id,
             'request_ready',
             'Request Ready for Collection',
-            "Humanitarian request #{$requestHeader->request_number} is now ready for collection."
+            "Humanitarian Request #{$requestHeader->request_number} is now ready for collection."
         );
 
         return response()->json([
@@ -739,7 +739,7 @@ class HumanitarianRequestController extends Controller
             $requestHeader->id,
             'request_collected',
             'Request Collected',
-            "Humanitarian request #{$requestHeader->request_number} has been collected."
+            "Humanitarian Request #{$requestHeader->request_number} has been collected."
         );
 
         return response()->json([

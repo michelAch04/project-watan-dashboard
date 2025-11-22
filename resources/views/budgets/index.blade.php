@@ -29,14 +29,20 @@
     <!-- Content -->
     <div class="safe-area py-4">
         <div class="page-container space-y-4">
-            <!-- Create Button -->
+            <!-- Create Buttons -->
             @if(auth()->user()->can('create_budget'))
-            <div class="flex justify-end">
-                <a href="{{ route('budgets.create') }}" class="block btn-primary text-center flex align-center">
+            <div class="flex flex-col sm:flex-row justify-end gap-2">
+                <a href="{{ route('budgets.create') }}" class="block btn-primary text-center flex align-center justify-center">
                     <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
-                    Create New Budget
+                    Create Budget
+                </a>
+                <a href="{{ route('diaper-budgets.create') }}" class="block btn-secondary text-center flex align-center justify-center">
+                    <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Create Diaper Budget
                 </a>
             </div>
             @endif
@@ -61,24 +67,21 @@
             </div>
 
             <!-- Budgets List -->
-            @forelse($budgets as $budget)
+            @forelse($allBudgets as $budget)
             <div class="bg-white rounded-xl shadow-sm border border-[#f8f0e2] overflow-hidden">
                 <!-- Budget Header -->
                 <div class="bg-gradient-to-r from-[#622032] to-[#8b2f45] p-4 sm:p-6">
                     <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                         <div class="flex-1">
-                            <h2 class="text-lg sm:text-xl font-bold text-white mb-1">{{ $budget->description }}</h2>
-                            <!-- <p class="text-xs text-white/70 mt-1">Refills on day {{ $budget->auto_refill_day }} of each month</p> -->
+                            <h2 class="text-lg sm:text-xl font-bold text-white mb-1">
+                                {{ $budget->description }}
+                                @if($budget->budget_type === 'diaper')
+                                <span class="inline-block ml-2 px-2 py-0.5 text-xs bg-white/20 rounded">Diaper Budget</span>
+                                @endif
+                            </h2>
+                            <p class="text-sm text-white/80">{{ $budget->zone->name }}</p>
                         </div>
                         <div class="flex flex-col sm:items-end gap-1">
-                            <div class="flex flex-row sm:flex-col items-end gap-1 sm:gap-0 sm:items-normal">
-                                <div class="text-2xl sm:text-3xl font-bold text-white">
-                                    ${{ number_format($budget->current_balance) }}
-                                </div>
-                                <div class="text-xs sm:text-sm text-white/80 pb-1">
-                                    of ${{ number_format($budget->monthly_amount_in_usd) }} monthly
-                                </div>
-                            </div>
                             @if($budget->last_refill_date)
                             <div class="text-xs text-white/70 mt-1">
                                 Last refill: {{ $budget->last_refill_date->format('M d, Y') }}
@@ -87,7 +90,8 @@
                         </div>
                     </div>
 
-                    <!-- Progress Bar -->
+                    @if($budget->budget_type === 'regular')
+                    <!-- Progress Bar for Regular Budget -->
                     <div class="mt-4">
                         @php
                         $percentage = $budget->monthly_amount_in_usd > 0
@@ -95,6 +99,14 @@
                         : 0;
                         $percentage = max(0, min(100, $percentage));
                         @endphp
+                        <div class="flex flex-row sm:flex-col items-end gap-1 sm:gap-0 mb-3">
+                            <div class="text-2xl sm:text-3xl font-bold text-white">
+                                ${{ number_format($budget->current_balance) }}
+                            </div>
+                            <div class="text-xs sm:text-sm text-white/80 pb-1">
+                                of ${{ number_format($budget->monthly_amount_in_usd) }} monthly
+                            </div>
+                        </div>
                         <div class="w-full bg-white/20 rounded-full h-2 sm:h-3 overflow-hidden">
                             <div class="h-full bg-white rounded-full transition-all duration-300"
                                 style="width: {{ $percentage }}%"></div>
@@ -104,12 +116,34 @@
                             <span>${{ number_format($budget->monthly_amount_in_usd - $budget->current_balance) }} used</span>
                         </div>
                     </div>
+                    @else
+                    <!-- Stock Display for Diaper Budget -->
+                    <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        @foreach(['xl' => 'XL', 'l' => 'L', 'm' => 'M', 's' => 'S'] as $size => $label)
+                        @php
+                        $current = $budget->current_stock[$size] ?? 0;
+                        $monthly = $budget->monthly_restock[$size] ?? 0;
+                        $percentage = $monthly > 0 ? ($current / $monthly) * 100 : 0;
+                        $percentage = max(0, min(100, $percentage));
+                        @endphp
+                        <div class="bg-white/10 rounded-lg p-3">
+                            <div class="text-xs text-white/70 mb-1">Size {{ $label }}</div>
+                            <div class="text-2xl font-bold text-white">{{ number_format($current) }}</div>
+                            <div class="text-xs text-white/80 mb-2">of {{ number_format($monthly) }}</div>
+                            <div class="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                                <div class="h-full bg-white rounded-full transition-all duration-300"
+                                    style="width: {{ $percentage }}%"></div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                    @endif
 
                     <!-- Action Buttons -->
                     @can('edit_budget')
                     @if(auth()->user()->can('edit_budget') && $budget->zone->user_id === auth()->id())
                     <div class="mt-4 flex gap-2">
-                        <a href="{{ route('budgets.edit', $budget->id) }}"
+                        <a href="{{ $budget->budget_type === 'diaper' ? route('diaper-budgets.edit', $budget->id) : route('budgets.edit', $budget->id) }}"
                             class="flex-1 sm:flex-initial bg-white/20 hover:bg-white/30 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-colors">
                             Edit Budget
                         </a>
@@ -141,8 +175,9 @@
                         @foreach($budget->filtered_transactions as $transaction)
                         <div class="bg-gray-50 rounded-lg gap-2 sm:gap-4 border-l-4 p-2
                                 {{ $transaction->type === 'refill' ? 'border-green-500' :
-                                   ($transaction->type === 'deduction' ? 'border-red-500' : 'border-blue-500') }}">
-                            <div class="flex items-center gap-2 mb-1">
+                                   ($transaction->type === 'deduction' ? 'border-red-500' :
+                                   ($transaction->type === 'allocation' ? 'border-yellow-500' : 'border-blue-500')) }}">
+                            <div class="flex items-center gap-2">
                                 @if($transaction->type === 'refill')
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800">
                                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -157,6 +192,13 @@
                                     </svg>
                                     Deduction
                                 </span>
+                                @elseif($transaction->type === 'allocation')
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-yellow-100 text-yellow-800">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Allocation
+                                </span>
                                 @else
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800">
                                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,7 +211,7 @@
                                     {{ $transaction->created_at->format('M d, Y h:i A') }}
                                 </span>
                             </div>
-                            <div class="flex flex-row sm:items-center justify-between p-2">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between p-2 gap-2">
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm text-gray-700 break-words">
                                         {{ $transaction->description }}
@@ -180,15 +222,32 @@
                                     </p>
                                     @endif
                                 </div>
-                                <div class="flex items-center gap-3 sm:gap-4">
-                                    <div class="text-right">
+                                <div class="text-right">
+                                    @if($budget->budget_type === 'diaper')
+                                        <!-- Diaper budget transaction quantities -->
+                                        <div class="text-sm font-semibold text-gray-700 mb-1">Quantity Change:</div>
+                                        <div class="grid grid-cols-2 gap-2 text-xs">
+                                            @foreach(['xl' => 'XL', 'l' => 'L', 'm' => 'M', 's' => 'S'] as $size => $label)
+                                            @php $qty = $transaction->quantity_change[$size] ?? 0; @endphp
+                                            @if($qty != 0)
+                                            <div class="flex items-center justify-end gap-1">
+                                                <span class="text-gray-600">{{ $label }}:</span>
+                                                <span class="font-semibold {{ $qty > 0 ? 'text-green-600' : 'text-red-600' }}">
+                                                    {{ $qty > 0 ? '+' : '' }}{{ $qty }}
+                                                </span>
+                                            </div>
+                                            @endif
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <!-- Regular budget transaction amounts -->
                                         <div class="text-base sm:text-lg font-bold {{ $transaction->type === 'allocation' ? 'text-gray-600' : ($transaction->amount >= 0 ? 'text-green-600' : 'text-red-600') }}">
                                             {{ $transaction->type === 'allocation' ? ' ' : ($transaction->amount >= 0 ? '+' : '-') }}${{ number_format(abs($transaction->amount)) }}
                                         </div>
                                         <div class="text-xs text-gray-500">
                                             Balance: ${{ number_format($transaction->balance_after) }}
                                         </div>
-                                    </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>

@@ -2,17 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Budget;
 use App\Models\DiaperBudget;
 use App\Models\Zone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
-class BudgetController extends Controller
+class DiaperBudgetController extends Controller
 {
     /**
-     * Display budgets for HOR's zone or all budgets for admin
+     * Display diaper budgets for HOR's zone or all diaper budgets for admin
      */
     public function index(Request $request)
     {
@@ -20,19 +19,11 @@ class BudgetController extends Controller
 
         // Admin can see all budgets, HOR can only see budgets for their own zones
         if ($user->hasRole('admin')) {
-            $budgetsQuery = Budget::notCancelled()->with(['zone', 'transactions' => function($q) {
-                $q->notCancelled()->orderBy('created_at', 'desc');
-            }]);
-            $diaperBudgetsQuery = DiaperBudget::notCancelled()->with(['zone', 'transactions' => function($q) {
+            $budgetsQuery = DiaperBudget::notCancelled()->with(['zone', 'transactions' => function($q) {
                 $q->notCancelled()->orderBy('created_at', 'desc');
             }]);
         } else {
-            $budgetsQuery = Budget::notCancelled()->with(['zone', 'transactions' => function($q) {
-                $q->notCancelled()->orderBy('created_at', 'desc');
-            }])->whereHas('zone', function($q) use ($user) {
-                $q->where('user_id', $user->id);
-            });
-            $diaperBudgetsQuery = DiaperBudget::notCancelled()->with(['zone', 'transactions' => function($q) {
+            $budgetsQuery = DiaperBudget::notCancelled()->with(['zone', 'transactions' => function($q) {
                 $q->notCancelled()->orderBy('created_at', 'desc');
             }])->whereHas('zone', function($q) use ($user) {
                 $q->where('user_id', $user->id);
@@ -46,7 +37,6 @@ class BudgetController extends Controller
         $budgets = $budgetsQuery->get()->map(function($budget) use ($month, $year) {
             // Check and refill budget if needed
             $budget->checkAndRefill();
-            $budget->budget_type = 'regular';
 
             // Get transactions for selected month or all
             $transactions = $budget->transactions()
@@ -59,26 +49,6 @@ class BudgetController extends Controller
             $budget->filtered_transactions = $transactions;
             return $budget;
         });
-
-        $diaperBudgets = $diaperBudgetsQuery->get()->map(function($budget) use ($month, $year) {
-            // Check and refill budget if needed
-            $budget->checkAndRefill();
-            $budget->budget_type = 'diaper';
-
-            // Get transactions for selected month or all
-            $transactions = $budget->transactions()
-                ->when($month && $year, function($q) use ($month, $year) {
-                    return $q->forMonth($year, $month);
-                })
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-            $budget->filtered_transactions = $transactions;
-            return $budget;
-        });
-
-        // Merge both budget types
-        $allBudgets = $budgets->concat($diaperBudgets);
 
         // Get available months for filter (last 12 months)
         $availableMonths = [];
@@ -91,7 +61,7 @@ class BudgetController extends Controller
             ];
         }
 
-        return view('budgets.index', compact('allBudgets', 'availableMonths', 'month', 'year'));
+        return view('diaper-budgets.index', compact('budgets', 'availableMonths', 'month', 'year'));
     }
 
     /**
@@ -103,11 +73,11 @@ class BudgetController extends Controller
         // HOR can only create budgets for their own zone
         $zone = $user->zones->first();
 
-        return view('budgets.create', compact('zone'));
+        return view('diaper-budgets.create', compact('zone'));
     }
 
     /**
-     * Store new budget (HOR only)
+     * Store new diaper budget (HOR only)
      */
     public function store(Request $request)
     {
@@ -117,13 +87,14 @@ class BudgetController extends Controller
         if (!$user->hasRole('hor')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only HOR can create budgets'
+                'message' => 'Only HOR can create diaper budgets'
             ], 403);
         }
 
         $validated = $request->validate([
             'description' => 'required|string|max:255',
-            'monthly_amount_in_usd' => 'required|integer|min:1',
+            'monthly_restock' => 'required|array',
+            'monthly_restock.*' => 'required|integer|min:0',
             'auto_refill_day' => 'required|integer|min:1|max:28',
             'zone_id' => 'required|exists:zones,id'
         ]);
@@ -137,24 +108,24 @@ class BudgetController extends Controller
             ], 403);
         }
 
-        // Set initial balance to monthly amount
-        $validated['current_balance'] = $validated['monthly_amount_in_usd'];
+        // Set initial stock to monthly restock
+        $validated['current_stock'] = $validated['monthly_restock'];
         $validated['last_refill_date'] = now();
 
-        $budget = Budget::create($validated);
+        $budget = DiaperBudget::create($validated);
 
         // Create initial refill transaction
-        \App\Models\BudgetTransaction::create([
-            'budget_id' => $budget->id,
+        \App\Models\DiaperBudgetTransaction::create([
+            'diaper_budget_id' => $budget->id,
             'type' => 'refill',
-            'amount' => $budget->monthly_amount_in_usd,
-            'balance_after' => $budget->current_balance,
-            'description' => 'Initial budget creation'
+            'quantity_change' => $budget->monthly_restock,
+            'stock_after' => $budget->current_stock,
+            'description' => 'Initial diaper budget creation'
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Budget created successfully',
+            'message' => 'Diaper budget created successfully',
             'redirect' => route('budgets.index')
         ]);
     }
@@ -165,7 +136,7 @@ class BudgetController extends Controller
     public function edit($id)
     {
         $user = Auth::user();
-        $budget = Budget::with('zone')->findOrFail($id);
+        $budget = DiaperBudget::with('zone')->findOrFail($id);
 
         // Verify user owns this zone
         if ($budget->zone->user_id !== $user->id) {
@@ -174,16 +145,16 @@ class BudgetController extends Controller
 
         $zones = $user->zones;
 
-        return view('budgets.edit', compact('budget', 'zones'));
+        return view('diaper-budgets.edit', compact('budget', 'zones'));
     }
 
     /**
-     * Update budget (only description and monthly_amount_in_usd)
+     * Update diaper budget (only description and monthly_restock)
      */
     public function update(Request $request, $id)
     {
         $user = Auth::user();
-        $budget = Budget::with('zone')->findOrFail($id);
+        $budget = DiaperBudget::with('zone')->findOrFail($id);
 
         // Verify user owns this zone (HOR only, admin can't edit)
         if (!$user->hasRole('hor') || $budget->zone->user_id !== $user->id) {
@@ -195,40 +166,40 @@ class BudgetController extends Controller
 
         $validated = $request->validate([
             'description' => 'required|string|max:255',
-            'monthly_amount_in_usd' => 'required|integer|min:1',
+            'monthly_restock' => 'required|array',
+            'monthly_restock.*' => 'required|integer|min:0',
             'auto_refill_day' => 'required|integer|min:1|max:28'
         ]);
 
-        $oldMonthlyAmount = $budget->monthly_amount_in_usd;
+        $oldMonthlyRestock = $budget->monthly_restock;
 
         $budget->update($validated);
 
-        // If monthly amount changed, record an adjustment transaction
-        if ($oldMonthlyAmount !== $validated['monthly_amount_in_usd']) {
-            $difference = $validated['monthly_amount_in_usd'] - $oldMonthlyAmount;
-            \App\Models\BudgetTransaction::create([
-                'budget_id' => $budget->id,
+        // If monthly restock changed, record an adjustment transaction
+        if ($oldMonthlyRestock !== $validated['monthly_restock']) {
+            \App\Models\DiaperBudgetTransaction::create([
+                'diaper_budget_id' => $budget->id,
                 'type' => 'adjustment',
-                'amount' => 0, // No immediate balance change
-                'balance_after' => $budget->current_balance,
-                'description' => "Monthly amount changed from $$oldMonthlyAmount to $" . $validated['monthly_amount_in_usd']
+                'quantity_change' => ['note' => 'Monthly restock updated'], // No immediate stock change
+                'stock_after' => $budget->current_stock,
+                'description' => "Monthly restock changed from " . json_encode($oldMonthlyRestock) . " to " . json_encode($validated['monthly_restock'])
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Budget updated successfully',
+            'message' => 'Diaper budget updated successfully',
             'redirect' => route('budgets.index')
         ]);
     }
 
     /**
-     * Delete budget
+     * Delete diaper budget
      */
     public function destroy($id)
     {
         $user = Auth::user();
-        $budget = Budget::with('zone')->findOrFail($id);
+        $budget = DiaperBudget::with('zone')->findOrFail($id);
 
         // Verify user owns this zone
         if ($budget->zone->user_id !== $user->id) {
@@ -239,25 +210,15 @@ class BudgetController extends Controller
         }
 
         // Check if budget is being used by any active requests
-        $hasHumanitarianRequests = $budget->humanitarianRequests()
-            ->whereHas('requestHeader', function($q) {
-                $q->notCancelled();
-            })->count() > 0;
-
-        $hasPublicRequests = $budget->publicRequests()
-            ->whereHas('requestHeader', function($q) {
-                $q->notCancelled();
-            })->count() > 0;
-
         $hasDiapersRequests = $budget->diapersRequests()
             ->whereHas('requestHeader', function($q) {
                 $q->notCancelled();
             })->count() > 0;
 
-        if ($hasHumanitarianRequests || $hasPublicRequests || $hasDiapersRequests) {
+        if ($hasDiapersRequests) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete budget that is being used by requests'
+                'message' => 'Cannot delete diaper budget that is being used by requests'
             ], 400);
         }
 
@@ -266,12 +227,12 @@ class BudgetController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Budget deleted successfully'
+            'message' => 'Diaper budget deleted successfully'
         ]);
     }
 
     /**
-     * Get budgets for a specific zone (AJAX)
+     * Get diaper budgets for a specific zone (AJAX)
      * Used when HOR is approving a request
      */
     public function getBudgetsForZone($zoneId)
@@ -287,7 +248,7 @@ class BudgetController extends Controller
             ], 403);
         }
 
-        $budgets = Budget::notCancelled()->where('zone_id', $zoneId)->get();
+        $budgets = DiaperBudget::notCancelled()->where('zone_id', $zoneId)->get();
 
         return response()->json([
             'success' => true,
@@ -296,42 +257,43 @@ class BudgetController extends Controller
     }
 
     /**
-     * Get budget preview for a request (AJAX)
-     * Shows current budget and preview after deduction
+     * Get diaper budget preview for a request (AJAX)
+     * Shows current stock and preview after deduction
      */
     public function getBudgetPreview(Request $request)
     {
         $validated = $request->validate([
-            'budget_id' => 'required|exists:budgets,id',
-            'amount' => 'required|numeric|min:0',
+            'budget_id' => 'required|exists:diaper_budgets,id',
+            'quantities' => 'required|array',
+            'quantities.*' => 'required|integer|min:0',
             'ready_date' => 'required|date'
         ]);
 
-        $budget = Budget::findOrFail($validated['budget_id']);
+        $budget = DiaperBudget::findOrFail($validated['budget_id']);
         $readyDate = Carbon::parse($validated['ready_date']);
         $year = $readyDate->year;
         $month = $readyDate->month;
 
-        $currentBudget = $budget->getRemainingBudgetForMonth($year, $month);
-        $previewBudget = $currentBudget - $validated['amount'];
-        $hasEnough = $previewBudget >= 0;
+        $currentStock = $budget->getRemainingStockForMonth($year, $month);
+        $previewStock = $budget->getPreviewStockAfterRequest($validated['quantities'], $year, $month);
+        $hasEnough = $budget->hasEnoughStock($validated['quantities'], $year, $month);
 
         return response()->json([
             'success' => true,
-            'monthly_budget' => $budget->monthly_amount_in_usd,
-            'current_remaining' => $currentBudget,
-            'after_request' => $previewBudget,
+            'monthly_restock' => $budget->monthly_restock,
+            'current_remaining' => $currentStock,
+            'after_request' => $previewStock,
             'has_enough' => $hasEnough
         ]);
     }
 
     /**
-     * Get all budgets for user's zones (AJAX)
+     * Get all diaper budgets for user's zones (AJAX)
      */
     public function getMyZoneBudgets()
     {
         $user = Auth::user();
-        $budgets = Budget::notCancelled()->whereHas('zone', function($q) use ($user) {
+        $budgets = DiaperBudget::notCancelled()->whereHas('zone', function($q) use ($user) {
             $q->where('user_id', $user->id);
         })->get();
 

@@ -18,7 +18,17 @@
       "Bash(if [ -d \"resources/views/public-requests\" ])",
       "Bash(else mkdir -p resources/views/public-requests)",
       "Bash(/tmp/edit_base.blade.php)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(if [ -d \"resources/views/diaper-budgets\" ])",
+      "Bash(else mkdir -p resources/views/diaper-budgets)",
+      "Bash(php -r:*)",
+      "Bash(dir C:xamppapacheconfextrahttpd-vhosts.conf)",
+      "Bash(net stop Apache2.4)",
+      "Bash(net start:*)",
+      "Bash(/c/xampp/apache/bin/httpd.exe:*)",
+      "Bash(openssl req:*)",
+      "Bash(openssl x509:*)",
+      "Bash(ipconfig:*)"
     ],
     "deny": [],
     "ask": []

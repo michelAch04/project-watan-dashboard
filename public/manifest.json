@@ -2,16 +2,23 @@
     "name": "Project Watan Dashboard",
     "short_name": "PW Dashboard",
     "start_url": "/",
+    "scope": "/",
     "background_color": "#6777ef",
-    "description": "Tutorial of Laravel Package",
-    "display": "fullscreen",
+    "description": "Project Watan Dashboard Application",
+    "display": "standalone",
     "theme_color": "#6777ef",
     "icons": [
         {
-            "src": "logo.png",
+            "src": "/logo.png",
             "sizes": "512x512",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
+        },
+        {
+            "src": "/logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
         }
     ]
 }

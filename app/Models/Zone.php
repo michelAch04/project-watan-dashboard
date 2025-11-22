@@ -34,6 +34,11 @@ class Zone extends Model
         return $this->hasMany(Budget::class);
     }
 
+    public function diaperBudgets()
+    {
+        return $this->hasMany(DiaperBudget::class);
+    }
+
     /**
      * Scope to exclude cancelled zones
      */

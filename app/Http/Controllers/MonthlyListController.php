@@ -127,9 +127,9 @@ class MonthlyListController extends Controller
         DB::beginTransaction();
         try {
             $monthlyListItems = MonthlyList::with([
-                'requestHeader.humanitarianRequest',
-                'requestHeader.publicRequest',
-                'requestHeader.diapersRequest'
+                'requestHeader.humanitarianRequest.budget',
+                'requestHeader.publicRequest.budget',
+                'requestHeader.diapersRequest.budget'
             ])
                 ->forUser($user->id)
                 ->forMonth($validated['month'], $validated['year'])
@@ -143,6 +143,7 @@ class MonthlyListController extends Controller
             }
 
             $publishedCount = 0;
+            $readyDate = now(); // For HOR, ready_date is today
 
             foreach ($monthlyListItems as $item) {
                 $originalHeader = $item->requestHeader;
@@ -164,13 +165,13 @@ class MonthlyListController extends Controller
                     'current_user_id' => $user->hasRole('hor') ? null : $user->manager_id,
                     'reference_member_id' => $originalHeader->reference_member_id,
                     'notes' => $originalHeader->notes,
-                    'ready_date' => now()->addDays(7), // Default ready date
+                    'ready_date' => $user->hasRole('hor') ? $readyDate : now()->addDays(7),
                 ]);
 
-                // Create new request based on type
+                // Create new request based on type and handle budget allocation for HOR
                 if ($requestType === 'humanitarian') {
                     $original = $originalHeader->humanitarianRequest;
-                    HumanitarianRequest::create([
+                    $newRequest = HumanitarianRequest::create([
                         'request_header_id' => $newRequestHeader->id,
                         'voter_id' => $original->voter_id,
                         'subtype' => $original->subtype,
@@ -178,9 +179,23 @@ class MonthlyListController extends Controller
                         'budget_id' => $original->budget_id,
                         'notes' => $original->notes,
                     ]);
+
+                    // If HOR, allocate budget
+                    if ($user->hasRole('hor') && $original->budget_id) {
+                        $budget = \App\Models\Budget::find($original->budget_id);
+                        if ($budget) {
+                            $budget->checkAndRefill();
+                            $budget->allocateForRequest(
+                                $original->amount,
+                                $readyDate,
+                                $newRequestHeader->id,
+                                "Monthly list request #{$newRequestHeader->request_number} allocated to " . $readyDate->format('F Y')
+                            );
+                        }
+                    }
                 } elseif ($requestType === 'public') {
                     $original = $originalHeader->publicRequest;
-                    PublicRequest::create([
+                    $newRequest = PublicRequest::create([
                         'request_header_id' => $newRequestHeader->id,
                         'city_id' => $original->city_id,
                         'description' => $original->description,
@@ -190,15 +205,43 @@ class MonthlyListController extends Controller
                         'budget_id' => $original->budget_id,
                         'notes' => $original->notes,
                     ]);
+
+                    // If HOR, allocate budget
+                    if ($user->hasRole('hor') && $original->budget_id) {
+                        $budget = \App\Models\Budget::find($original->budget_id);
+                        if ($budget) {
+                            $budget->checkAndRefill();
+                            $budget->allocateForRequest(
+                                $original->amount,
+                                $readyDate,
+                                $newRequestHeader->id,
+                                "Monthly list request #{$newRequestHeader->request_number} allocated to " . $readyDate->format('F Y')
+                            );
+                        }
+                    }
                 } elseif ($requestType === 'diapers') {
                     $original = $originalHeader->diapersRequest;
-                    DiapersRequest::create([
+                    $newRequest = DiapersRequest::create([
                         'request_header_id' => $newRequestHeader->id,
                         'voter_id' => $original->voter_id,
                         'amount' => $original->amount,
                         'budget_id' => $original->budget_id,
                         'notes' => $original->notes,
                     ]);
+
+                    // If HOR, allocate diaper budget
+                    if ($user->hasRole('hor') && $original->budget_id) {
+                        $diaperBudget = \App\Models\DiaperBudget::find($original->budget_id);
+                        if ($diaperBudget) {
+                            $diaperBudget->checkAndRefill();
+                            $diaperBudget->allocateForRequest(
+                                $original->amount,
+                                $readyDate,
+                                $newRequestHeader->id,
+                                "Monthly list request #{$newRequestHeader->request_number} allocated to " . $readyDate->format('F Y')
+                            );
+                        }
+                    }
                 }
 
                 $publishedCount++;
@@ -221,7 +264,7 @@ class MonthlyListController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => "Successfully published {$publishedCount} request(s)",
-                'redirect' => route('dashboard.index')
+                'redirect' => route('dashboard')
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

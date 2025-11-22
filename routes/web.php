@@ -205,17 +205,52 @@ Route::middleware('auth')->group(function () {
         Route::get('/my-zones', [App\Http\Controllers\BudgetController::class, 'getMyZoneBudgets'])->name('api.budgets.my-zones');
     });
 
+    // Diaper Budget Management (HOR and Admin)
+    Route::prefix('diaper-budgets')->middleware('can:view_humanitarian')->group(function () {
+        // Create/Store only by HOR
+        Route::get('/create', [App\Http\Controllers\DiaperBudgetController::class, 'create'])
+            ->name('diaper-budgets.create')
+            ->middleware('role:hor');
+        Route::post('/', [App\Http\Controllers\DiaperBudgetController::class, 'store'])
+            ->name('diaper-budgets.store')
+            ->middleware('role:hor');
+
+        // Edit/Update only by HOR (of their own zones)
+        Route::get('/{id}/edit', [App\Http\Controllers\DiaperBudgetController::class, 'edit'])
+            ->name('diaper-budgets.edit')
+            ->middleware('role:hor');
+        Route::put('/{id}', [App\Http\Controllers\DiaperBudgetController::class, 'update'])
+            ->name('diaper-budgets.update')
+            ->middleware('role:hor');
+
+        // Delete only by HOR (of their own zones)
+        Route::delete('/{id}', [App\Http\Controllers\DiaperBudgetController::class, 'destroy'])
+            ->name('diaper-budgets.destroy')
+            ->middleware('role:hor');
+
+        // AJAX routes (HOR only)
+        Route::get('/zone/{zoneId}', [App\Http\Controllers\DiaperBudgetController::class, 'getBudgetsForZone'])
+            ->name('diaper-budgets.for-zone')
+            ->middleware('role:hor');
+    });
+
+    // Diaper Budget API Routes (for budget preview - HOR only)
+    Route::prefix('api/diaper-budgets')->middleware(['can:view_humanitarian', 'role:hor'])->group(function () {
+        Route::post('/preview', [App\Http\Controllers\DiaperBudgetController::class, 'getBudgetPreview'])->name('api.diaper-budgets.preview');
+        Route::get('/my-zones', [App\Http\Controllers\DiaperBudgetController::class, 'getMyZoneBudgets'])->name('api.diaper-budgets.my-zones');
+    });
+
     // User API Routes (for PW member info)
     Route::prefix('api/user')->middleware('auth')->group(function () {
         Route::get('/pw-member-info', [App\Http\Controllers\UserController::class, 'getPwMemberInfo'])->name('api.user.pw-member-info');
     });
 
     // Monthly List Management
-    Route::prefix('monthly-list')->middleware('can:view_humanitarian')->group(function () {
-        Route::get('/', [App\Http\Controllers\MonthlyListController::class, 'index'])->name('monthly-list.index');
-        Route::post('/add', [App\Http\Controllers\MonthlyListController::class, 'add'])->name('monthly-list.add');
-        Route::delete('/{id}', [App\Http\Controllers\MonthlyListController::class, 'remove'])->name('monthly-list.remove');
-        Route::post('/publish-all', [App\Http\Controllers\MonthlyListController::class, 'publishAll'])->name('monthly-list.publish-all');
+    Route::middleware('can:view_humanitarian')->group(function () {
+        Route::get('/monthly-list', [App\Http\Controllers\MonthlyListController::class, 'index'])->name('monthly-list.index');
+        Route::post('/monthly-list/add', [App\Http\Controllers\MonthlyListController::class, 'add'])->name('monthly-list.add');
+        Route::post('/monthly-list/publish-all', [App\Http\Controllers\MonthlyListController::class, 'publishAll'])->name('monthly-list.publish-all');
+        Route::post('/monthly-list/remove/{id}', [App\Http\Controllers\MonthlyListController::class, 'remove'])->name('monthly-list.remove');
     });
 
     // Inbox
@@ -253,7 +288,7 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-Route::get('/403', function(){
+Route::get('/403', function () {
     return view('errors.403');
 })->name('errors.403');
 
