@@ -212,7 +212,9 @@
                 </div>
                 @endif
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid @if($request->requestStatus->name !== 'final_approval' && $request->requestStatus->name !== 'ready_for_collection')
+                                        grid-cols-1
+                                    @else grid-cols-2 @endif gap-3">
                     @can('mark_ready_humanitarian')
                     @if($request->requestStatus->name === 'final_approval')
                     <button @click="markReady"
