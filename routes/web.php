@@ -311,7 +311,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/read-all', [App\Http\Controllers\InboxController::class, 'markAllAsRead'])->name('inbox.mark-all-read');
         Route::post('/clear-all', [App\Http\Controllers\InboxController::class, 'clearAll'])->name('inbox.clear-all');
         Route::delete('/{id}', [App\Http\Controllers\InboxController::class, 'destroy'])->name('inbox.destroy');
-        Route::get('/api/unread-count', [App\Http\Controllers\InboxController::class, 'unreadCount'])->name('inbox.unread-count');
+        Route::get('/api/unread-count', [App\Http\Controllers\InboxController::class, 'unreadCount'])
+            ->middleware('disable.session.blocking')
+            ->name('inbox.unread-count');
     });
 
     // PW Members Management

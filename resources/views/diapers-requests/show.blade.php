@@ -41,7 +41,7 @@
                     </span>
                 </div>
                 <div>
-                    <p class="text-sm text-[#622032]/60">Submitted on {{ $request->request_date->format('F d, Y') }}</p>
+                    <p class="text-sm text-[#622032]/60">Submitted on {{ Carbon\Carbon::parse($request->request_date)->format('F d, Y') }}</p>
                 </div>
 
                 @if($request->requestStatus->name === 'rejected' && $request->rejection_reason)

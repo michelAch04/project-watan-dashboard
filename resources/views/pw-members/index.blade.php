@@ -189,7 +189,7 @@
                                 </svg>
                             </a>
 
-                            @if(auth()->user()->can('edit_pw_members'))
+                            @if(auth()->user()->can('edit_pw_members') && auth()->user()->pw_member_id != $member->id)
                             <a href="{{ route('pw-members.edit', $member->id) }}"
                                 class="p-2 bg-[#f8f0e2] hover:bg-[#dfd1ba] rounded-lg transition-all active:scale-95">
                                 <svg class="w-4 h-4 text-[#622032]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

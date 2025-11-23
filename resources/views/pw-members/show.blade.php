@@ -136,7 +136,7 @@
                     @if($member->user->roles->count() > 0)
                     <div>
                         <div class="text-sm font-semibold text-[#622032]/60 mb-1">Role</div>
-                        <span class="inline-block px-2 py-1 bg-[#fef9de] rounded-md text-sm font-medium text-[#622032] capitalize">
+                        <span class="inline-block px-2 py-1 bg-[#fef9de] rounded-md text-sm font-medium text-[#622032] uppercase">
                             {{ $member->user->roles->first()->name }}
                         </span>
                     </div>

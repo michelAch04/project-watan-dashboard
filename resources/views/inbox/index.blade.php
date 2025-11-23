@@ -9,14 +9,14 @@
         <div class="safe-area">
             <div class="page-container py-4">
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <a href="{{ route('dashboard') }}" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all mr-2">
+                    <div class="flex items-center space-x-1 py-1">
+                        <!-- <a href="{{ route('dashboard') }}" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all mr-2">
                             <svg class="w-5 h-5 text-[#622032]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                             </svg>
-                        </a>
-                        <h1 class="text-lg sm:text-xl font-bold text-[#622032] flex items-center gap-2">
-                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-[#931335]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        </a> -->
+                        <h1 class="text-xl font-bold flex items-center row gap-2 text-[#622032]">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                             </svg>
                             Inbox

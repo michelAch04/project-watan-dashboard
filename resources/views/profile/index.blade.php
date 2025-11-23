@@ -9,7 +9,7 @@
         <div class="safe-area">
             <div class="page-container py-4">
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3 py-4">
+                    <div class="flex items-center space-x-1 py-1">
                         <h1 class="text-xl font-bold flex items-center row gap-2 text-[#622032]">
                             <svg class="w-6 h-6 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -28,6 +28,37 @@
                             </svg>
                         </button>
                     </form>
+
+                    <script>
+                        function handleLogout(event) {
+                            event.preventDefault();
+                            const form = event.target;
+
+                            // Add white transition overlay instead of madder
+                            const overlay = document.createElement('div');
+                            overlay.className = 'fixed inset-0 bg-white z-50 transition-opacity duration-300';
+                            overlay.style.opacity = '0';
+                            document.body.appendChild(overlay);
+
+                            // Fade in overlay
+                            setTimeout(() => {
+                                overlay.style.opacity = '1';
+
+                                // Submit form and redirect
+                                fetch(form.action, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value
+                                    }
+                                }).then(() => {
+                                    setTimeout(() => {
+                                        window.location.href = '/login';
+                                    }, 300);
+                                });
+                            }, 50);
+                        }
+                    </script>
                 </div>
             </div>
         </div>

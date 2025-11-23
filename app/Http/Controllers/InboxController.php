@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\InboxNotification;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class InboxController extends Controller
@@ -104,6 +103,11 @@ class InboxController extends Controller
     public function unreadCount()
     {
         $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['count' => 0], 401);
+        }
+
         $count = InboxNotification::forUser($user->id)->unread()->count();
 
         return response()->json(['count' => $count]);

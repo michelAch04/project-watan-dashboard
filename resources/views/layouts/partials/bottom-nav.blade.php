@@ -33,27 +33,57 @@
             @can('view_inbox')
             <a href="{{ route('inbox.index') }}"
                 class="bottom-nav-item {{ request()->routeIs('inbox.*') ? 'active' : '' }}"
-                x-data="{ unreadCount: 0 }"
-                x-init="async function() {
-                    try {
-                        const response = await fetch('{{ route('inbox.unread-count') }}');
-                        const data = await response.json();
-                        unreadCount = data.count;
-                        console.log(unreadCount);
-                    } catch (error) {
-                        console.error('Failed to fetch unread count:', error);
+                x-data="{
+                    unreadCount: 0,
+                    intervalId: null,
+                    cleanup() {
+                        if (this.intervalId) {
+                            clearInterval(this.intervalId);
+                            this.intervalId = null;
+                        }
                     }
-                    // Poll every 30 seconds
-                    setInterval(async () => {
+                }"
+                x-init="async function() {
+                    const fetchUnreadCount = async () => {
                         try {
-                            const response = await fetch('{{ route('inbox.unread-count') }}');
+                            const response = await fetch('{{ route('inbox.unread-count') }}', {
+                                method: 'GET',
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'Accept': 'application/json',
+                                },
+                                credentials: 'same-origin'
+                            });
+
+                            if (!response.ok) {
+                                if (response.status === 401 || response.status === 419) {
+                                    console.warn('Session expired, stopping polling');
+                                    return false;
+                                }
+                                throw new Error('Failed to fetch unread count');
+                            }
+
                             const data = await response.json();
                             unreadCount = data.count;
+                            return true;
                         } catch (error) {
                             console.error('Failed to fetch unread count:', error);
+                            return true;
+                        }
+                    };
+
+                    await fetchUnreadCount();
+
+                    this.intervalId = setInterval(async () => {
+                        const shouldContinue = await fetchUnreadCount();
+                        if (!shouldContinue) {
+                            this.cleanup();
                         }
                     }, 30000);
-                }">
+
+                    window.addEventListener('beforeunload', () => this.cleanup());
+                }"
+                @destroy="cleanup()">
                 <div class="relative">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

@@ -51,7 +51,81 @@
                 </div>
 
                 @if($budgets->count() > 0)
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+                <!-- Mobile Carousel (only on small screens) -->
+                <div class="md:hidden relative" x-data="{ currentSlide: 0, totalSlides: {{ $budgets->count() }} }">
+                    <div class="overflow-hidden">
+                        <div class="flex transition-transform duration-300 ease-out" :style="'transform: translateX(-' + (currentSlide * 100) + '%)'">
+                            @foreach($budgets as $budget)
+                            <div class="w-full flex-shrink-0 px-1">
+                                <div class="bg-[#fcf7f8] rounded-lg p-4 border border-[#f8f0e2]">
+                                    <h3 class="font-semibold text-[#622032] mb-1">{{ $budget['description'] }}</h3>
+                                    <p class="text-xs text-[#622032]/60 mb-3">{{ $budget['zone'] }}</p>
+
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between">
+                                            <span class="text-[#622032]/70">Current Stock:</span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-1 text-xs">
+                                            @foreach($budget['current_stock'] as $size => $count)
+                                            <div class="flex justify-between bg-white px-2 py-1 rounded">
+                                                <span class="text-[#622032]/70 uppercase">{{ $size }}:</span>
+                                                <span class="font-semibold text-[#622032]">{{ $count }}</span>
+                                            </div>
+                                            @endforeach
+                                        </div>
+
+                                        <div class="border-t border-[#622032]/10 pt-2 mt-2">
+                                            <span class="text-[#622032]/70 text-xs">Monthly Stock:</span>
+                                            <div class="grid grid-cols-2 gap-1 text-xs mt-1">
+                                                @foreach($budget['monthly_restock'] as $size => $count)
+                                                <div class="flex justify-between bg-white px-2 py-1 rounded">
+                                                    <span class="text-[#622032]/70 uppercase">{{ $size }}:</span>
+                                                    <span class="font-semibold text-green-600">{{ $count }}</span>
+                                                </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- Carousel Controls (only show if more than 1 budget) -->
+                    @if($budgets->count() > 1)
+                    <div class="flex items-center justify-center gap-2 mt-4">
+                        <button @click="currentSlide = Math.max(0, currentSlide - 1)"
+                                :disabled="currentSlide === 0"
+                                class="p-2 rounded-lg bg-[#f8f0e2] text-[#622032] disabled:opacity-30 disabled:cursor-not-allowed">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+
+                        <!-- Dots Indicator -->
+                        <div class="flex gap-1.5">
+                            @foreach($budgets as $index => $budget)
+                            <button @click="currentSlide = {{ $loop->index }}"
+                                    class="w-2 h-2 rounded-full transition-all"
+                                    :class="currentSlide === {{ $loop->index }} ? 'bg-[#931335] w-6' : 'bg-[#622032]/30'">
+                            </button>
+                            @endforeach
+                        </div>
+
+                        <button @click="currentSlide = Math.min(totalSlides - 1, currentSlide + 1)"
+                                :disabled="currentSlide === totalSlides - 1"
+                                class="p-2 rounded-lg bg-[#f8f0e2] text-[#622032] disabled:opacity-30 disabled:cursor-not-allowed">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    @endif
+                </div>
+
+                <!-- Desktop Grid (hidden on mobile) -->
+                <div class="hidden md:grid md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
                     @foreach($budgets as $budget)
                     <div class="bg-[#fcf7f8] rounded-lg p-4 border border-[#f8f0e2]">
                         <h3 class="font-semibold text-[#622032] mb-1">{{ $budget['description'] }}</h3>
