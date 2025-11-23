@@ -11,6 +11,7 @@
 /.phpunit.cache
 /.vscode
 /.zed
+/.claude
 composer.lock
 package-lock.json
 yarn.lock
@@ -27,4 +28,3 @@ yarn-error.log
 Homestead.json
 Homestead.yaml
 Thumbs.db
-CLAUDE.md
