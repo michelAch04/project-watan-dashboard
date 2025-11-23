@@ -14,7 +14,10 @@ return new class extends Migration
         Schema::create('public_requests', function (Blueprint $table) {
             $table->id();
             $table->foreignId('request_header_id')->constrained('request_headers')->onDelete('cascade');
-            $table->foreignId('public_institution_id')->constrained('public_institutions');
+            $table->foreignId('city_id')->constrained('cities');
+            $table->text('description');
+            $table->string('requester_full_name');
+            $table->string('requester_phone')->nullable();
             $table->decimal('amount', 10, 2)->nullable();
             $table->foreignId('budget_id')->nullable()->constrained('budgets');
             $table->text('notes')->nullable();
@@ -23,7 +26,7 @@ return new class extends Migration
 
             // Indexes
             $table->index('request_header_id');
-            $table->index('public_institution_id');
+            $table->index('city_id');
             $table->index('budget_id');
         });
     }

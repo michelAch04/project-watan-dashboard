@@ -11,8 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('public_requests', function (Blueprint $table) {
-            $table->json('supporting_documents')->nullable()->after('notes');
+        Schema::table('users', function (Blueprint $table) {
+            $table->foreign('pw_member_id')->references('id')->on('pw_members')->onDelete('cascade');
+            $table->unique('pw_member_id');
         });
     }
 
@@ -21,8 +22,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('public_requests', function (Blueprint $table) {
-            $table->dropColumn('supporting_documents');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropForeign(['pw_member_id']);
+            $table->dropUnique(['pw_member_id']);
         });
     }
 };

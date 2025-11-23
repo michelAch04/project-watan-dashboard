@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('name_ar', 100);
             $table->unsignedBigInteger('zone_id')->foreignId('zone_id')->constrained('zones')->onDelete('cascade');
             $table->json('user_id')->nullable();
+            $table->boolean('cancelled')->default(0)->comment('Soft delete flag');
             $table->timestamps();
         });
     }

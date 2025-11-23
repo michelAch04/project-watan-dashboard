@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name', 100);
             $table->string('name_ar', 100);
             $table->unsignedBigInteger('governorate_id')->foreignId('governorate_id')->constrained('governorates')->onDelete('cascade');
+            $table->boolean('cancelled')->default(0)->comment('Soft delete flag');
             $table->timestamps();
         });
     }

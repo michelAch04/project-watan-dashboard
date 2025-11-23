@@ -3,46 +3,73 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * Phase 1: Critical Performance Indexes
-     * - voters_list: Large dataset with millions of records
-     * - request_headers: High transaction volume
-     * - inbox_notifications: Real-time notifications
      */
     public function up(): void
     {
-        // voters_list - CRITICAL: Huge dataset optimization
+        // 1. VOTERS LIST - Optimization for "Millions" of records (Read-Heavy)
         Schema::table('voters_list', function (Blueprint $table) {
-            $table->index('cancelled', 'idx_voters_list_cancelled');
+            // REMOVED: Single 'cancelled' index (low cardinality, useless on its own).
+            
+            // KEEP: Phone is high cardinality (unique-ish values).
             $table->index('phone', 'idx_voters_list_phone');
-            $table->index('mother_full_name', 'idx_voters_list_mother_name');
-            $table->index('father_name', 'idx_voters_list_father_name');
+            
+            // NEW: Composite for common filtering.
+            // Better than 'city_id' alone. Covers: "Show me active voters in Beirut".
             $table->index(['city_id', 'cancelled'], 'idx_voters_list_city_cancelled');
+
+            // NEW: Composite Name Index (B-Tree)
+            // Critical for sorting and "Starts With" logic: "Select * order by first, father, last"
+            $table->index(['first_name', 'father_name', 'last_name'], 'idx_voters_list_full_name_sort');
         });
 
-        // request_headers - CRITICAL: High transaction volume
+        // NEW: Full-Text Index for Search
+        // Standard indexes cannot handle "Middle of name" searches efficiently on millions of rows.
+        // This enables: WHERE MATCH(first_name, father_name, last_name) AGAINST('+Ali +Hassan' IN BOOLEAN MODE)
+        DB::statement('ALTER TABLE voters_list ADD FULLTEXT idx_voters_list_search (first_name, father_name, last_name)');
+
+
+        // 2. REQUEST HEADERS - Optimization for High Transactions (Write-Heavy)
         Schema::table('request_headers', function (Blueprint $table) {
-            $table->index('cancelled', 'idx_request_headers_cancelled');
-            $table->index('request_status_id', 'idx_request_headers_status');
-            $table->index('reference_member_id', 'idx_request_headers_ref_member');
-            $table->index('ready_date', 'idx_request_headers_ready_date');
-            $table->index(['request_status_id', 'cancelled'], 'idx_request_headers_status_cancelled');
-            $table->index(['sender_id', 'cancelled'], 'idx_request_headers_sender_cancelled');
-            $table->index(['request_date', 'cancelled'], 'idx_request_headers_date_cancelled');
+            // STRATEGY: Minimize index count to keep INSERT/UPDATE fast.
+            // We remove single column indexes if a composite index already starts with that column.
+            
+            // 1. Main Status Filter (Covers 'request_status_id' single search too)
+            $table->index(['request_status_id', 'cancelled'], 'idx_req_status_cancelled');
+
+            // 2. Member History (Covers 'sender_id' single search too)
+            $table->index(['sender_id', 'cancelled'], 'idx_req_sender_cancelled');
+
+            // 3. Reporting/Timeline (Covers 'request_date' single search too)
+            $table->index(['request_date', 'cancelled'], 'idx_req_date_cancelled');
+
+            // 4. Specific lookups
+            $table->index('reference_member_id', 'idx_req_ref_member');
+            // 'ready_date' is often NULL, useful to index for "Where ready_date IS NOT NULL"
+            $table->index('ready_date', 'idx_req_ready_date');
         });
 
-        // inbox_notifications - CRITICAL: Real-time notification queries
+
+        // 3. INBOX NOTIFICATIONS - Optimization for Real-time Queries
         Schema::table('inbox_notifications', function (Blueprint $table) {
-            $table->index('type', 'idx_inbox_notifications_type');
-            $table->index('request_id', 'idx_inbox_notifications_request');
-            $table->index(['user_id', 'type'], 'idx_inbox_notifications_user_type');
-            $table->index(['user_id', 'created_at'], 'idx_inbox_notifications_user_created');
-            $table->index(['user_id', 'is_read', 'created_at'], 'idx_inbox_notifications_user_read_created');
+            // REMOVED: 'type' single index (Low cardinality).
+            // REMOVED: 'request_id' (Unless you join inbox to requests frequently, if so, keep it).
+            $table->index('request_id', 'idx_inbox_req_id');
+
+            // THE "MONEY" INDEX:
+            // This single index handles the most frequent query in the app: 
+            // "Show me user X's unread notifications ordered by date"
+            // It covers: WHERE user_id = ? AND is_read = ? ORDER BY created_at
+            $table->index(['user_id', 'is_read', 'created_at'], 'idx_inbox_user_read_time');
+
+            // Fallback for "All Notifications" history
+            // If the user clicks "View All", we ignore 'is_read'.
+            $table->index(['user_id', 'created_at'], 'idx_inbox_user_history');
         });
     }
 
@@ -51,33 +78,25 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Drop voters_list indexes
         Schema::table('voters_list', function (Blueprint $table) {
-            $table->dropIndex('idx_voters_list_cancelled');
             $table->dropIndex('idx_voters_list_phone');
-            $table->dropIndex('idx_voters_list_mother_name');
-            $table->dropIndex('idx_voters_list_father_name');
             $table->dropIndex('idx_voters_list_city_cancelled');
+            $table->dropIndex('idx_voters_list_full_name_sort');
+            $table->dropIndex('idx_voters_list_search'); // Drop FullText
         });
 
-        // Drop request_headers indexes
         Schema::table('request_headers', function (Blueprint $table) {
-            $table->dropIndex('idx_request_headers_cancelled');
-            $table->dropIndex('idx_request_headers_status');
-            $table->dropIndex('idx_request_headers_ref_member');
-            $table->dropIndex('idx_request_headers_ready_date');
-            $table->dropIndex('idx_request_headers_status_cancelled');
-            $table->dropIndex('idx_request_headers_sender_cancelled');
-            $table->dropIndex('idx_request_headers_date_cancelled');
+            $table->dropIndex('idx_req_status_cancelled');
+            $table->dropIndex('idx_req_sender_cancelled');
+            $table->dropIndex('idx_req_date_cancelled');
+            $table->dropIndex('idx_req_ref_member');
+            $table->dropIndex('idx_req_ready_date');
         });
 
-        // Drop inbox_notifications indexes
         Schema::table('inbox_notifications', function (Blueprint $table) {
-            $table->dropIndex('idx_inbox_notifications_type');
-            $table->dropIndex('idx_inbox_notifications_request');
-            $table->dropIndex('idx_inbox_notifications_user_type');
-            $table->dropIndex('idx_inbox_notifications_user_created');
-            $table->dropIndex('idx_inbox_notifications_user_read_created');
+            $table->dropIndex('idx_inbox_req_id');
+            $table->dropIndex('idx_inbox_user_read_time');
+            $table->dropIndex('idx_inbox_user_history');
         });
     }
 };

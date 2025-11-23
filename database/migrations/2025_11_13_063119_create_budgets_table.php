@@ -15,6 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('description', 255);
             $table->integer('monthly_amount_in_usd');
+            $table->integer('current_balance')->default(0);
+            $table->integer('auto_refill_day')->default(1);
+            $table->date('last_refill_date')->nullable();
+            $table->boolean('cancelled')->default(0)->comment('Soft delete flag');
             $table->unsignedBigInteger('zone_id')->foreignId('zone_id')->constrained('zones')->onDelete('cascade');
             $table->timestamps();
         });

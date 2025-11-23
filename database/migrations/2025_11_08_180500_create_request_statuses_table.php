@@ -13,10 +13,11 @@ return new class extends Migration
     {
         Schema::create('request_statuses', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // draft, published, approved, rejected, final_approval, ready_for_collection, collected
+            $table->string('name');
             $table->string('name_ar');
             $table->text('description')->nullable();
             $table->integer('order')->default(0);
+            $table->boolean('cancelled')->default(0)->comment('Soft delete flag');
             $table->timestamps();
         });
     }

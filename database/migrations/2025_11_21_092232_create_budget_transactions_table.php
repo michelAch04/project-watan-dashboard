@@ -15,12 +15,13 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('budget_id');
             $table->foreign('budget_id')->references('id')->on('budgets')->onDelete('cascade');
-            $table->enum('type', ['refill', 'deduction', 'adjustment']); // refill = monthly auto-refill, deduction = request allocation, adjustment = manual edit
-            $table->integer('amount'); // positive for refill/additions, negative for deductions
-            $table->integer('balance_after'); // budget balance after this transaction
-            $table->unsignedBigInteger('request_id')->nullable(); // if transaction is from a request allocation
+            $table->enum('type', ['refill', 'deduction', 'adjustment', 'allocation']);
+            $table->integer('amount');
+            $table->integer('balance_after');
+            $table->unsignedBigInteger('request_id')->nullable();
             $table->foreign('request_id')->references('id')->on('request_headers')->onDelete('set null');
-            $table->text('description')->nullable(); // description of the transaction
+            $table->text('description')->nullable();
+            $table->boolean('cancelled')->default(0)->comment('Soft delete flag');
             $table->timestamps();
         });
     }

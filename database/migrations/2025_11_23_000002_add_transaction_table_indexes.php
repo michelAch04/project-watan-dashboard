@@ -40,10 +40,8 @@ return new class extends Migration
         Schema::table('monthly_lists', function (Blueprint $table) {
             $table->index('month', 'idx_monthly_lists_month');
             $table->index('year', 'idx_monthly_lists_year');
-            $table->index('cancelled', 'idx_monthly_lists_cancelled');
             $table->index(['user_id', 'month', 'year'], 'idx_monthly_lists_user_period');
             $table->index(['month', 'year'], 'idx_monthly_lists_period');
-            $table->index(['user_id', 'cancelled'], 'idx_monthly_lists_user_cancelled');
         });
     }
 
@@ -76,10 +74,8 @@ return new class extends Migration
         Schema::table('monthly_lists', function (Blueprint $table) {
             $table->dropIndex('idx_monthly_lists_month');
             $table->dropIndex('idx_monthly_lists_year');
-            $table->dropIndex('idx_monthly_lists_cancelled');
             $table->dropIndex('idx_monthly_lists_user_period');
             $table->dropIndex('idx_monthly_lists_period');
-            $table->dropIndex('idx_monthly_lists_user_cancelled');
         });
     }
 };

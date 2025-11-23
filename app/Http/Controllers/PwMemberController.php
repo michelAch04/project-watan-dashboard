@@ -9,6 +9,7 @@ use App\Models\Zone;
 use App\Models\City;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PwMemberController extends Controller
 {
@@ -19,79 +20,78 @@ class PwMemberController extends Controller
     {
         $user = Auth::user();
 
-        // Build the query
-        $query = PwMember::with(['voter.city.zone', 'user'])
-            ->notCancelled();
-
-        // Apply access control based on user role
-        if (!$user->hasRole('admin')) {
-            if ($user->hasRole('hor')) {
-                // HOR can see members from their zones
-                $zoneIds = $user->zones()->pluck('zones.id');
-                $query->whereHas('voter.city', function($q) use ($zoneIds) {
-                    $q->whereIn('zone_id', $zoneIds);
-                });
-            } else {
-                // Other users can see members from their cities
-                $cityIds = $user->cities()->pluck('id');
-                $query->whereHas('voter.city', function($q) use ($cityIds) {
-                    $q->whereIn('id', $cityIds);
-                });
-            }
-        }
-
-        // Search filter
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('father_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('mother_full_name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
-
-        // Zone filter (admin only)
-        if ($user->hasRole('admin') && $request->filled('zone_id')) {
-            $query->whereHas('voter.city', function($q) use ($request) {
-                $q->where('zone_id', $request->input('zone_id'));
-            });
-        }
-
-        // City filter (for HOR and admins)
-        if (($user->hasRole('admin') || $user->hasRole('hor')) && $request->filled('city_id')) {
-            $query->whereHas('voter.city', function($q) use ($request) {
-                $q->where('id', $request->input('city_id'));
-            });
-        }
-
-        // Status filter
-        if ($request->filled('status')) {
-            if ($request->input('status') === 'active') {
-                $query->where('is_active', true);
-            } elseif ($request->input('status') === 'inactive') {
-                $query->where('is_active', false);
-            }
-        }
-
-        $members = $query->orderBy('first_name')
-                        ->orderBy('father_name')
-                        ->orderBy('last_name')
-                        ->paginate(25)
-                        ->appends($request->all());
-
-        // Get filters data
+        // Optimize Filter Loading (Lazy load unless needed)
         $zones = $user->hasRole('admin') ? Zone::where('cancelled', 0)->orderBy('name')->get() : collect();
         $cities = collect();
 
         if ($user->hasRole('admin')) {
-            $cities = City::where('cancelled', 0)->orderBy('name')->get();
+            $cities = City::where('cancelled', 0)->orderBy('name')->get(['id', 'name', 'zone_id']);
         } elseif ($user->hasRole('hor')) {
             $zoneIds = $user->zones()->pluck('zones.id');
-            $cities = City::where('cancelled', 0)->whereIn('zone_id', $zoneIds)->orderBy('name')->get();
+            $cities = City::where('cancelled', 0)->whereIn('zone_id', $zoneIds)->orderBy('name')->get(['id', 'name']);
         }
+
+        $search = $request->input('search');
+        $search = $search && strlen(trim($search)) >= 2 ? trim($search) : null;
+
+        if (!$search) {
+            return view('pw-members.index', [
+                'members' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 20, 1),
+                'zones' => $zones,
+                'cities' => $cities
+            ]);
+        }
+
+        $query = PwMember::with(['voter.city.zone', 'user'])
+            ->where('cancelled', 0);
+
+        // --- OPTIMIZATION: Access Control via ID Lists (Avoids whereHas subqueries) ---
+        $allowedCityIds = [];
+
+        if (!$user->hasRole('admin')) {
+            if ($user->hasRole('hor')) {
+                $zoneIds = $user->zones()->pluck('zones.id');
+                $allowedCityIds = City::whereIn('zone_id', $zoneIds)->pluck('id')->toArray();
+            } else {
+                $allowedCityIds = $user->cities()->pluck('cities.id')->toArray();
+            }
+
+            // Filter members based on their linked Voter's location
+            // This requires a join because city_id is on the voters table, not pw_members
+            $query->whereHas('voter', function ($q) use ($allowedCityIds) {
+                $q->whereIn('city_id', $allowedCityIds);
+            });
+        }
+
+        // Specific Filters
+        if ($request->filled('status')) {
+            $isActive = $request->input('status') === 'active';
+            $query->where('is_active', $isActive);
+        }
+
+        // --- OPTIMIZATION: Smart Search ---
+        $isNumeric = is_numeric($search);
+
+        if ($isNumeric) {
+            // Numeric Search: Phone
+            $query->where('phone', 'like', $search . '%');
+        } else {
+            // Text Search: FullText for Name OR Standard Like for Email
+            $query->where(function ($q) use ($search) {
+                // High performance Name Match
+                $q->whereRaw("MATCH(first_name, father_name, last_name) AGAINST(? IN BOOLEAN MODE)", [$search . '*'])
+                    // Email usually requires standard LIKE
+                    ->orWhere('email', 'like', $search . '%');
+            });
+        }
+
+        // Ordering
+        if ($isNumeric) {
+            $query->orderBy('first_name');
+        }
+
+        $members = $query->paginate(min((int) $request->input('per_page', 25), 100))
+            ->appends($request->all());
 
         return view('pw-members.index', compact('members', 'zones', 'cities'));
     }
@@ -367,121 +367,107 @@ class PwMemberController extends Controller
     public function search(Request $request)
     {
         $user = Auth::user();
-        $search = $request->input('search', '');
+        $search = trim($request->input('search', ''));
 
-        // Enforce minimum 2 characters for performance
-        if (!$search || strlen($search) < 2) {
-            return response()->json([]);
-        }
+        if (strlen($search) < 2) return response()->json([]);
 
-        $query = PwMember::with(['voter.city.zone'])
-            ->where('cancelled', 0);
+        $query = PwMember::with(['voter.city.zone'])->where('cancelled', 0);
 
-        // Apply access control
+        // Simple Access Control
         if (!$user->hasRole('admin')) {
-            if ($user->hasRole('hor')) {
-                $zoneIds = $user->zones()->pluck('zones.id');
-                $query->whereHas('voter.city', function($q) use ($zoneIds) {
-                    $q->whereIn('zone_id', $zoneIds);
-                });
-            } else {
-                $cityIds = $user->cities()->pluck('cities.id');
-                $query->whereHas('voter.city', function($q) use ($cityIds) {
-                    $q->whereIn('id', $cityIds);
-                });
-            }
+            // (Same logic as index: simplified for brevity, ideally extract to Trait)
+            $allowedCityIds = $user->hasRole('hor')
+                ? City::whereIn('zone_id', $user->zones()->pluck('zones.id'))->pluck('id')
+                : $user->cities()->pluck('cities.id');
+
+            $query->whereHas('voter', fn($q) => $q->whereIn('city_id', $allowedCityIds));
         }
 
-        $query->where(function($q) use ($search) {
-            $q->where('first_name', 'like', "%{$search}%")
-              ->orWhere('father_name', 'like', "%{$search}%")
-              ->orWhere('last_name', 'like', "%{$search}%")
-              ->orWhere('mother_full_name', 'like', "%{$search}%")
-              ->orWhere('phone', 'like', "%{$search}%")
-              ->orWhere('email', 'like', "%{$search}%");
-        });
+        // Smart Search
+        if (is_numeric($search)) {
+            $query->where('phone', 'like', $search . '%');
+        } else {
+            $query->whereRaw("MATCH(first_name, father_name, last_name) AGAINST(? IN BOOLEAN MODE)", [$search . '*']);
+        }
 
-        $members = $query->limit(20)->get();
-
-        return response()->json($members);
+        return response()->json($query->limit(20)->get());
     }
-
     /**
      * AJAX search for voters without PW members
+     */
+    /**
+     * AJAX search for voters without PW members
+     * CRITICAL OPTIMIZATION AREA
      */
     public function searchAvailableVoters(Request $request)
     {
         try {
             $user = Auth::user();
-            $search = $request->input('search', '');
-            $excludeVoterId = $request->input('exclude_voter_id'); // For edit form
+            $search = trim($request->input('search', ''));
+            $excludeVoterId = $request->input('exclude_voter_id');
 
-            // Enforce minimum 2 characters for performance
-            if (!$search || strlen($search) < 2) {
-                return response()->json([]);
-            }
+            if (strlen($search) < 2) return response()->json([]);
 
-            $query = Voter::with(['city.zone'])
-                ->where('cancelled', 0);
+            // 1. Start with Voter Query
+            $query = Voter::query()
+                ->select('voters_list.*') // Important for JOINs
+                ->with(['city.zone'])
+                ->where('voters_list.cancelled', 0);
 
-            // Only show voters without active PW members
+            // 2. OPTIMIZATION: Use LEFT JOIN instead of whereDoesntHave
+            // "Find voters where the pw_members ID is NULL"
+            // This is significantly faster on large datasets than a subquery
+            $query->leftJoin('pw_members', function ($join) {
+                $join->on('voters_list.id', '=', 'pw_members.voter_id')
+                    ->where('pw_members.cancelled', 0); // Only care about active members
+            });
+
+            // 3. Filter Logic
             if ($excludeVoterId) {
-                // In edit mode, allow the current voter
-                $query->whereDoesntHave('pwMember', function($q) use ($excludeVoterId) {
-                    $q->where('cancelled', 0)
-                      ->where('voter_id', '!=', $excludeVoterId);
+                // If editing, allow NULL (no member) OR the current voter ID
+                $query->where(function ($q) use ($excludeVoterId) {
+                    $q->whereNull('pw_members.id')
+                        ->orWhere('voters_list.id', $excludeVoterId);
                 });
             } else {
-                // In create mode, exclude all voters with active PW members
-                $query->whereDoesntHave('pwMember', function($q) {
-                    $q->where('cancelled', 0);
-                });
+                // If creating, MUST be NULL
+                $query->whereNull('pw_members.id');
             }
 
-        // Apply access control
-        if (!$user->hasRole('admin')) {
-            if ($user->hasRole('hor')) {
-                $zoneIds = $user->zones()->pluck('zones.id');
-                $query->whereHas('city', function($q) use ($zoneIds) {
-                    $q->whereIn('zone_id', $zoneIds);
+            // 4. Permission Logic (Use WhereIn)
+            if (!$user->hasRole('admin')) {
+                $allowedCityIds = $user->hasRole('hor')
+                    ? City::whereIn('zone_id', $user->zones()->pluck('zones.id'))->pluck('id')
+                    : $user->cities()->pluck('cities.id');
+
+                $query->whereIn('voters_list.city_id', $allowedCityIds);
+            }
+
+            // 5. Smart Search (Reuse logic from VoterController)
+            if (is_numeric($search)) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('voters_list.register_number', $search)
+                        ->orWhere('voters_list.phone', 'like', $search . '%');
                 });
             } else {
-                $cityIds = $user->cities()->pluck('cities.id');
-                $query->whereIn('city_id', $cityIds);
+                $query->whereRaw("MATCH(voters_list.first_name, voters_list.father_name, voters_list.last_name) AGAINST(? IN BOOLEAN MODE)", [$search . '*']);
             }
-        }
 
-        $query->where(function($q) use ($search) {
-            $q->where('first_name', 'like', "%{$search}%")
-              ->orWhere('father_name', 'like', "%{$search}%")
-              ->orWhere('last_name', 'like', "%{$search}%")
-              ->orWhere('mother_full_name', 'like', "%{$search}%")
-              ->orWhere('phone', 'like', "%{$search}%")
-              ->orWhere('register_number', 'like', "%{$search}%");
-        });
-
-            $voters = $query->limit(20)->get()->map(function($voter) {
-                $fullName = trim("{$voter->first_name} {$voter->father_name} {$voter->last_name}");
+            // 6. Execute
+            $voters = $query->limit(20)->get()->map(function ($voter) {
                 return [
                     'id' => $voter->id,
-                    'first_name' => $voter->first_name,
-                    'father_name' => $voter->father_name,
-                    'last_name' => $voter->last_name,
+                    'full_name' => "{$voter->first_name} {$voter->father_name} {$voter->last_name}",
                     'mother_full_name' => $voter->mother_full_name,
-                    'full_name' => $fullName,
-                    'phone' => $voter->phone,
                     'register_number' => $voter->register_number,
-                    'city' => $voter->city ? [
-                        'id' => $voter->city->id,
-                        'name' => $voter->city->name,
-                    ] : null,
+                    'city' => $voter->city ? ['id' => $voter->city->id, 'name' => $voter->city->name] : null,
                 ];
             });
 
             return response()->json($voters);
         } catch (\Exception $e) {
-            \Log::error('Error searching available voters: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to search voters', 'message' => $e->getMessage()], 500);
+            \Log::error('Search error: ' . $e->getMessage());
+            return response()->json(['error' => 'Search failed'], 500);
         }
     }
 }

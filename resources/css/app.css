@@ -190,7 +190,50 @@
 
     .error-icon {
         @apply absolute left-3 top-1/2 -translate-y-1/2
-               text-red-500 
+               text-red-500
                w-4 h-4 sm:w-5 sm:h-5;
+    }
+
+    /* Pagination Styles */
+    .pagination-btn {
+        @apply inline-flex items-center justify-center
+               min-w-[2rem] sm:min-w-[2.5rem] h-8 sm:h-10
+               px-2 sm:px-3
+               text-xs sm:text-sm font-medium
+               rounded-lg
+               transition-all duration-200
+               select-none;
+    }
+
+    .pagination-btn-page {
+        @apply text-[#622032] bg-white
+               border border-[#f8f0e2]
+               hover:bg-[#f8f0e2] hover:border-[#622032]/20
+               active:scale-95
+               focus:outline-none focus:ring-2 focus:ring-[#622032]/20;
+    }
+
+    .pagination-btn-active {
+        @apply text-white bg-[#931335]
+               border border-[#931335]
+               shadow-md
+               ring-2 ring-[#931335]/20
+               cursor-default;
+    }
+
+    .pagination-btn-nav {
+        @apply text-[#622032] bg-white
+               border border-[#f8f0e2]
+               hover:bg-[#931335] hover:text-white hover:border-[#931335]
+               active:scale-95
+               focus:outline-none focus:ring-2 focus:ring-[#622032]/20
+               font-semibold;
+    }
+
+    .pagination-btn-disabled {
+        @apply text-[#622032]/30 bg-[#fcf7f8]
+               border border-[#f8f0e2]
+               cursor-not-allowed
+               opacity-50;
     }
 }

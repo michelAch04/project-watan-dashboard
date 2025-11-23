@@ -28,6 +28,19 @@
     <!-- Content -->
     <div class="safe-area py-4">
         <div class="page-container space-y-4">
+            <!-- Info Banner -->
+            <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div class="text-sm text-blue-700">
+                        <p class="font-semibold mb-1">Search to view PW members</p>
+                        <p>Enter at least 2 characters in the search field to load results.</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Create Button -->
             @if(auth()->user()->can('create_pw_members'))
             <div class="flex justify-end">
@@ -210,12 +223,28 @@
                 @empty
                 <div class="text-center py-12">
                     <div class="inline-flex items-center justify-center w-16 h-16 bg-[#f8f0e2] rounded-full mb-4">
+                        @if(request('search') && strlen(request('search')) >= 2)
+                        {{-- No results for valid search --}}
                         <svg class="w-8 h-8 text-[#622032]/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                         </svg>
+                        @else
+                        {{-- Waiting for search --}}
+                        <svg class="w-8 h-8 text-[#622032]/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        @endif
                     </div>
+                    @if(request('search') && strlen(request('search')) >= 2)
                     <h3 class="text-lg font-semibold text-[#622032] mb-2">No PW Members Found</h3>
                     <p class="text-sm text-[#622032]/60">Try adjusting your search or filters</p>
+                    @elseif(request('search') && strlen(request('search')) < 2)
+                    <h3 class="text-lg font-semibold text-[#622032] mb-2">Search Too Short</h3>
+                    <p class="text-sm text-[#622032]/60">Please enter at least 2 characters to search</p>
+                    @else
+                    <h3 class="text-lg font-semibold text-[#622032] mb-2">Start Searching</h3>
+                    <p class="text-sm text-[#622032]/60">Enter at least 2 characters in the search field above to find PW members</p>
+                    @endif
                 </div>
                 @endforelse
             </div>
@@ -223,7 +252,7 @@
             <!-- Pagination -->
             @if($members->hasPages())
             <div class="bg-white rounded-xl p-4 shadow-sm border border-[#f8f0e2]">
-                {{ $members->links() }}
+                {{ $members->links('vendor.pagination.custom') }}
             </div>
             @endif
         </div>

@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('pw_member_id')->nullable();
             $table->string('username');
             $table->string('email')->unique();
             $table->string('mobile')->unique();
@@ -22,6 +23,7 @@ return new class extends Migration
             $table->string('otp_code')->nullable();
             $table->timestamp('otp_expires_at')->nullable();
             $table->rememberToken();
+            $table->boolean('cancelled')->default(0)->comment('Soft delete flag');
             $table->timestamps();
         });
 

@@ -18,6 +18,8 @@ return new class extends Migration
             $table->unsignedBigInteger('city_id');
             $table->string('contact_person')->nullable();
             $table->string('phone')->nullable();
+            $table->text('notes')->nullable();
+            $table->boolean('cancelled')->default(0)->comment('Soft delete flag');
             $table->timestamps();
 
             $table->foreign('city_id')->references('id')->on('cities')->onDelete('cascade');
