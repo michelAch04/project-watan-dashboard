@@ -149,6 +149,15 @@
                 </div>
             </div>
 
+            <!-- Supporting Documents -->
+            @if($request->humanitarianRequest->supporting_documents)
+            <div class="bg-white rounded-xl p-6 shadow-sm border border-[#f8f0e2]">
+                <x-supporting-documents
+                    :documents="$request->humanitarianRequest->supporting_documents"
+                    :can-download="auth()->user()->hasRole('hor')" />
+            </div>
+            @endif
+
             <!-- Workflow Information -->
             <div class="bg-white rounded-xl p-6 shadow-sm border border-[#f8f0e2]">
                 <h3 class="text-lg font-bold text-[#622032] mb-4 flex items-center gap-2">
@@ -350,7 +359,7 @@
 
                     <div class="sticky bottom-0 bg-white p-4 sm:p-6 border-t border-[#f8f0e2] flex flex-col sm:flex-row gap-3">
                         <button @click="showBudgetModal = false" class="w-full sm:flex-1 btn-secondary">Cancel</button>
-                        <button @click="confirmFinalApprove" :disabled="processing || !selectedBudget || !readyDate" class="w-full sm:flex-1 btn-primary">
+                        <button @click="confirmFinalApprove" :disabled="processing || !selectedBudget || !readyDate || !budgetPreview?.has_enough" class="w-full sm:flex-1 btn-primary">
                             <span x-show="!processing">Approve & Allocate</span>
                             <span x-show="processing">Processing...</span>
                         </button>

@@ -253,7 +253,7 @@
                             <label class="block text-sm font-semibold text-[#622032] mb-2">
                                 Amount (USD) *
                             </label>
-                            <input type="number" step="0.01" min="0" x-model="form.amount" class="input-field" required :disabled="loading">
+                            <input type="number" step="0.01" min="0" x-model="form.amount" class="input-field" required :disabled="loading" inputmode="numeric">
                         </div>
 
                         <div>
@@ -261,6 +261,71 @@
                                 Notes <span class="text-xs font-normal">(Optional)</span>
                             </label>
                             <textarea x-model="form.notes" rows="4" class="input-field" :disabled="loading"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-[#622032] mb-2">
+                                Supporting Documents <span class="text-xs font-normal">(Optional)</span>
+                            </label>
+                            <p class="text-xs text-[#622032]/60 mb-3">Upload images or documents to support your request (Max: 5 files, 5MB each)</p>
+
+                            <div class="space-y-3">
+                                <input
+                                    type="file"
+                                    @change="handleFileSelect($event)"
+                                    accept="image/*,.pdf"
+                                    multiple
+                                    class="hidden"
+                                    x-ref="fileInput"
+                                    :disabled="loading || supportingDocuments.length >= 5"
+                                />
+
+                                <button
+                                    type="button"
+                                    @click="$refs.fileInput.click()"
+                                    :disabled="loading || supportingDocuments.length >= 5"
+                                    class="w-full p-4 border-2 border-dashed border-[#931335]/30 rounded-lg text-[#931335] hover:bg-[#fcf7f8] transition-all flex items-center justify-center gap-2"
+                                    :class="{ 'opacity-50 cursor-not-allowed': supportingDocuments.length >= 5 }">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                    <span x-text="supportingDocuments.length >= 5 ? 'Maximum 5 files reached' : 'Click to upload files'"></span>
+                                </button>
+
+                                <div x-show="supportingDocuments.length > 0" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    <template x-for="(doc, index) in supportingDocuments" :key="index">
+                                        <div class="relative bg-[#fcf7f8] rounded-lg border border-[#f8f0e2] p-2">
+                                            <div class="aspect-square rounded overflow-hidden bg-white mb-2">
+                                                <img
+                                                    :src="doc.preview"
+                                                    :alt="'Document ' + (index + 1)"
+                                                    class="w-full h-full object-cover"
+                                                    x-show="doc.type === 'image'"
+                                                />
+                                                <div x-show="doc.type === 'pdf'" class="w-full h-full flex items-center justify-center">
+                                                    <svg class="w-12 h-12 text-[#931335]" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"></path>
+                                                        <path d="M14 2v6h6"></path>
+                                                        <path d="M10 12h4M10 15h4M10 18h4" stroke="white" stroke-width="1"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <p class="text-xs text-[#622032] truncate mb-1" x-text="doc.name"></p>
+                                            <p class="text-xs text-[#622032]/60" x-text="(doc.size / 1024).toFixed(1) + ' KB'"></p>
+                                            <button
+                                                type="button"
+                                                @click="removeDocument(index)"
+                                                class="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 hover:bg-red-700 transition-all">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <div x-show="fileUploadError" x-cloak class="text-sm text-red-600 bg-red-50 p-3 rounded-lg" x-text="fileUploadError"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -416,9 +481,60 @@
             selectedMember: null,
             memberSearchTimeout: null,
 
+            // Supporting documents
+            supportingDocuments: [],
+            fileUploadError: '',
+
             init() {
                 // Load all PW members initially
                 this.searchMembers();
+            },
+
+            handleFileSelect(event) {
+                const files = Array.from(event.target.files);
+                this.fileUploadError = '';
+
+                const remainingSlots = 5 - this.supportingDocuments.length;
+                if (files.length > remainingSlots) {
+                    this.fileUploadError = `You can only upload ${remainingSlots} more file(s). Maximum is 5 files.`;
+                    event.target.value = '';
+                    return;
+                }
+
+                files.forEach(file => {
+                    // Validate file size (5MB max)
+                    if (file.size > 5 * 1024 * 1024) {
+                        this.fileUploadError = `File "${file.name}" is too large. Maximum size is 5MB.`;
+                        return;
+                    }
+
+                    // Validate file type
+                    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+                    if (!validTypes.includes(file.type)) {
+                        this.fileUploadError = `File "${file.name}" is not a valid type. Only images and PDFs are allowed.`;
+                        return;
+                    }
+
+                    // Create preview
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.supportingDocuments.push({
+                            file: file,
+                            preview: e.target.result,
+                            name: file.name,
+                            size: file.size,
+                            type: file.type.startsWith('image/') ? 'image' : 'pdf'
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                });
+
+                event.target.value = '';
+            },
+
+            removeDocument(index) {
+                this.supportingDocuments.splice(index, 1);
+                this.fileUploadError = '';
             },
 
             async searchVoters() {
@@ -600,14 +716,28 @@
                 this.errorMessage = '';
 
                 try {
+                    // Create FormData to handle file uploads
+                    const formData = new FormData();
+
+                    // Append form fields
+                    Object.keys(this.form).forEach(key => {
+                        if (this.form[key] !== null && this.form[key] !== '') {
+                            formData.append(key, this.form[key]);
+                        }
+                    });
+
+                    // Append supporting documents
+                    this.supportingDocuments.forEach((doc, index) => {
+                        formData.append(`supporting_documents[${index}]`, doc.file);
+                    });
+
                     const response = await fetch('{{ route("humanitarian.store") }}', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': csrfToken,
                             'Accept': 'application/json'
                         },
-                        body: JSON.stringify(this.form)
+                        body: formData
                     });
 
                     const data = await response.json();

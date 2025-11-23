@@ -14,6 +14,7 @@ use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class PublicRequestController extends Controller
 {
@@ -197,7 +198,8 @@ class PublicRequestController extends Controller
             'notes' => 'nullable|string',
             'action' => 'required|in:draft,publish',
             'budget_id' => 'nullable|exists:budgets,id',
-            'ready_date' => 'nullable|date'
+            'ready_date' => 'nullable|date',
+            'supporting_documents.*' => 'nullable|file|mimes:jpeg,jpg,png,gif,webp,pdf|max:5120'
         ]);
 
         $user = Auth::user();
@@ -275,6 +277,15 @@ class PublicRequestController extends Controller
             // Create the request header
             $requestHeader = RequestHeader::create($headerData);
 
+            // Handle file uploads
+            $supportingDocuments = [];
+            if ($httpRequest->hasFile('supporting_documents')) {
+                foreach ($httpRequest->file('supporting_documents') as $file) {
+                    $path = $file->store('public_requests', 'public');
+                    $supportingDocuments[] = $path;
+                }
+            }
+
             // Create the public request
             $publicData = [
                 'request_header_id' => $requestHeader->id,
@@ -284,6 +295,7 @@ class PublicRequestController extends Controller
                 'requester_phone' => $pwMember->phone,
                 'amount' => $validated['amount'],
                 'notes' => $validated['notes'] ?? null,
+                'supporting_documents' => !empty($supportingDocuments) ? $supportingDocuments : null,
             ];
 
             // Add budget_id if provided
@@ -408,8 +420,40 @@ class PublicRequestController extends Controller
             'reference_member_id' => 'required|exists:pw_members,id',
             'amount' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
-            'action' => 'required|in:save,publish'
+            'action' => 'required|in:save,publish',
+            'supporting_documents.*' => 'nullable|file|mimes:jpeg,jpg,png,gif,webp,pdf|max:5120',
+            'existing_documents' => 'nullable|string',
+            'removed_documents' => 'nullable|string'
         ]);
+
+        // Handle supporting documents
+        $supportingDocuments = [];
+
+        // Get existing documents
+        if ($httpRequest->has('existing_documents')) {
+            $existingDocs = json_decode($httpRequest->input('existing_documents'), true);
+            if (is_array($existingDocs)) {
+                $supportingDocuments = $existingDocs;
+            }
+        }
+
+        // Handle removed documents (delete from storage)
+        if ($httpRequest->has('removed_documents')) {
+            $removedDocs = json_decode($httpRequest->input('removed_documents'), true);
+            if (is_array($removedDocs)) {
+                foreach ($removedDocs as $removedDoc) {
+                    Storage::disk('public')->delete($removedDoc);
+                }
+            }
+        }
+
+        // Handle new file uploads
+        if ($httpRequest->hasFile('supporting_documents')) {
+            foreach ($httpRequest->file('supporting_documents') as $file) {
+                $path = $file->store('public_requests', 'public');
+                $supportingDocuments[] = $path;
+            }
+        }
 
         // Update header data
         $headerUpdateData = [];
@@ -421,6 +465,7 @@ class PublicRequestController extends Controller
             'description' => $validated['description'],
             'amount' => $validated['amount'],
             'notes' => $validated['notes'] ?? null,
+            'supporting_documents' => !empty($supportingDocuments) ? $supportingDocuments : null,
         ];
 
         // Handle status change if publishing
@@ -547,9 +592,12 @@ class PublicRequestController extends Controller
 
         DB::beginTransaction();
         try {
+            // Lock the budget row to prevent race conditions during concurrent submissions
+            $budget = Budget::notCancelled()->with('zone')->lockForUpdate()->findOrFail($validated['budget_id']);
+
             // Verify budget belongs to HOR's zone
-            $budget = Budget::notCancelled()->with('zone')->findOrFail($validated['budget_id']);
             if ($budget->zone->user_id !== $user->id) {
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
                     'message' => 'You can only use budgets from your own zones'
@@ -568,6 +616,7 @@ class PublicRequestController extends Controller
             $requestAmount = $requestHeader->publicRequest->amount;
             if (!$budget->hasEnoughBudget($requestAmount, $readyYear, $readyMonth)) {
                 $remaining = $budget->getRemainingBudgetForMonth($readyYear, $readyMonth);
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
                     'message' => 'Insufficient budget for ' . $readyDate->format('F Y') . '. Remaining: $' . number_format($remaining, 2)
@@ -589,7 +638,8 @@ class PublicRequestController extends Controller
                 'budget_id' => $validated['budget_id']
             ]);
 
-            // Allocate budget
+            // Allocate budget - this will throw an exception if budget becomes insufficient
+            // even after our check (additional safety layer)
             $budget->allocateForRequest(
                 $requestAmount,
                 $validated['ready_date'],
@@ -615,6 +665,7 @@ class PublicRequestController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error in finalApprove for public request: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to approve request: ' . $e->getMessage()

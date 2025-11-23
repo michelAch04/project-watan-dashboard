@@ -18,6 +18,7 @@ return new class extends Migration
             $table->decimal('amount', 10, 2)->nullable();
             $table->foreignId('budget_id')->nullable()->constrained('budgets');
             $table->text('notes')->nullable();
+            $table->json('supporting_documents')->nullable();
             $table->timestamps();
 
             // Indexes

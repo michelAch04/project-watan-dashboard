@@ -89,7 +89,7 @@ class MonthlyListController extends Controller
     }
 
     /**
-     * Remove request from monthly list (soft delete)
+     * Remove request from monthly list (hard delete)
      */
     public function remove($id)
     {
@@ -103,7 +103,7 @@ class MonthlyListController extends Controller
             ], 403);
         }
 
-        $item->update(['cancelled' => 1]);
+        $item->delete();
 
         return response()->json([
             'success' => true,
@@ -114,6 +114,7 @@ class MonthlyListController extends Controller
     /**
      * Publish all requests in monthly list
      * This creates copies of the requests with current date
+     * Handles budget validation and provides detailed feedback
      */
     public function publishAll(HttpRequest $httpRequest)
     {
@@ -124,30 +125,69 @@ class MonthlyListController extends Controller
 
         $user = Auth::user();
 
-        DB::beginTransaction();
-        try {
-            $monthlyListItems = MonthlyList::with([
-                'requestHeader.humanitarianRequest.budget',
-                'requestHeader.publicRequest.budget',
-                'requestHeader.diapersRequest.budget'
-            ])
-                ->forUser($user->id)
-                ->forMonth($validated['month'], $validated['year'])
-                ->get();
+        $monthlyListItems = MonthlyList::with([
+            'requestHeader.humanitarianRequest.budget',
+            'requestHeader.publicRequest.budget',
+            'requestHeader.diapersRequest.budget'
+        ])
+            ->forUser($user->id)
+            ->forMonth($validated['month'], $validated['year'])
+            ->get();
 
-            if ($monthlyListItems->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No requests in monthly list'
-                ], 400);
-            }
+        if ($monthlyListItems->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No requests in monthly list'
+            ], 400);
+        }
 
-            $publishedCount = 0;
-            $readyDate = now(); // For HOR, ready_date is today
+        $publishedCount = 0;
+        $failedRequests = [];
+        $readyDate = now(); // For HOR, ready_date is today
+        $readyMonth = $readyDate->month;
+        $readyYear = $readyDate->year;
 
-            foreach ($monthlyListItems as $item) {
+        foreach ($monthlyListItems as $item) {
+            DB::beginTransaction();
+            try {
                 $originalHeader = $item->requestHeader;
                 $requestType = $originalHeader->getRequestType();
+
+                // Get original request and budget info
+                $original = null;
+                $budget = null;
+                $budgetType = 'regular'; // or 'diaper'
+
+                if ($requestType === 'humanitarian') {
+                    $original = $originalHeader->humanitarianRequest;
+                    if ($original->budget_id) {
+                        $budget = \App\Models\Budget::notCancelled()->lockForUpdate()->find($original->budget_id);
+                    }
+                } elseif ($requestType === 'public') {
+                    $original = $originalHeader->publicRequest;
+                    if ($original->budget_id) {
+                        $budget = \App\Models\Budget::notCancelled()->lockForUpdate()->find($original->budget_id);
+                    }
+                } elseif ($requestType === 'diapers') {
+                    $original = $originalHeader->diapersRequest;
+                    if ($original->budget_id) {
+                        $budget = \App\Models\DiaperBudget::notCancelled()->lockForUpdate()->find($original->budget_id);
+                        $budgetType = 'diaper';
+                    }
+                }
+
+                // For HOR users, validate budget before creating request
+                if ($user->hasRole('hor') && $budget && $original->amount > 0) {
+                    $budget->checkAndRefill();
+
+                    // Check if sufficient budget (for regular budgets, diapers use different logic)
+                    if ($budgetType === 'regular') {
+                        if (!$budget->hasEnoughBudget($original->amount, $readyYear, $readyMonth)) {
+                            $remaining = $budget->getRemainingBudgetForMonth($readyYear, $readyMonth);
+                            throw new \Exception("Insufficient budget. Remaining: $" . number_format($remaining, 2));
+                        }
+                    }
+                }
 
                 // Determine status based on user role
                 $statusName = $user->hasRole('hor')
@@ -168,9 +208,8 @@ class MonthlyListController extends Controller
                     'ready_date' => $user->hasRole('hor') ? $readyDate : now()->addDays(7),
                 ]);
 
-                // Create new request based on type and handle budget allocation for HOR
+                // Create new request based on type
                 if ($requestType === 'humanitarian') {
-                    $original = $originalHeader->humanitarianRequest;
                     $newRequest = HumanitarianRequest::create([
                         'request_header_id' => $newRequestHeader->id,
                         'voter_id' => $original->voter_id,
@@ -181,20 +220,15 @@ class MonthlyListController extends Controller
                     ]);
 
                     // If HOR, allocate budget
-                    if ($user->hasRole('hor') && $original->budget_id) {
-                        $budget = \App\Models\Budget::find($original->budget_id);
-                        if ($budget) {
-                            $budget->checkAndRefill();
-                            $budget->allocateForRequest(
-                                $original->amount,
-                                $readyDate,
-                                $newRequestHeader->id,
-                                "Monthly list request #{$newRequestHeader->request_number} allocated to " . $readyDate->format('F Y')
-                            );
-                        }
+                    if ($user->hasRole('hor') && $budget) {
+                        $budget->allocateForRequest(
+                            $original->amount,
+                            $readyDate,
+                            $newRequestHeader->id,
+                            "Monthly list request #{$newRequestHeader->request_number} allocated to " . $readyDate->format('F Y')
+                        );
                     }
                 } elseif ($requestType === 'public') {
-                    $original = $originalHeader->publicRequest;
                     $newRequest = PublicRequest::create([
                         'request_header_id' => $newRequestHeader->id,
                         'city_id' => $original->city_id,
@@ -207,20 +241,15 @@ class MonthlyListController extends Controller
                     ]);
 
                     // If HOR, allocate budget
-                    if ($user->hasRole('hor') && $original->budget_id) {
-                        $budget = \App\Models\Budget::find($original->budget_id);
-                        if ($budget) {
-                            $budget->checkAndRefill();
-                            $budget->allocateForRequest(
-                                $original->amount,
-                                $readyDate,
-                                $newRequestHeader->id,
-                                "Monthly list request #{$newRequestHeader->request_number} allocated to " . $readyDate->format('F Y')
-                            );
-                        }
+                    if ($user->hasRole('hor') && $budget) {
+                        $budget->allocateForRequest(
+                            $original->amount,
+                            $readyDate,
+                            $newRequestHeader->id,
+                            "Monthly list request #{$newRequestHeader->request_number} allocated to " . $readyDate->format('F Y')
+                        );
                     }
                 } elseif ($requestType === 'diapers') {
-                    $original = $originalHeader->diapersRequest;
                     $newRequest = DiapersRequest::create([
                         'request_header_id' => $newRequestHeader->id,
                         'voter_id' => $original->voter_id,
@@ -230,21 +259,15 @@ class MonthlyListController extends Controller
                     ]);
 
                     // If HOR, allocate diaper budget
-                    if ($user->hasRole('hor') && $original->budget_id) {
-                        $diaperBudget = \App\Models\DiaperBudget::find($original->budget_id);
-                        if ($diaperBudget) {
-                            $diaperBudget->checkAndRefill();
-                            $diaperBudget->allocateForRequest(
-                                $original->amount,
-                                $readyDate,
-                                $newRequestHeader->id,
-                                "Monthly list request #{$newRequestHeader->request_number} allocated to " . $readyDate->format('F Y')
-                            );
-                        }
+                    if ($user->hasRole('hor') && $budget) {
+                        $budget->allocateForRequest(
+                            $original->amount,
+                            $readyDate,
+                            $newRequestHeader->id,
+                            "Monthly list request #{$newRequestHeader->request_number} allocated to " . $readyDate->format('F Y')
+                        );
                     }
                 }
-
-                $publishedCount++;
 
                 // Create notification for manager if not HOR
                 if (!$user->hasRole('hor') && $user->manager_id) {
@@ -257,21 +280,56 @@ class MonthlyListController extends Controller
                         "{$user->username} has published a recurring {$requestTypeLabel} request for your approval."
                     );
                 }
+
+                DB::commit();
+                $publishedCount++;
+            } catch (\Exception $e) {
+                DB::rollBack();
+
+                // Get request identifier for error message
+                $requestIdentifier = 'Unknown';
+                if (isset($requestType) && isset($original)) {
+                    if ($requestType === 'humanitarian' && isset($original->voter)) {
+                        $requestIdentifier = $original->voter->first_name . ' ' . $original->voter->last_name . ' - ' . $original->subtype;
+                    } elseif ($requestType === 'public' && isset($original->description)) {
+                        $requestIdentifier = substr($original->description, 0, 50) . (strlen($original->description) > 50 ? '...' : '');
+                    } elseif ($requestType === 'diapers' && isset($original->voter)) {
+                        $requestIdentifier = $original->voter->first_name . ' ' . $original->voter->last_name . ' - Diapers';
+                    }
+                }
+
+                $failedRequests[] = [
+                    'identifier' => $requestIdentifier,
+                    'type' => ucfirst($requestType ?? 'Unknown'),
+                    'reason' => $e->getMessage()
+                ];
             }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => "Successfully published {$publishedCount} request(s)",
-                'redirect' => route('dashboard')
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to publish requests: ' . $e->getMessage()
-            ], 500);
         }
+
+        // Build response message
+        $message = '';
+        $hasFailures = !empty($failedRequests);
+
+        if ($publishedCount > 0) {
+            $message = "Successfully published {$publishedCount} request(s).";
+        }
+
+        if ($hasFailures) {
+            $failedCount = count($failedRequests);
+            if ($publishedCount > 0) {
+                $message .= " {$failedCount} request(s) could not be published due to insufficient budget or errors.";
+            } else {
+                $message = "Failed to publish all {$failedCount} request(s).";
+            }
+        }
+
+        return response()->json([
+            'success' => $publishedCount > 0,
+            'message' => $message,
+            'published_count' => $publishedCount,
+            'failed_count' => count($failedRequests),
+            'failed_requests' => $failedRequests,
+            'redirect' => $publishedCount > 0 ? route('dashboard') : null
+        ]);
     }
 }

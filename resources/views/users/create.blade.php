@@ -203,9 +203,9 @@
                                 type="text"
                                 id="manager_search"
                                 x-model="managerSearch"
-                                @focus="managerSearchOpen = true"
-                                @input="managerSearchOpen = true"
-                                placeholder="Search managers..."
+                                @focus="if(managerSearch.length >= 1) managerSearchOpen = true"
+                                @input="if(managerSearch.length >= 1) managerSearchOpen = true; else managerSearchOpen = false"
+                                placeholder="Type at least 1 character to search..."
                                 class="input-field"
                                 :disabled="loading"
                                 autocomplete="off"
@@ -218,24 +218,24 @@
                                 </template>
                             </select>
 
-                            <div x-show="managerSearchOpen"
+                            <div x-show="managerSearchOpen && managerSearch.length >= 1"
                                  x-transition
                                  class="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-y-auto border border-gray-200">
-                                
+
                                 <ul class="py-1">
                                     <li @click="selectManager({ id: '', username: 'No Manager (Reports to Self)' })"
                                         class="px-4 py-2 hover:bg-[#f8f0e2] cursor-pointer italic">
                                         No Manager (Reports to Self)
                                     </li>
-                                    
+
                                     <template x-for="manager in filteredManagers" :key="manager.id">
                                         <li @click="selectManager(manager)"
                                             class="px-4 py-2 hover:bg-[#f8f0e2] cursor-pointer"
                                             x-text="manager.username">
                                         </li>
                                     </template>
-                                    
-                                    <template x-if="filteredManagers.length === 0">
+
+                                    <template x-if="filteredManagers.length === 0 && managerSearch !== 'No Manager (Reports to Self)'">
                                         <li class="px-4 py-2 text-gray-500 italic">No matching managers.</li>
                                     </template>
                                 </ul>

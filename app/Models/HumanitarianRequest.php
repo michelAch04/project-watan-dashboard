@@ -12,11 +12,13 @@ class HumanitarianRequest extends Model
         'subtype',
         'amount',
         'budget_id',
-        'notes'
+        'notes',
+        'supporting_documents'
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'supporting_documents' => 'array',
     ];
 
     /**

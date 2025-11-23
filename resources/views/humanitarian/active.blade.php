@@ -166,6 +166,15 @@
                         @endif
                     </div>
 
+                    <!-- Supporting Documents -->
+                    @if($request->humanitarianRequest->supporting_documents)
+                    <div class="mb-3 pb-3 border-b border-[#f8f0e2]">
+                        <x-supporting-documents
+                            :documents="$request->humanitarianRequest->supporting_documents"
+                            :can-download="auth()->user()->hasRole('hor')" />
+                    </div>
+                    @endif
+
                     <!-- Actions -->
                     <div class="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#f8f0e2]">
                         <a href="{{ route('humanitarian.show', $request->id) }}"
@@ -340,7 +349,7 @@
 
                     <div class="sticky bottom-0 bg-white p-4 sm:p-6 border-t border-[#f8f0e2] flex flex-col sm:flex-row gap-3">
                         <button @click="showBudgetModal = false" class="w-full sm:flex-1 btn-secondary">Cancel</button>
-                        <button @click="confirmFinalApprove" :disabled="processing || !selectedBudget || !readyDate" class="w-full sm:flex-1 btn-primary">
+                        <button @click="confirmFinalApprove" :disabled="processing || !selectedBudget || !readyDate || !budgetPreview?.has_enough" class="w-full sm:flex-1 btn-primary">
                             <span x-show="!processing">Approve & Allocate</span>
                             <span x-show="processing">Processing...</span>
                         </button>

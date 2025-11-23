@@ -471,7 +471,7 @@
                 this.selectedVoter = voter;
                 this.form.voter_id = voter.id;
                 this.form.requester_city_id = voter.city_id;
-                this.voterSearch = voter.full_name;
+                this.voterSearch = voter.first_name + ' ' + voter.father_name + ' ' + voter.last_name;
                 this.voterSearchOpen = false;
                 this.submitAttempted = false;
             },

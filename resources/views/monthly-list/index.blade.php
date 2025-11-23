@@ -218,7 +218,28 @@ function monthlyList() {
                 });
 
                 const data = await response.json();
-                if (response.ok && data.success) {
+
+                // Close modal
+                this.showPublishModal = false;
+
+                // Show detailed results
+                if (data.failed_requests && data.failed_requests.length > 0) {
+                    let message = data.message + '\n\n';
+                    message += 'Failed Requests:\n';
+                    data.failed_requests.forEach((failed, index) => {
+                        message += `\n${index + 1}. ${failed.type}: ${failed.identifier}\n   Reason: ${failed.reason}`;
+                    });
+                    alert(message);
+
+                    // If some were published successfully, redirect
+                    if (data.published_count > 0 && data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        window.location.reload();
+                    }
+                } else if (response.ok && data.success) {
+                    // All published successfully
+                    alert(data.message);
                     if (data.redirect) {
                         window.location.href = data.redirect;
                     } else {

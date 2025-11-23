@@ -151,6 +151,15 @@
                         @endif
                     </div>
 
+                    <!-- Supporting Documents -->
+                    @if($request->humanitarianRequest->supporting_documents)
+                    <div class="mb-3 pb-3 border-b border-[#f8f0e2]">
+                        <x-supporting-documents
+                            :documents="$request->humanitarianRequest->supporting_documents"
+                            :can-download="auth()->user()->hasRole('hor')" />
+                    </div>
+                    @endif
+
                     <!-- Actions -->
                     <div class="space-y-2 pt-3 border-t border-[#f8f0e2]">
                         <!-- Secondary actions - Grid on desktop, stacked on mobile -->
