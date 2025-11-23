@@ -72,12 +72,12 @@
                                                 ${{ number_format($budget['current_remaining']) }}
                                             </span>
                                         </div>
-                                        <!-- <div class="flex justify-between border-t border-[#622032]/10 pt-2">
+                                        {{-- <!-- <div class="flex justify-between border-t border-[#622032]/10 pt-2">
                                             <span class="text-[#622032]/70 text-xs">Predicted EOM:</span>
                                             <span class="font-bold text-xs {{ $budget['predicted_end_of_month'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
                                                 ${{ number_format($budget['predicted_end_of_month']) }}
                                             </span>
-                                        </div> -->
+                                        </div> --> --}}
                                     </div>
 
                                     <!-- Budget bar -->
@@ -148,12 +148,12 @@
                                     ${{ number_format($budget['current_remaining']) }}
                                 </span>
                             </div>
-                            <div class="flex justify-between border-t border-[#622032]/10 pt-2">
+                            {{-- <div class="flex justify-between border-t border-[#622032]/10 pt-2">
                                 <span class="text-[#622032]/70 text-xs">Predicted EOM:</span>
                                 <span class="font-bold text-xs {{ $budget['predicted_end_of_month'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
                                     ${{ number_format($budget['predicted_end_of_month']) }}
                                 </span>
-                            </div>
+                            </div> --}}
                         </div>
 
                         <!-- Budget bar -->
