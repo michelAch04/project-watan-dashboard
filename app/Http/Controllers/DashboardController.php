@@ -30,50 +30,18 @@ class DashboardController extends Controller
     {
         $features = [];
 
-        // Humanitarian Management
-        if ($user->can('view_humanitarian')) {
+        // Requests Hub (if user can view any request type)
+        if ($user->can('view_humanitarian') || $user->can('view_public') || $user->can('view_diapers')) {
             $features[] = [
-                'name' => 'Humanitarian Requests',
-                'description' => 'Track aid and assistance',
-                'icon' => 'heart',
+                'name' => 'Requests',
+                'description' => 'Manage all request types',
+                'icon' => 'requests',
                 'color' => 'madder',
-                'route' => 'humanitarian.index',
+                'route' => 'requests.index',
                 'permissions' => [
-                    'view' => $user->can('view_humanitarian'),
-                    'create' => $user->can('create_humanitarian'),
-                    'edit' => $user->can('edit_humanitarian'),
-                ]
-            ];
-        }
-
-        // Public Requests Management
-        if ($user->can('view_public')) {
-            $features[] = [
-                'name' => 'Public Facilities Requests',
-                'description' => 'Manage public infrastructure requests',
-                'icon' => 'building',
-                'color' => 'madder',
-                'route' => 'public-requests.index',
-                'permissions' => [
-                    'view' => $user->can('view_public'),
-                    'create' => $user->can('create_public'),
-                    'edit' => $user->can('edit_public'),
-                ]
-            ];
-        }
-
-        // Diapers Requests Management
-        if ($user->can('view_diapers')) {
-            $features[] = [
-                'name' => 'Diapers Requests',
-                'description' => 'Manage diaper requests for voters',
-                'icon' => 'diapers',
-                'color' => 'madder',
-                'route' => 'diapers-requests.index',
-                'permissions' => [
-                    'view' => $user->can('view_diapers'),
-                    'create' => $user->can('create_diapers'),
-                    'edit' => $user->can('edit_diapers'),
+                    'view' => true,
+                    'create' => $user->can('create_humanitarian') || $user->can('create_public') || $user->can('create_diapers'),
+                    'edit' => $user->can('edit_humanitarian') || $user->can('edit_public') || $user->can('edit_diapers'),
                 ]
             ];
         }

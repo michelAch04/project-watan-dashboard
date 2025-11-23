@@ -40,14 +40,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/{user}/locations', [UserController::class, 'getAvailableLocations'])->name('users.locations');
     });
 
+    // Requests Hub
+    Route::get('/requests', [App\Http\Controllers\RequestsController::class, 'index'])
+        ->name('requests.index');
+
     // Feature routes (placeholders - we'll create these later)
     Route::get('/financial', function () {
         return view('financial.index');
     })->name('financial.index')->middleware('can:view_financial');
-
-    Route::get('/humanitarian', function () {
-        return view('humanitarian.index');
-    })->name('humanitarian.index')->middleware('can:view_humanitarian');
 
     Route::get('/reports', function () {
         return view('reports.index');

@@ -38,7 +38,9 @@
       "Bash(dir \"C:\\xampp\\php\\ext\")",
       "Bash(findstr:*)",
       "Bash(if [ -d \"resources/views/diapers-requests\" ])",
-      "Bash(else mkdir -p resources/views/diapers-requests)"
+      "Bash(else mkdir -p resources/views/diapers-requests)",
+      "Bash(if [ -d \"resources/views/requests\" ])",
+      "Bash(else mkdir -p resources/views/requests)"
     ],
     "deny": [],
     "ask": []
