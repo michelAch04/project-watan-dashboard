@@ -9,7 +9,7 @@ class DiapersRequest extends Model
     protected $fillable = [
         'request_header_id',
         'voter_id',
-        'budget_id',
+        'diaper_budget_id',
         'notes'
     ];
 
@@ -26,9 +26,9 @@ class DiapersRequest extends Model
         return $this->belongsTo(Voter::class);
     }
 
-    public function budget()
+    public function diaperBudget()
     {
-        return $this->belongsTo(Budget::class);
+        return $this->belongsTo(DiaperBudget::class);
     }
 
     public function items()
@@ -48,11 +48,47 @@ class DiapersRequest extends Model
     }
 
     /**
-     * Get total amount based on items (if pricing is added later)
+     * Get requester city from voter
      */
-    public function getTotalAmountAttribute()
+    public function getRequesterCityAttribute()
     {
-        // For now, return 0 or calculate based on items if pricing is implemented
-        return 0;
+        return $this->voter ? $this->voter->city : null;
+    }
+
+    /**
+     * Get requester RO number from voter
+     */
+    public function getRequesterRoNumberAttribute()
+    {
+        return $this->voter ? $this->voter->ro_number : null;
+    }
+
+    /**
+     * Get requester phone from voter
+     */
+    public function getRequesterPhoneAttribute()
+    {
+        return $this->voter ? $this->voter->phone : null;
+    }
+
+    /**
+     * Get quantities array from items
+     * Returns array like ['xl' => 2, 'm' => 3]
+     */
+    public function getQuantitiesAttribute()
+    {
+        $quantities = [];
+        foreach ($this->items as $item) {
+            $quantities[strtolower($item->size)] = $item->count;
+        }
+        return $quantities;
+    }
+
+    /**
+     * Get total quantity count
+     */
+    public function getTotalQuantityAttribute()
+    {
+        return $this->items()->sum('count');
     }
 }

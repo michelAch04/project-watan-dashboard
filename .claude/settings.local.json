@@ -36,7 +36,9 @@
       "Bash(export OPENSSL_CONF=\"C:/xampp/htdocs/pwdashboard/openssl.cnf\")",
       "Bash(where:*)",
       "Bash(dir \"C:\\xampp\\php\\ext\")",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(if [ -d \"resources/views/diapers-requests\" ])",
+      "Bash(else mkdir -p resources/views/diapers-requests)"
     ],
     "deny": [],
     "ask": []

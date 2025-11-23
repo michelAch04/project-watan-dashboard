@@ -124,10 +124,19 @@
                                 
                                 <div class="flex gap-2">
                                     @if($notification->requestHeader)
-                                    <a href="{{ route('humanitarian.show', $notification->request_id) }}"
-                                       class="text-xs text-[#931335] hover:text-[#622032] font-semibold">
-                                        View Request →
-                                    </a>
+                                        @php
+                                            $requestType = $notification->requestHeader->getRequestType();
+                                            $showRoute = match($requestType) {
+                                                'humanitarian' => route('humanitarian.show', $notification->request_id),
+                                                'public' => route('public-requests.show', $notification->request_id),
+                                                'diapers' => route('diapers-requests.show', $notification->request_id),
+                                                default => '#'
+                                            };
+                                        @endphp
+                                        <a href="{{ $showRoute }}"
+                                           class="text-xs text-[#931335] hover:text-[#622032] font-semibold">
+                                            View Request →
+                                        </a>
                                     @endif
                                     
                                     @if(!$notification->is_read)

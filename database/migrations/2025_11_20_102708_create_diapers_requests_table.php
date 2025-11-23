@@ -15,14 +15,14 @@ return new class extends Migration
             $table->id();
             $table->foreignId('request_header_id')->constrained('request_headers')->onDelete('cascade');
             $table->foreignId('voter_id')->constrained('voters_list');
-            $table->foreignId('budget_id')->nullable()->constrained('budgets');
+            $table->foreignId('diaper_budget_id')->nullable()->constrained('diaper_budgets');
             $table->text('notes')->nullable();
             $table->timestamps();
 
             // Indexes
             $table->index('request_header_id');
             $table->index('voter_id');
-            $table->index('budget_id');
+            $table->index('diaper_budget_id');
         });
     }
 

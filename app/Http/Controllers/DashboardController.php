@@ -62,6 +62,22 @@ class DashboardController extends Controller
             ];
         }
 
+        // Diapers Requests Management
+        if ($user->can('view_diapers')) {
+            $features[] = [
+                'name' => 'Diapers Requests',
+                'description' => 'Manage diaper requests for voters',
+                'icon' => 'diapers',
+                'color' => 'madder',
+                'route' => 'diapers-requests.index',
+                'permissions' => [
+                    'view' => $user->can('view_diapers'),
+                    'create' => $user->can('create_diapers'),
+                    'edit' => $user->can('edit_diapers'),
+                ]
+            ];
+        }
+
         // Budgets (HOR and Admin only)
         if (($user->hasRole('hor') || $user->hasRole('admin')) && $user->can('view_budget')) {
             $features[] = [

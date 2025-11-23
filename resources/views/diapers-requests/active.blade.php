@@ -1,30 +1,27 @@
 @extends('layouts.app')
 
-@section('title', 'Active Requests')
+@section('title', 'Active Diapers Requests')
 
 @section('content')
 <div class="min-h-screen bg-[#fcf7f8]">
-    <!-- Header -->
     <div class="mobile-header">
         <div class="safe-area">
             <div class="page-container py-4">
                 <div class="flex items-center">
-                    <a href="{{ route('public-requests.index') }}" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all mr-2">
+                    <a href="{{ route('diapers-requests.index') }}" class="p-2 hover:bg-[#f8f0e2] rounded-lg transition-all mr-2">
                         <svg class="w-5 h-5 text-[#622032]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                         </svg>
                     </a>
-                    <h1 class="text-lg sm:text-xl font-bold text-[#622032]">Active Requests</h1>
+                    <h1 class="text-lg sm:text-xl font-bold text-[#622032]">Active Diapers Requests</h1>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Content -->
     <div class="safe-area py-4" x-data="activeRequests()">
         <div class="page-container space-y-4">
 
-            <!-- Filter Tabs -->
             <div class="bg-white rounded-xl p-2 shadow-sm border border-[#f8f0e2] overflow-x-auto">
                 <div class="flex gap-2 min-w-max">
                     <button @click="statusFilter = 'all'"
@@ -55,50 +52,11 @@
                 </div>
             </div>
 
-            <!-- Month Filter and Export -->
-            @can('final_approve_public')
-            <div class="bg-white rounded-xl p-4 shadow-sm border border-[#f8f0e2]">
-                <div class="space-y-3">
-                    <div class="w-full">
-                        <label class="block text-sm font-semibold text-[#622032] mb-2">Filter by Ready Date Month</label>
-                        <form method="GET" action="{{ route('public-requests.active') }}" class="flex flex-row gap-2">
-                            <input type="month"
-                                   x-model="selectedMonthYear"
-                                   @change="submitForm()"
-                                   class="input-field flex-1 text-sm sm:text-base"
-                                   placeholder="Select month">
-                            <input type="hidden" name="month" :value="getMonth()">
-                            <input type="hidden" name="year" :value="getYear()">
-                            <div class="flex items-center gap-2">
-                                @if($month && $year)
-                                <a href="{{ route('public-requests.active') }}" class="flex-1 sm:flex-initial btn-secondary whitespace-nowrap">Clear</a>
-                                @endif
-                            </div>
-                        </form>
-                    </div>
-
-                    @if($month && $year)
-                    <div class="w-full">
-                        <a href="{{ route('public-requests.export-active-pdf', ['month' => $month, 'year' => $year]) }}"
-                           class="btn-primary flex items-center justify-center w-full">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Export to PDF
-                        </a>
-                    </div>
-                    @endif
-                </div>
-            </div>
-            @endcan
-
-            <!-- Requests List -->
             <div class="space-y-3">
                 @forelse($requests as $request)
                 <div class="bg-white rounded-xl p-4 shadow-sm border border-[#f8f0e2]"
                     x-show="statusFilter === 'all' || statusFilter === '{{ $request->requestStatus->name }}'">
 
-                    <!-- Request Header -->
                     <div class="flex items-start justify-between mb-3">
                         <div>
                             <h3 class="font-bold text-[#622032]">{{ $request->request_number }}</h3>
@@ -115,26 +73,27 @@
                         </span>
                     </div>
 
-                    <!-- Requester Info -->
                     <div class="mb-3 pb-3 border-b border-[#f8f0e2]">
                         <div class="flex items-start gap-2 mb-2">
                             <svg class="w-4 h-4 text-[#931335] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                             <div class="flex-1">
-                                <p class="text-sm font-semibold text-[#622032]" lang="ar">{{ $request->publicRequest->requester_full_name }}</p>
-                                <p class="text-xs text-[#622032]/60" lang="ar">{{ $request->publicRequest->city->name }}</p>
+                                <p class="text-sm font-semibold text-[#622032]" lang="ar">{{ $request->diapersRequest->requester_full_name }}</p>
+                                <p class="text-xs text-[#622032]/60" lang="ar">{{ $request->diapersRequest->voter->city->name }} @if($request->diapersRequest->voter->register_number) • {{ $request->diapersRequest->voter->register_number }} @endif</p>
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-2 text-xs text-[#622032]/60">
-                            <span class="px-2 py-1 bg-[#fef9de] rounded">{{ $request->publicRequest->description }}</span>
-                            <span>•</span>
-                            <span class="font-semibold text-[#931335]">${{ number_format($request->publicRequest->amount, 2) }}</span>
+                        <div class="text-xs text-[#622032]/60 space-y-1">
+                            @foreach($request->diapersRequest->items as $item)
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-1 bg-[#fef9de] rounded font-semibold">{{ strtoupper($item['size']) }}</span>
+                                <span>x {{ $item['count'] }}</span>
+                            </div>
+                            @endforeach
                         </div>
                     </div>
 
-                    <!-- Workflow Info -->
                     <div class="mb-3 space-y-2 text-xs">
                         <div class="flex items-center gap-2">
                             <span class="text-[#622032]/60">Submitted by:</span>
@@ -152,10 +111,10 @@
                             <span class="font-semibold text-[#622032]" lang="ar">{{ trim($request->referenceMember->first_name . ' ' . $request->referenceMember->father_name . ' ' . $request->referenceMember->last_name) }}</span>
                         </div>
                         @endif
-                        @if($request->publicRequest->budget)
+                        @if($request->diapersRequest->budget)
                         <div class="flex items-center gap-2">
                             <span class="text-[#622032]/60">Budget:</span>
-                            <span class="font-semibold text-[#622032]">{{ $request->publicRequest->budget->description }}</span>
+                            <span class="font-semibold text-[#622032]">{{ $request->diapersRequest->budget->description }}</span>
                         </div>
                         @endif
                         @if($request->ready_date)
@@ -166,16 +125,15 @@
                         @endif
                     </div>
 
-                    <!-- Actions -->
                     <div class="flex flex-col sm:flex-row gap-2 pt-3 border-t border-[#f8f0e2]">
-                        <a href="{{ route('public-requests.show', $request->id) }}"
+                        <a href="{{ route('diapers-requests.show', $request->id) }}"
                             class="flex-1 bg-[#f8f0e2] hover:bg-[#dfd1ba] text-[#622032] font-semibold text-sm py-2 px-4 rounded-lg text-center transition-all active:scale-95">
                             View Details
                         </a>
 
                         <div class="grid grid-cols-2 gap-1">
                             @if($request->canApproveReject(auth()->user()))
-                            <button @click="showApproveModal({{ $request->id }}, '{{ $request->request_number }}')"
+                            <button @click="showApproveModal({{ $request->id }}, '{{ $request->request_number }}', {{ json_encode($request->diapersRequest->items) }})"
                                 class="bg-green-600 hover:bg-green-700 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95">
                                 Approve
                             </button>
@@ -185,7 +143,7 @@
                             </button>
                             @endif
 
-                            @can('mark_ready_public')
+                            @can('mark_ready_diapers')
                             @if($request->requestStatus->name === 'final_approval')
                             <button @click="markReady({{ $request->id }})"
                                 class="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95">
@@ -194,7 +152,7 @@
                             @endif
                             @endcan
 
-                            @can('mark_collected_public')
+                            @can('mark_collected_diapers')
                             @if($request->requestStatus->name === 'ready_for_collection')
                             <button @click="markCollected({{ $request->id }})"
                                 class="bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95">
@@ -202,18 +160,6 @@
                             </button>
                             @endif
                             @endcan
-
-                            @if($request->requestStatus->name === 'final_approval' || $request->requestStatus->name === 'ready_for_collection')
-                            @can('final_approve_public')
-                            <a href="{{ route('public-requests.download', $request->id) }}"
-                                class="bg-[#931335] hover:bg-[#622032] text-white font-semibold text-sm py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                                <span>Download</span>
-                            </a>
-                            @endcan
-                            @endif
                         </div>
                     </div>
                 </div>
@@ -230,7 +176,6 @@
                 @endforelse
             </div>
 
-            <!-- Pagination -->
             @if($requests->hasPages())
             <div class="bg-white rounded-xl p-4 shadow-sm border border-[#f8f0e2]">
                 {{ $requests->links() }}
@@ -238,7 +183,6 @@
             @endif
         </div>
 
-        <!-- Approve Modal -->
         <div x-show="showApprove" x-cloak class="fixed inset-0 z-50 overflow-y-auto" @keydown.escape.window="showApprove = false">
             <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="showApprove = false"></div>
             <div class="flex items-center justify-center min-h-screen p-4">
@@ -258,7 +202,6 @@
             </div>
         </div>
 
-        <!-- Reject Modal -->
         <div x-show="showReject" x-cloak class="fixed inset-0 z-50 overflow-y-auto" @keydown.escape.window="showReject = false">
             <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="showReject = false"></div>
             <div class="flex items-center justify-center min-h-screen p-4">
@@ -288,7 +231,6 @@
                         <h2 class="text-lg sm:text-xl font-bold text-[#622032] mb-2">Select Budget & Ready Date</h2>
                         <p class="text-sm sm:text-base text-[#622032]/70">
                             Final approval for request <strong class="break-all" x-text="selectedRequestNumber"></strong>
-                            <span class="text-[#931335] font-semibold">($<span x-text="requestAmount"></span>)</span>
                         </p>
                     </div>
 
@@ -296,10 +238,10 @@
                         <!-- Budget Selection -->
                         <div>
                             <label class="block text-sm font-semibold text-[#622032] mb-2">Select Budget</label>
-                            <select x-model="selectedBudget" @change="updateBudgetPreview" class="input-field text-sm sm:text-base">
+                            <select x-model="selectedBudget" @change="updateBudgetStock" class="input-field text-sm sm:text-base">
                                 <option value="">-- Select Budget --</option>
                                 <template x-for="budget in budgets" :key="budget.id">
-                                    <option :value="budget.id" x-text="`${budget.description} ($${budget.monthly_amount_in_usd})`"></option>
+                                    <option :value="budget.id" x-text="`${budget.description} (${budget.zone_name})`"></option>
                                 </template>
                             </select>
                         </div>
@@ -307,33 +249,25 @@
                         <!-- Ready Date Selection -->
                         <div>
                             <label class="block text-sm font-semibold text-[#622032] mb-2">Ready Date</label>
-                            <input type="date" x-model="readyDate" @change="updateBudgetPreview" class="input-field text-sm sm:text-base" :min="new Date().toISOString().split('T')[0]">
+                            <input type="date" x-model="readyDate" @change="updateBudgetStock" class="input-field text-sm sm:text-base" :min="new Date().toISOString().split('T')[0]">
                         </div>
 
-                        <!-- Budget Preview -->
-                        <div x-show="budgetPreview" class="bg-[#f8f0e2] rounded-lg p-3 sm:p-4 space-y-2">
-                            <h3 class="font-semibold text-[#622032] mb-2 text-sm sm:text-base">Budget Preview</h3>
-                            <div class="flex justify-between text-xs sm:text-sm">
-                                <span class="text-[#622032]/70">Monthly Budget:</span>
-                                <span class="font-semibold text-[#622032]">$<span x-text="budgetPreview?.monthly_budget || 0"></span></span>
+                        <!-- Stock Preview -->
+                        <div x-show="budgetStock" x-cloak class="bg-[#f8f0e2] rounded-lg p-3 sm:p-4 space-y-2">
+                            <h3 class="font-semibold text-[#622032] mb-2 text-sm sm:text-base">Available Stock</h3>
+                            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                <template x-for="(count, size) in budgetStock" :key="size">
+                                    <div class="bg-white rounded px-2 py-1 text-center">
+                                        <div class="text-xs font-bold text-[#622032] uppercase" x-text="size"></div>
+                                        <div class="text-sm font-semibold" :class="count > 0 ? 'text-green-600' : 'text-red-600'" x-text="count"></div>
+                                    </div>
+                                </template>
                             </div>
-                            <div class="flex justify-between text-xs sm:text-sm">
-                                <span class="text-[#622032]/70">Current Remaining:</span>
-                                <span class="font-semibold" :class="budgetPreview?.current_remaining >= 0 ? 'text-green-600' : 'text-red-600'">
-                                    $<span x-text="budgetPreview?.current_remaining || 0"></span>
-                                </span>
-                            </div>
-                            <div class="flex justify-between text-xs sm:text-sm border-t border-[#622032]/20 pt-2">
-                                <span class="text-[#622032]/70">After Request:</span>
-                                <span class="font-bold" :class="budgetPreview?.after_request >= 0 ? 'text-green-600' : 'text-red-600'">
-                                    $<span x-text="budgetPreview?.after_request || 0"></span>
-                                </span>
-                            </div>
-                            <div x-show="!budgetPreview?.has_enough" class="text-xs text-red-600 font-semibold mt-2 flex items-start gap-1">
+                            <div x-show="!hasEnoughStock" class="text-xs text-red-600 font-semibold mt-2 flex items-start gap-1">
                                 <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                                 </svg>
-                                <span>Insufficient budget!</span>
+                                <span>Insufficient stock for some requested sizes!</span>
                             </div>
                         </div>
                     </div>
@@ -364,32 +298,19 @@
             showBudgetModal: false,
             selectedRequestId: null,
             selectedRequestNumber: '',
-            requestAmount: 0,
+            selectedRequestItems: [],
             rejectionReason: '',
             processing: false,
             budgets: [],
             selectedBudget: '',
             readyDate: new Date().toISOString().split('T')[0],
-            budgetPreview: null,
-            selectedMonthYear: '{{ $month && $year ? sprintf("%04d-%02d", $year, $month) : "" }}',
+            budgetStock: null,
+            hasEnoughStock: true,
 
-            getMonth() {
-                if (!this.selectedMonthYear) return '';
-                return this.selectedMonthYear.split('-')[1];
-            },
-
-            getYear() {
-                if (!this.selectedMonthYear) return '';
-                return this.selectedMonthYear.split('-')[0];
-            },
-
-            submitForm() {
-                document.querySelector('form').submit();
-            },
-
-            showApproveModal(id, number) {
+            showApproveModal(id, number, items = []) {
                 this.selectedRequestId = id;
                 this.selectedRequestNumber = number;
+                this.selectedRequestItems = items;
                 this.showApprove = true;
             },
 
@@ -403,7 +324,7 @@
             async confirmApprove() {
                 this.processing = true;
                 try {
-                    const response = await fetch(`/public-requests/${this.selectedRequestId}/approve`, {
+                    const response = await fetch(`/diapers-requests/${this.selectedRequestId}/approve`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -433,8 +354,8 @@
 
             async showBudgetSelectionModal() {
                 try {
-                    // Fetch user's zone budgets
-                    const response = await fetch('/api/budgets/my-zones', {
+                    // Fetch available diaper budgets
+                    const response = await fetch('{{ route("diapers-requests.get-diaper-budgets") }}', {
                         headers: {
                             'Accept': 'application/json',
                             'X-CSRF-TOKEN': csrfToken
@@ -442,23 +363,14 @@
                     });
                     const data = await response.json();
 
-                    if (response.ok && data.success) {
-                        this.budgets = data.budgets;
-
-                        // Get request amount
-                        const requestResponse = await fetch(`/public-requests/${this.selectedRequestId}/amount`, {
-                            headers: {
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': csrfToken
-                            }
-                        });
-                        const requestData = await requestResponse.json();
-                        this.requestAmount = requestData.amount;
+                    if (response.ok) {
+                        this.budgets = data;
 
                         // Reset selections
                         this.selectedBudget = '';
                         this.readyDate = new Date().toISOString().split('T')[0];
-                        this.budgetPreview = null;
+                        this.budgetStock = null;
+                        this.hasEnoughStock = true;
 
                         this.showBudgetModal = true;
                     } else {
@@ -469,40 +381,44 @@
                 }
             },
 
-            async updateBudgetPreview() {
+            async updateBudgetStock() {
                 if (!this.selectedBudget || !this.readyDate) {
-                    this.budgetPreview = null;
+                    this.budgetStock = null;
                     return;
                 }
 
                 try {
-                    const response = await fetch('/api/budgets/preview', {
-                        method: 'POST',
+                    const response = await fetch(`{{ route("diapers-requests.get-remaining-stock") }}?budget_id=${this.selectedBudget}&ready_date=${this.readyDate}`, {
                         headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            budget_id: this.selectedBudget,
-                            amount: this.requestAmount,
-                            ready_date: this.readyDate
-                        })
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken
+                        }
                     });
 
                     const data = await response.json();
-                    if (response.ok && data.success) {
-                        this.budgetPreview = data;
+                    if (response.ok) {
+                        this.budgetStock = data.remaining_stock;
+
+                        // Check if there's enough stock for all requested items
+                        this.hasEnoughStock = this.selectedRequestItems.every(item => {
+                            const availableCount = this.budgetStock[item.size] || 0;
+                            return availableCount >= item.count;
+                        });
                     }
                 } catch (error) {
-                    console.error('Failed to fetch budget preview');
+                    console.error('Failed to fetch budget stock');
                 }
             },
 
             async confirmFinalApprove() {
+                if (!this.selectedBudget || !this.readyDate) {
+                    alert('Please select a budget and ready date');
+                    return;
+                }
+
                 this.processing = true;
                 try {
-                    const response = await fetch(`/public-requests/${this.selectedRequestId}/final-approve`, {
+                    const response = await fetch(`/diapers-requests/${this.selectedRequestId}/final-approve`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -510,7 +426,7 @@
                             'Accept': 'application/json'
                         },
                         body: JSON.stringify({
-                            budget_id: this.selectedBudget,
+                            diaper_budget_id: this.selectedBudget,
                             ready_date: this.readyDate
                         })
                     });
@@ -531,7 +447,7 @@
             async confirmReject() {
                 this.processing = true;
                 try {
-                    const response = await fetch(`/public-requests/${this.selectedRequestId}/reject`, {
+                    const response = await fetch(`/diapers-requests/${this.selectedRequestId}/reject`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -560,7 +476,7 @@
                 if (!confirm('Mark this request as ready for collection?')) return;
 
                 try {
-                    const response = await fetch(`/public-requests/${id}/mark-ready`, {
+                    const response = await fetch(`/diapers-requests/${id}/mark-ready`, {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': csrfToken,
@@ -583,7 +499,7 @@
                 if (!confirm('Mark this request as collected?')) return;
 
                 try {
-                    const response = await fetch(`/public-requests/${id}/mark-collected`, {
+                    const response = await fetch(`/diapers-requests/${id}/mark-collected`, {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': csrfToken,

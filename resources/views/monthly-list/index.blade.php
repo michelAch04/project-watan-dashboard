@@ -96,13 +96,17 @@
                         <div class="flex items-center gap-2 text-xs text-[#622032]/60">
                             @if($requestType === 'humanitarian')
                                 <span class="px-2 py-1 bg-[#fef9de] rounded">{{ $specificRequest->subtype }}</span>
+                                <span>•</span>
+                                <span class="font-semibold text-[#931335]">${{ number_format($specificRequest->amount, 2) }}</span>
                             @elseif($requestType === 'public')
                                 <span class="px-2 py-1 bg-[#fef9de] rounded" lang="ar">{{ $specificRequest->description }}</span>
+                                <span>•</span>
+                                <span class="font-semibold text-[#931335]">${{ number_format($specificRequest->amount, 2) }}</span>
                             @elseif($requestType === 'diapers')
                                 <span class="px-2 py-1 bg-[#fef9de] rounded">Diapers Request</span>
+                                <span>•</span>
+                                <span class="font-semibold text-[#931335]">{{ $specificRequest->total_quantity }} items</span>
                             @endif
-                            <span>•</span>
-                            <span class="font-semibold text-[#931335]">${{ number_format($specificRequest->amount, 2) }}</span>
                         </div>
                     </div>
 
@@ -117,7 +121,7 @@
                                 View Original Request
                             </a>
                         @elseif($requestType === 'diapers')
-                            <a href="{{ route('voters-list.show', $item->requestHeader->id) }}" class="text-sm text-[#931335] hover:underline">
+                            <a href="{{ route('diapers-requests.show', $item->requestHeader->id) }}" class="text-sm text-[#931335] hover:underline">
                                 View Original Request
                             </a>
                         @endif

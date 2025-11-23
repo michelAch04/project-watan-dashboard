@@ -165,6 +165,57 @@ Route::middleware('auth')->group(function () {
         Route::get('/{id}/amount', [App\Http\Controllers\PublicRequestController::class, 'getAmount'])->name('public-requests.get-amount');
     });
 
+    // Diapers Request Management
+    Route::prefix('diapers-requests')->middleware('can:view_diapers')->group(function () {
+        Route::get('/', [App\Http\Controllers\DiapersRequestController::class, 'index'])->name('diapers-requests.index');
+        Route::get('/active', [App\Http\Controllers\DiapersRequestController::class, 'active'])->name('diapers-requests.active');
+        Route::get('/completed', [App\Http\Controllers\DiapersRequestController::class, 'completed'])->name('diapers-requests.completed');
+        Route::get('/drafts', [App\Http\Controllers\DiapersRequestController::class, 'drafts'])->name('diapers-requests.drafts');
+
+        Route::middleware('can:create_diapers')->group(function () {
+            Route::get('/create', [App\Http\Controllers\DiapersRequestController::class, 'create'])->name('diapers-requests.create');
+            Route::post('/', [App\Http\Controllers\DiapersRequestController::class, 'store'])->name('diapers-requests.store');
+        });
+
+        // Export routes (must come before /{id} wildcard route) - disabled for now
+        Route::middleware('can:final_approve_diapers')->group(function () {
+            Route::get('/export-monthly-pdf', [App\Http\Controllers\DiapersRequestController::class, 'exportMonthlyPDF'])->name('diapers-requests.export-monthly-pdf');
+            Route::get('/export-active-pdf', [App\Http\Controllers\DiapersRequestController::class, 'exportActivePDF'])->name('diapers-requests.export-active-pdf');
+        });
+
+        Route::get('/{id}', [App\Http\Controllers\DiapersRequestController::class, 'show'])->name('diapers-requests.show');
+
+        Route::middleware('can:edit_diapers')->group(function () {
+            Route::get('/{id}/edit', [App\Http\Controllers\DiapersRequestController::class, 'edit'])->name('diapers-requests.edit');
+            Route::put('/{id}', [App\Http\Controllers\DiapersRequestController::class, 'update'])->name('diapers-requests.update');
+            Route::delete('/{id}', [App\Http\Controllers\DiapersRequestController::class, 'destroy'])->name('diapers-requests.destroy');
+        });
+
+        Route::middleware('can:approve_diapers')->group(function () {
+            Route::post('/{id}/approve', [App\Http\Controllers\DiapersRequestController::class, 'approve'])->name('diapers-requests.approve');
+            Route::post('/{id}/reject', [App\Http\Controllers\DiapersRequestController::class, 'reject'])->name('diapers-requests.reject');
+        });
+
+        Route::middleware('can:mark_ready_diapers')->group(function () {
+            Route::post('/{id}/mark-ready', [App\Http\Controllers\DiapersRequestController::class, 'markReady'])->name('diapers-requests.mark-ready');
+        });
+
+        Route::middleware('can:mark_collected_diapers')->group(function () {
+            Route::post('/{id}/mark-collected', [App\Http\Controllers\DiapersRequestController::class, 'markCollected'])->name('diapers-requests.mark-collected');
+        });
+
+        Route::middleware('can:final_approve_diapers')->group(function () {
+            Route::get('/{id}/download', [App\Http\Controllers\DiapersRequestController::class, 'download'])->name('diapers-requests.download');
+            Route::post('/{id}/final-approve', [App\Http\Controllers\DiapersRequestController::class, 'finalApprove'])->name('diapers-requests.final-approve');
+        });
+
+        // AJAX routes
+        Route::get('/api/search-voters', [App\Http\Controllers\DiapersRequestController::class, 'searchVoters'])->name('diapers-requests.search-voters');
+        Route::get('/api/search-members', [App\Http\Controllers\DiapersRequestController::class, 'searchMembers'])->name('diapers-requests.search-members');
+        Route::get('/api/diaper-budgets', [App\Http\Controllers\DiapersRequestController::class, 'getDiaperBudgets'])->name('diapers-requests.get-diaper-budgets');
+        Route::get('/api/remaining-stock', [App\Http\Controllers\DiapersRequestController::class, 'getRemainingStock'])->name('diapers-requests.get-remaining-stock');
+    });
+
     // Budget Management (HOR and Admin)
     Route::prefix('budgets')->middleware('can:view_humanitarian')->group(function () {
         // Index accessible by both HOR and Admin

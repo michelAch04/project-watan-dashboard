@@ -150,6 +150,12 @@
                                 </svg>
                                 @break
 
+                                @case('diapers')
+                                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M16 3.13a4 4 0 011.998 7.752 4 4 0 10-5.996-5.63A4 4 0 0116 3.128zM8 3.13a4 4 0 011.998 7.752 4 4 0 10-5.996-5.63A4 4 0 018 3.128z"></path>
+                                </svg>
+                                @break
+
                                 @case('members')
                                 <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
                                     <path fill-rule="evenodd" d="M3 4.5A1.5 1.5 0 014.5 3h15A1.5 1.5 0 0121 4.5v15a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 19.5v-15zM8.25 9a.75.75 0 000 1.5h7.5a.75.75 0 000-1.5h-7.5zM8.25 12.75a.75.75 0 000 1.5h7.5a.75.75 0 000-1.5h-7.5zM8.25 16.5a.75.75 0 000 1.5h4.5a.75.75 0 000-1.5h-4.5z" clip-rule="evenodd" />

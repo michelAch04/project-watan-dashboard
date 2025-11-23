@@ -369,7 +369,7 @@
             processing: false,
             budgets: [],
             selectedBudget: '',
-            readyDate: '',
+            readyDate: new Date().toISOString().split('T')[0],
             budgetPreview: null,
             selectedMonthYear: '{{ $month && $year ? sprintf("%04d-%02d", $year, $month) : "" }}',
 
@@ -457,7 +457,7 @@
 
                         // Reset selections
                         this.selectedBudget = '';
-                        this.readyDate = '';
+                        this.readyDate = new Date().toISOString().split('T')[0];
                         this.budgetPreview = null;
 
                         this.showBudgetModal = true;
