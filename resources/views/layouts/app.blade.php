@@ -56,6 +56,12 @@
       :class="{ 'modal-open': menuOpen }"
       data-authenticated="{{ Auth::check() ? 'true' : 'false' }}"
       x-cloak>
+
+    <!-- Page Loading Overlay -->
+    <div id="pageLoadingOverlay" class="page-loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
     @if(Auth::check())
     @include('components.notification-permission')
     @endif
@@ -85,7 +91,79 @@
     </template>
 
     @stack('scripts')
-    
+
+    <!-- Page Loading Behavior -->
+    <script>
+        (function() {
+            const overlay = document.getElementById('pageLoadingOverlay');
+            let navigationTimeout = null;
+            const LOADING_DELAY = 100; // Only show loader if navigation takes longer than 100ms
+
+            // Show loading overlay with delay
+            function showLoadingOverlay() {
+                navigationTimeout = setTimeout(() => {
+                    if (overlay) {
+                        overlay.classList.add('active');
+                    }
+                }, LOADING_DELAY);
+            }
+
+            // Hide loading overlay immediately
+            function hideLoadingOverlay() {
+                if (navigationTimeout) {
+                    clearTimeout(navigationTimeout);
+                    navigationTimeout = null;
+                }
+                if (overlay) {
+                    overlay.classList.remove('active');
+                }
+            }
+
+            // Intercept all internal link clicks
+            document.addEventListener('click', function(e) {
+                const link = e.target.closest('a');
+
+                // Check if it's a valid internal navigation link
+                if (link &&
+                    link.href &&
+                    !link.hasAttribute('download') &&
+                    !link.hasAttribute('target') &&
+                    link.protocol === window.location.protocol &&
+                    link.host === window.location.host &&
+                    !link.href.startsWith('javascript:') &&
+                    !link.href.includes('#') &&
+                    !e.ctrlKey &&
+                    !e.metaKey &&
+                    !e.shiftKey &&
+                    e.button === 0) {
+
+                    // Don't show loader if we're already on this page
+                    if (link.href !== window.location.href) {
+                        showLoadingOverlay();
+                    }
+                }
+            }, true);
+
+            // Handle browser back/forward buttons
+            window.addEventListener('pageshow', function(event) {
+                hideLoadingOverlay();
+            });
+
+            // Hide overlay when page loads
+            window.addEventListener('load', hideLoadingOverlay);
+
+            // Hide overlay on DOM ready (faster)
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', hideLoadingOverlay);
+            } else {
+                hideLoadingOverlay();
+            }
+
+            // Failsafe: hide overlay after 10 seconds
+            setTimeout(hideLoadingOverlay, 10000);
+        })();
+    </script>
+
     <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {

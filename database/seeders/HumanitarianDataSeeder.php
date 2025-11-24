@@ -82,7 +82,7 @@ class HumanitarianDataSeeder extends Seeder
             ['mobile' => '96103655326'],
             [
                 'username' => 'elias.barbour',
-                'mobile' => '96103655326',
+                'mobile' => '9613655326',
                 'email' => 'elias.barbour@projectwatan.org',
                 'password' => Hash::make('Sanita@2025'),
                 'manager_id' => null, // Reports to self
