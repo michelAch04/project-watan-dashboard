@@ -138,9 +138,54 @@
                 overlay.classList.remove('active');
             }
 
-            // Intercept all link clicks
+            // Track touch events to prevent accidental triggers
+            let touchStarted = false;
+            let touchMoved = false;
+            let touchStartTime = 0;
+
+            // Track when touch starts
+            document.addEventListener('touchstart', function(e) {
+                const link = e.target.closest('a');
+                if (link && link.href) {
+                    touchStarted = true;
+                    touchMoved = false;
+                    touchStartTime = Date.now();
+                }
+            }, true);
+
+            // Track if user is scrolling/moving (not a tap)
+            document.addEventListener('touchmove', function(e) {
+                if (touchStarted) {
+                    touchMoved = true;
+                }
+            }, true);
+
+            // Only trigger on completed tap (touchend + click)
+            document.addEventListener('touchend', function(e) {
+                // Reset after a short delay
+                setTimeout(function() {
+                    touchStarted = false;
+                    touchMoved = false;
+                }, 100);
+            }, true);
+
+            // Intercept all link clicks (works for both mouse and touch)
             document.addEventListener('click', function(e) {
                 const link = e.target.closest('a');
+
+                // If this was a touch event, verify it was intentional
+                if (touchStarted || touchStartTime > 0) {
+                    const touchDuration = Date.now() - touchStartTime;
+
+                    // Ignore if:
+                    // - User moved their finger (scrolling)
+                    // - Touch was too brief (< 50ms, likely accidental)
+                    if (touchMoved || touchDuration < 50) {
+                        touchStartTime = 0;
+                        return;
+                    }
+                    touchStartTime = 0;
+                }
 
                 if (link &&
                     link.href &&
