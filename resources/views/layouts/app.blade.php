@@ -21,8 +21,8 @@
     <link rel="apple-touch-icon" href="{{ asset('images/icons/icon-192x192.png') }}">
 
     <!-- Enable standalone mode on iOS -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-status-bar-style" content="black-translucent">
 
 
     <!-- Vite -->

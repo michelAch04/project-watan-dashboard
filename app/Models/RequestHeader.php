@@ -144,7 +144,7 @@ class RequestHeader extends Model
 
     public function canEdit($user)
     {
-        return $this->sender_id === $user->id &&
+        return $this->sender_id == $user->id &&
             in_array($this->requestStatus->name, [
                 RequestStatus::STATUS_DRAFT,
                 RequestStatus::STATUS_REJECTED
@@ -154,7 +154,7 @@ class RequestHeader extends Model
     public function canDelete($user)
     {
         return
-            $this->sender_id === $user->id && (
+            $this->sender_id == $user->id && (
                 $this->requestStatus->name === RequestStatus::STATUS_DRAFT ||
                 $this->requestStatus->name === RequestStatus::STATUS_REJECTED
             );
@@ -162,7 +162,7 @@ class RequestHeader extends Model
 
     public function canApproveReject($user)
     {
-        return $this->current_user_id === $user->id &&
+        return $this->current_user_id == $user->id &&
             $this->requestStatus->name === RequestStatus::STATUS_PUBLISHED;
     }
 
