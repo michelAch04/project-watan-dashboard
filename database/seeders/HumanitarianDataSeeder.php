@@ -78,6 +78,17 @@ class HumanitarianDataSeeder extends Seeder
             ]
         );
 
+        $testUser2 = User::updateOrCreate(
+            ['mobile' => '96103655326'],
+            [
+                'username' => 'elias.barbour',
+                'mobile' => '96103655326',
+                'email' => 'elias.barbour@projectwatan.org',
+                'password' => Hash::make('Sanita@2025'),
+                'manager_id' => null, // Reports to self
+            ]
+        );
+
         // Assign admin role (we'll need to create this role)
         if (!$testUser->hasRole('admin')) {
             $testUser->assignRole('admin');
@@ -85,6 +96,33 @@ class HumanitarianDataSeeder extends Seeder
 
         // Create sample voters (we'll need at least one city)
         $voters = [
+            [
+                'first_name' => 'test',
+                'father_name' => 'hor',
+                'last_name' => 'zone 1',
+                'mother_full_name' => 'mother test',
+                'city_id' => 1,
+                'register_number' => '1',
+                'phone' => '70000001'
+            ],
+            [
+                'first_name' => 'test',
+                'father_name' => 'hor',
+                'last_name' => 'zone 2',
+                'mother_full_name' => 'mother test',
+                'city_id' => 3,
+                'register_number' => '2',
+                'phone' => '70000002'
+            ],
+            [
+                'first_name' => 'test',
+                'father_name' => 'hor',
+                'last_name' => 'zone 3',
+                'mother_full_name' => 'mother test',
+                'city_id' => 5,
+                'register_number' => '3',
+                'phone' => '70000003'
+            ],
             [
                 'first_name' => 'جورج',
                 'father_name' => 'أنطوان',
