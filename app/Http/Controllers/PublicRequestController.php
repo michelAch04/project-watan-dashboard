@@ -370,11 +370,11 @@ class PublicRequestController extends Controller
 
         $user = Auth::user();
 
-        // Check permissions
+        // Check permissions - can view if user is sender, current approver, or has view_public permission
         if (
             $request->sender_id !== $user->id &&
             $request->current_user_id !== $user->id &&
-            !$user->hasRole('hor')
+            !$user->can('view_public')
         ) {
             abort(403);
         }
