@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('pw_members', function (Blueprint $table) {
             $table->id();
-            $table->string('first_name');
-            $table->string('father_name');
-            $table->string('last_name');
-            $table->string('mother_full_name');
-            $table->string('phone');
-            $table->string('email')->nullable();
+            $table->string('first_name', 191);
+            $table->string('father_name', 191);
+            $table->string('last_name', 191);
+            $table->string('mother_full_name', 191);
+            $table->string('phone', 191);
+            $table->string('email', 191)->nullable();
             $table->unsignedBigInteger('voter_id')->nullable();
             $table->string('office_status')->nullable();
             $table->boolean('is_active')->default(true);

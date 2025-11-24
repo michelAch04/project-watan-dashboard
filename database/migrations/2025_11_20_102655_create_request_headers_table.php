@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('request_headers', function (Blueprint $table) {
             $table->id();
-            $table->string('request_number')->unique();
+            $table->string('request_number', 191)->unique();
             $table->date('request_date');
             $table->foreignId('request_status_id')->constrained('request_statuses');
             $table->foreignId('reference_member_id')->nullable()->constrained('pw_members');

@@ -13,18 +13,17 @@ return new class extends Migration
     {
         Schema::create('voters_list', function (Blueprint $table) {
             $table->id();
-            $table->string('first_name');
-            $table->string('father_name');
-            $table->string('last_name');
-            $table->string('mother_full_name');
+            $table->string('first_name', 191);
+            $table->string('father_name', 191);
+            $table->string('last_name', 191);
+            $table->string('mother_full_name', 191);
             $table->unsignedBigInteger('city_id');
-            $table->string('register_number')->comment('رقم السجل');
-            $table->string('phone')->nullable();
+            $table->string('register_number', 191)->comment('رقم السجل');
+            $table->string('phone', 191)->nullable();
             $table->boolean('cancelled')->default(0);
             $table->timestamps();
 
             $table->foreign('city_id')->references('id')->on('cities')->onDelete('cascade');
-            $table->index(['first_name', 'last_name']);
             $table->index('register_number');
         });
     }
