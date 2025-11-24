@@ -166,12 +166,4 @@ class User extends Authenticatable
     {
         return !$this->otp_expires_at || Carbon::now()->greaterThan($this->otp_expires_at);
     }
-
-    /**
-     * Get push subscriptions for this user
-     */
-    public function pushSubscriptions()
-    {
-        return $this->hasMany(PushSubscription::class);
-    }
 }
