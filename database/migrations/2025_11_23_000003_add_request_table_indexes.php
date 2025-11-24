@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -26,10 +27,12 @@ return new class extends Migration
 
         // public_requests - HIGH: Search and budget allocation
         Schema::table('public_requests', function (Blueprint $table) {
-            $table->index('requester_full_name', 'idx_public_requester_name');
-            $table->index('requester_phone', 'idx_public_requester_phone');
             $table->index(['city_id', 'budget_id'], 'idx_public_city_budget');
         });
+
+        // String indexes with prefix lengths to avoid key length issues
+        DB::statement('ALTER TABLE public_requests ADD INDEX idx_public_requester_name (requester_full_name(100))');
+        DB::statement('ALTER TABLE public_requests ADD INDEX idx_public_requester_phone (requester_phone(50))');
 
         // diapers_requests - HIGH: Voter and budget queries
         Schema::table('diapers_requests', function (Blueprint $table) {

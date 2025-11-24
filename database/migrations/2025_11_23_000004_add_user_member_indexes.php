@@ -20,32 +20,32 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->index('manager_id', 'idx_users_manager');
             // Optimization: Removed single 'cancelled' index (Low cardinality)
-            $table->index(['username', 'cancelled'], 'idx_users_username_cancelled');
         });
+
+        // Username composite index with prefix length to avoid key length issues
+        DB::statement('ALTER TABLE users ADD INDEX idx_users_username_cancelled (username(100), cancelled)');
 
         // pw_members - HIGH: Member search and status filtering
         Schema::table('pw_members', function (Blueprint $table) {
-            // 1. High Cardinality Lookups (Phone/Email are usually unique)
-            $table->index('phone', 'idx_pw_members_phone');
-            $table->index('email', 'idx_pw_members_email');
+            // 1. Join Performance (Critical for PwMember::with('voter'))
+            $table->index('voter_id', 'idx_pw_members_voter_id');
 
             // 2. Status Filters (Composite is faster than single indexes)
             // Covers: WHERE is_active = 1 AND cancelled = 0
             $table->index(['is_active', 'cancelled'], 'idx_pw_members_status');
-            
+
             // Covers: WHERE office_status = 'manager' AND cancelled = 0
             $table->index(['office_status', 'cancelled'], 'idx_pw_members_office_cancelled');
-
-            // 3. Sorting Support (B-Tree)
-            // Critical for: ORDER BY first_name, father_name, last_name
-            $table->index(['first_name', 'father_name', 'last_name'], 'idx_pw_members_name_sort');
-
-            // 4. Join Performance (Critical for PwMember::with('voter'))
-            $table->index('voter_id', 'idx_pw_members_voter_id');
         });
 
-        // 5. FULL TEXT SEARCH (The "Google-like" search optimization)
-        // Must be done as a raw statement for existing tables
+        // String indexes with prefix lengths to avoid key length issues
+        DB::statement('ALTER TABLE pw_members ADD INDEX idx_pw_members_phone (phone(50))');
+        DB::statement('ALTER TABLE pw_members ADD INDEX idx_pw_members_email (email(100))');
+
+        // Composite name index with prefix lengths: (50+50+50)*4 = 600 bytes
+        DB::statement('ALTER TABLE pw_members ADD INDEX idx_pw_members_name_sort (first_name(50), father_name(50), last_name(50))');
+
+        // FULL TEXT SEARCH (The "Google-like" search optimization)
         DB::statement('ALTER TABLE pw_members ADD FULLTEXT idx_pw_members_search (first_name, father_name, last_name)');
     }
 

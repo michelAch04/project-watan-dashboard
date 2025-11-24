@@ -15,18 +15,19 @@ return new class extends Migration
         // 1. VOTERS LIST - Optimization for "Millions" of records (Read-Heavy)
         Schema::table('voters_list', function (Blueprint $table) {
             // REMOVED: Single 'cancelled' index (low cardinality, useless on its own).
-            
+
             // KEEP: Phone is high cardinality (unique-ish values).
             $table->index('phone', 'idx_voters_list_phone');
-            
+
             // NEW: Composite for common filtering.
             // Better than 'city_id' alone. Covers: "Show me active voters in Beirut".
             $table->index(['city_id', 'cancelled'], 'idx_voters_list_city_cancelled');
-
-            // NEW: Composite Name Index (B-Tree)
-            // Critical for sorting and "Starts With" logic: "Select * order by first, father, last"
-            $table->index(['first_name', 'father_name', 'last_name'], 'idx_voters_list_full_name_sort');
         });
+
+        // NEW: Composite Name Index (B-Tree) with prefix lengths
+        // Critical for sorting and "Starts With" logic: "Select * order by first, father, last"
+        // Using prefix lengths to stay under the 1000 byte limit: (50+50+50)*4 = 600 bytes
+        DB::statement('ALTER TABLE voters_list ADD INDEX idx_voters_list_full_name_sort (first_name(50), father_name(50), last_name(50))');
 
         // NEW: Full-Text Index for Search
         // Standard indexes cannot handle "Middle of name" searches efficiently on millions of rows.

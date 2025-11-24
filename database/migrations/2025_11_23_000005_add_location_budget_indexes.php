@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -57,9 +58,11 @@ return new class extends Migration
         // public_institutions - MEDIUM: Institution search
         Schema::table('public_institutions', function (Blueprint $table) {
             $table->index('cancelled', 'idx_public_inst_cancelled');
-            $table->index('name', 'idx_public_inst_name');
             $table->index(['city_id', 'cancelled'], 'idx_public_inst_city_cancelled');
         });
+
+        // String index with prefix length to avoid key length issues
+        DB::statement('ALTER TABLE public_institutions ADD INDEX idx_public_inst_name (name(100))');
 
         // request_statuses - LOW: Status ordering
         Schema::table('request_statuses', function (Blueprint $table) {
