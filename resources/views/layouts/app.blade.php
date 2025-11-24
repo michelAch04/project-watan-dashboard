@@ -90,71 +90,52 @@
 
     <!-- Page Loading Behavior (PWA-Optimized) -->
     <script>
-        (function () {
+(function() {
             const overlay = document.getElementById('pageLoadingOverlay');
             let hideTimer = null;
 
-            // Detect if running as PWA (standalone mode)
-            const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
-                window.navigator.standalone ||
-                document.referrer.includes('android-app://');
-
-            // Show loading overlay immediately
+            // 1. Show loading overlay
             function showLoadingOverlay() {
                 if (!overlay) return;
-
-                // Clear any pending hide timers
                 if (hideTimer) {
                     clearTimeout(hideTimer);
                     hideTimer = null;
                 }
-
+                
                 overlay.classList.add('active');
-
-                // Aggressive failsafe: force hide after 5 seconds max
-                hideTimer = setTimeout(function () {
-                    hideLoadingOverlay();
-                }, 5000);
+                
+                // Fallback: hide after 5s
+                hideTimer = setTimeout(hideLoadingOverlay, 5000);
             }
 
-            // Hide loading overlay immediately
+            // 2. Hide loading overlay
             function hideLoadingOverlay() {
                 if (!overlay) return;
-
-                // Clear any pending hide timers
                 if (hideTimer) {
                     clearTimeout(hideTimer);
                     hideTimer = null;
                 }
-
                 overlay.classList.remove('active');
             }
 
-            // Track touch events to prevent accidental triggers
+            // 3. Mobile Touch Logic
             let isTouchDevice = false;
             let touchMoved = false;
 
-            // Detect if user moved finger (scrolling)
-            document.addEventListener('touchmove', function (e) {
-                touchMoved = true;
+            document.addEventListener('touchmove', () => { touchMoved = true; }, { passive: true });
+            document.addEventListener('touchstart', () => { 
+                isTouchDevice = true; 
+                touchMoved = false; 
             }, { passive: true });
 
-            // Reset touch moved flag on touch start
-            document.addEventListener('touchstart', function (e) {
-                isTouchDevice = true;
-                touchMoved = false;
-            }, { passive: true });
-
-            // Intercept all link clicks (works for both mouse and touch)
-            document.addEventListener('click', function (e) {
+            // 4. THE IOS PWA FIX: Intercept Clicks
+            document.addEventListener('click', function(e) {
                 const link = e.target.closest('a');
 
-                // If on touch device and user was scrolling, ignore
-                if (isTouchDevice && touchMoved) {
-                    touchMoved = false;
-                    return;
-                }
+                // Ignore if user scrolled (mobile)
+                if (isTouchDevice && touchMoved) return;
 
+                // Strict link validation
                 if (link &&
                     link.href &&
                     !link.hasAttribute('download') &&
@@ -164,41 +145,34 @@
                     !link.href.startsWith('javascript:') &&
                     !link.href.includes('#') &&
                     link.href !== window.location.href &&
-                    !e.ctrlKey &&
-                    !e.metaKey &&
-                    !e.shiftKey &&
-                    e.button === 0) {
+                    !e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
 
+                    // --- THE CRITICAL CHANGES FOR IOS PWA ---
+                    
+                    // A. Stop the browser from handling the link automatically
+                    e.preventDefault();
+
+                    // B. Show the spinner
                     showLoadingOverlay();
+
+                    // C. Manually navigate after a tiny delay. 
+                    // This ensures the browser "paints" the spinner 
+                    // BEFORE it freezes the UI to load the next page.
+                    setTimeout(function() {
+                        window.location.href = link.href;
+                    }, 50); // 50ms delay is imperceptible to humans but enough for the DOM
                 }
             }, true);
 
-            // Hide overlay as soon as DOM is ready
-            function forceHideOnLoad() {
-                hideLoadingOverlay();
-            }
+            // 5. Cleanup on Load (Bfcache/History support)
+            function forceHideOnLoad() { hideLoadingOverlay(); }
 
-            // Multiple aggressive hide triggers
             window.addEventListener('DOMContentLoaded', forceHideOnLoad);
             window.addEventListener('load', forceHideOnLoad);
-            window.addEventListener('pageshow', forceHideOnLoad);
-
-            // For back/forward navigation
-            if (window.performance && window.performance.navigation.type === 2) {
-                forceHideOnLoad();
-            }
-
-            // Hide on visibility change (tab switching)
-            document.addEventListener('visibilitychange', function () {
-                if (!document.hidden) {
-                    forceHideOnLoad();
-                }
+            window.addEventListener('pageshow', function(event) {
+                // Crucial for iOS Back Button
+                if (event.persisted) forceHideOnLoad();
             });
-
-            // Immediate hide if page is already loaded
-            if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                forceHideOnLoad();
-            }
         })();
     </script>
 
