@@ -73,8 +73,8 @@ class InboxNotification extends Model
             'message' => $message
         ]);
 
-        // Send push notification
-        $notification->sendPushNotification();
+        // Note: Push notification is sent automatically via the boot() method's created event
+        // No need to call sendPushNotification() here to avoid duplicates
 
         return $notification;
     }

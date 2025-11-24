@@ -96,23 +96,36 @@
 
     @stack('scripts')
 
-    <!-- Page Loading Behavior -->
+    <!-- Page Loading Behavior (PWA-Optimized for all platforms) -->
     <script>
         (function() {
             const overlay = document.getElementById('pageLoadingOverlay');
             let navigationTimeout = null;
-            const LOADING_DELAY = 100; // Only show loader if navigation takes longer than 100ms
 
-            // Show loading overlay with delay
+            // Detect if running as PWA (standalone mode)
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                          window.navigator.standalone ||
+                          document.referrer.includes('android-app://');
+
+            // Reduced delay for PWA to ensure it shows (0ms for PWA, 100ms for browser)
+            const LOADING_DELAY = isPWA ? 0 : 100;
+
+            // Show loading overlay
             function showLoadingOverlay() {
+                if (navigationTimeout) {
+                    clearTimeout(navigationTimeout);
+                }
+
                 navigationTimeout = setTimeout(() => {
                     if (overlay) {
                         overlay.classList.add('active');
+                        // Force a reflow to ensure animation triggers on all platforms
+                        overlay.offsetHeight;
                     }
                 }, LOADING_DELAY);
             }
 
-            // Hide loading overlay immediately
+            // Hide loading overlay
             function hideLoadingOverlay() {
                 if (navigationTimeout) {
                     clearTimeout(navigationTimeout);
@@ -123,48 +136,104 @@
                 }
             }
 
-            // Intercept all internal link clicks
-            document.addEventListener('click', function(e) {
-                const link = e.target.closest('a');
+            // Detect all navigation events - comprehensive approach for PWA
+            function setupNavigationInterception() {
+                // Method 1: Click event (primary method)
+                document.addEventListener('click', function(e) {
+                    const link = e.target.closest('a');
 
-                // Check if it's a valid internal navigation link
-                if (link &&
-                    link.href &&
-                    !link.hasAttribute('download') &&
-                    !link.hasAttribute('target') &&
-                    link.protocol === window.location.protocol &&
-                    link.host === window.location.host &&
-                    !link.href.startsWith('javascript:') &&
-                    !link.href.includes('#') &&
-                    !e.ctrlKey &&
-                    !e.metaKey &&
-                    !e.shiftKey &&
-                    e.button === 0) {
+                    if (link &&
+                        link.href &&
+                        !link.hasAttribute('download') &&
+                        !link.hasAttribute('target') &&
+                        link.protocol === window.location.protocol &&
+                        link.host === window.location.host &&
+                        !link.href.startsWith('javascript:') &&
+                        !link.href.includes('#') &&
+                        !e.ctrlKey &&
+                        !e.metaKey &&
+                        !e.shiftKey &&
+                        e.button === 0) {
 
-                    // Don't show loader if we're already on this page
-                    if (link.href !== window.location.href) {
-                        showLoadingOverlay();
+                        if (link.href !== window.location.href) {
+                            showLoadingOverlay();
+                        }
                     }
-                }
-            }, true);
+                }, true);
 
-            // Handle browser back/forward buttons
-            window.addEventListener('pageshow', function(event) {
-                hideLoadingOverlay();
-            });
+                // Method 2: Touch events for better mobile PWA support
+                document.addEventListener('touchstart', function(e) {
+                    const link = e.target.closest('a');
 
-            // Hide overlay when page loads
-            window.addEventListener('load', hideLoadingOverlay);
+                    if (link && link.href &&
+                        link.protocol === window.location.protocol &&
+                        link.host === window.location.host &&
+                        !link.href.includes('#') &&
+                        link.href !== window.location.href) {
 
-            // Hide overlay on DOM ready (faster)
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', hideLoadingOverlay);
-            } else {
-                hideLoadingOverlay();
+                        // Pre-show overlay on touch for instant feedback on PWA
+                        if (isPWA) {
+                            showLoadingOverlay();
+                        }
+                    }
+                }, { passive: true });
+
+                // Method 3: Beforeunload for form submissions
+                window.addEventListener('beforeunload', function() {
+                    showLoadingOverlay();
+                });
             }
+
+            // Hide overlay on all page load events
+            function setupHideEvents() {
+                // pageshow - fires on back/forward navigation and initial load
+                window.addEventListener('pageshow', function(event) {
+                    hideLoadingOverlay();
+
+                    // If page was restored from cache, ensure clean state
+                    if (event.persisted) {
+                        hideLoadingOverlay();
+                    }
+                });
+
+                // load event
+                window.addEventListener('load', hideLoadingOverlay);
+
+                // DOMContentLoaded - faster than load
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', hideLoadingOverlay);
+                } else {
+                    hideLoadingOverlay();
+                }
+
+                // visibilitychange - for when user switches back to PWA
+                document.addEventListener('visibilitychange', function() {
+                    if (!document.hidden) {
+                        hideLoadingOverlay();
+                    }
+                });
+
+                // focus event - for iOS PWA when returning to app
+                window.addEventListener('focus', function() {
+                    setTimeout(hideLoadingOverlay, 100);
+                });
+            }
+
+            // Initialize
+            setupNavigationInterception();
+            setupHideEvents();
 
             // Failsafe: hide overlay after 10 seconds
             setTimeout(hideLoadingOverlay, 10000);
+
+            // PWA-specific: Handle iOS momentum scrolling issues
+            if (isPWA && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                document.addEventListener('touchmove', function(e) {
+                    if (overlay && overlay.classList.contains('active')) {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+            }
         })();
     </script>
 

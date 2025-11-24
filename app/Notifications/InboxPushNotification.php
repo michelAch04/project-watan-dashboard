@@ -16,6 +16,29 @@ class InboxPushNotification extends Notification implements ShouldQueue
     protected $inboxNotification;
 
     /**
+     * The number of times the job may be attempted.
+     *
+     * @var int
+     */
+    public $tries = 3;
+
+    /**
+     * The number of seconds to wait before retrying the job.
+     *
+     * @var int
+     */
+    public $backoff = 10;
+
+    /**
+     * Determine if the notification should be sent.
+     * This prevents errors if user or notification is deleted before job processes.
+     */
+    public function shouldSend($notifiable)
+    {
+        return $this->inboxNotification !== null && $notifiable !== null;
+    }
+
+    /**
      * Create a new notification instance.
      */
     public function __construct(InboxNotificationModel $inboxNotification)

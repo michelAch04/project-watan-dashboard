@@ -122,7 +122,7 @@
                             <div class="flex items-center justify-between">
                                 <span class="text-xs text-[#622032]/50">{{ $notification->created_at->diffForHumans() }}</span>
                                 
-                                <div class="flex gap-2">
+                                <div class="flex gap-2 cursor-pointer">
                                     @if($notification->requestHeader)
                                         @php
                                             $requestType = $notification->requestHeader->getRequestType();
@@ -135,7 +135,7 @@
                                         @endphp
                                         <a href="{{ $showRoute }}"
                                            class="text-xs text-[#931335] hover:text-[#622032] font-semibold">
-                                            View Request →
+                                            View Request
                                         </a>
                                     @endif
                                     

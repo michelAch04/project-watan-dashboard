@@ -51,10 +51,13 @@
         padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* Page Loading Overlay */
+    /* Page Loading Overlay - PWA Optimized */
     .page-loading-overlay {
         position: fixed;
-        inset: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         background: linear-gradient(135deg, rgba(252, 247, 248, 0.98) 0%, rgba(248, 240, 226, 0.98) 100%);
         z-index: 9999;
         display: flex;
@@ -62,9 +65,21 @@
         justify-content: center;
         opacity: 0;
         pointer-events: none;
-        transition: opacity 0.15s ease-in;
+        transition: opacity 0.2s ease-out;
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
+        /* Hardware acceleration for smooth animations on all platforms */
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        will-change: opacity;
+        /* Prevent tap highlighting on mobile */
+        -webkit-tap-highlight-color: transparent;
+        /* Prevent selection during loading */
+        user-select: none;
+        -webkit-user-select: none;
+        /* Ensure it covers safe areas on iOS */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
     }
 
     .page-loading-overlay.active {
@@ -72,7 +87,7 @@
         pointer-events: all;
     }
 
-    /* Loading Spinner */
+    /* Loading Spinner - GPU Accelerated */
     .loading-spinner {
         width: 48px;
         height: 48px;
@@ -80,10 +95,31 @@
         border-top-color: #931335;
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
+        /* Hardware acceleration */
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        will-change: transform;
     }
 
     @keyframes spin {
-        to { transform: rotate(360deg); }
+        0% {
+            transform: rotate(0deg) translateZ(0);
+            -webkit-transform: rotate(0deg) translateZ(0);
+        }
+        100% {
+            transform: rotate(360deg) translateZ(0);
+            -webkit-transform: rotate(360deg) translateZ(0);
+        }
+    }
+
+    /* Ensure smooth animations on iOS Safari */
+    @supports (-webkit-overflow-scrolling: touch) {
+        .page-loading-overlay {
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            -webkit-perspective: 1000;
+            perspective: 1000;
+        }
     }
 
     /* Loading Pulse Animation (Alternative) */
