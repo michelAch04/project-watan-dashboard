@@ -59,7 +59,7 @@ class InboxPushNotification extends Notification implements ShouldQueue
     /**
      * Get the web push representation of the notification.
      */
-    public function toWebPush($notifiable, $notification)
+    public function toWebPush($notifiable)
     {
         return (new WebPushMessage)
             ->title($this->inboxNotification->title)
