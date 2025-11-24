@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PushSubscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -33,17 +32,13 @@ class PushNotificationController extends Controller
         try {
             $user = Auth::user();
 
-            // Delete old subscription for this endpoint if exists
-            PushSubscription::where('endpoint', $validated['endpoint'])->delete();
-
-            // Create new subscription
-            PushSubscription::create([
-                'user_id' => $user->id,
-                'endpoint' => $validated['endpoint'],
-                'public_key' => $validated['keys']['p256dh'],
-                'auth_token' => $validated['keys']['auth'],
-                'content_encoding' => 'aesgcm',
-            ]);
+            // Use the trait's method to create/update subscription
+            $user->updatePushSubscription(
+                $validated['endpoint'],
+                $validated['keys']['p256dh'],
+                $validated['keys']['auth'],
+                'aesgcm'
+            );
 
             return response()->json([
                 'success' => true,
@@ -69,9 +64,10 @@ class PushNotificationController extends Controller
         ]);
 
         try {
-            PushSubscription::where('endpoint', $validated['endpoint'])
-                ->where('user_id', Auth::id())
-                ->delete();
+            $user = Auth::user();
+
+            // Use the trait's method to delete subscription
+            $user->deletePushSubscription($validated['endpoint']);
 
             return response()->json([
                 'success' => true,
