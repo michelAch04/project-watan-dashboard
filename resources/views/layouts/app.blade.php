@@ -55,11 +55,8 @@
     </style>
 </head>
 
-<body class="bg-gray-50 min-h-screen antialiased"
-      x-data="{ menuOpen: false }"
-      :class="{ 'modal-open': menuOpen }"
-      data-authenticated="{{ Auth::check() ? 'true' : 'false' }}"
-      x-cloak>
+<body class="bg-gray-50 min-h-screen antialiased" x-data="{ menuOpen: false }" :class="{ 'modal-open': menuOpen }"
+    data-authenticated="{{ Auth::check() ? 'true' : 'false' }}" x-cloak>
 
     <!-- Page Loading Overlay -->
     <div id="pageLoadingOverlay" class="page-loading-overlay">
@@ -67,7 +64,7 @@
     </div>
 
     @if(Auth::check())
-    @include('components.notification-permission')
+        @include('components.notification-permission')
     @endif
 
     <div class="page-wrapper">
@@ -76,21 +73,16 @@
         </div>
 
         @if(Auth::check())
-        @include('layouts.partials.bottom-nav')
+            @include('layouts.partials.bottom-nav')
         @endif
     </div>
 
     <!-- Modal Backdrop -->
     <template x-if="menuOpen">
-        <div class="modal-backdrop" 
-             @click="menuOpen = false"
-             x-show="menuOpen"
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0">
+        <div class="modal-backdrop" @click="menuOpen = false" x-show="menuOpen"
+            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
         </div>
     </template>
 
@@ -98,14 +90,14 @@
 
     <!-- Page Loading Behavior (PWA-Optimized) -->
     <script>
-        (function() {
+        (function () {
             const overlay = document.getElementById('pageLoadingOverlay');
             let hideTimer = null;
 
             // Detect if running as PWA (standalone mode)
             const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
-                          window.navigator.standalone ||
-                          document.referrer.includes('android-app://');
+                window.navigator.standalone ||
+                document.referrer.includes('android-app://');
 
             // Show loading overlay immediately
             function showLoadingOverlay() {
@@ -120,7 +112,7 @@
                 overlay.classList.add('active');
 
                 // Aggressive failsafe: force hide after 5 seconds max
-                hideTimer = setTimeout(function() {
+                hideTimer = setTimeout(function () {
                     hideLoadingOverlay();
                 }, 5000);
             }
@@ -138,9 +130,30 @@
                 overlay.classList.remove('active');
             }
 
-            // Intercept all link clicks
-            document.addEventListener('click', function(e) {
+            // Track touch events to prevent accidental triggers
+            let isTouchDevice = false;
+            let touchMoved = false;
+
+            // Detect if user moved finger (scrolling)
+            document.addEventListener('touchmove', function (e) {
+                touchMoved = true;
+            }, { passive: true });
+
+            // Reset touch moved flag on touch start
+            document.addEventListener('touchstart', function (e) {
+                isTouchDevice = true;
+                touchMoved = false;
+            }, { passive: true });
+
+            // Intercept all link clicks (works for both mouse and touch)
+            document.addEventListener('click', function (e) {
                 const link = e.target.closest('a');
+
+                // If on touch device and user was scrolling, ignore
+                if (isTouchDevice && touchMoved) {
+                    touchMoved = false;
+                    return;
+                }
 
                 if (link &&
                     link.href &&
@@ -176,7 +189,7 @@
             }
 
             // Hide on visibility change (tab switching)
-            document.addEventListener('visibilitychange', function() {
+            document.addEventListener('visibilitychange', function () {
                 if (!document.hidden) {
                     forceHideOnLoad();
                 }
@@ -203,39 +216,30 @@
             });
         }
 
-        // Comprehensive fix for mobile back button focus/active state
+        // Optimized fix for mobile back button focus/active state
         function clearAllStuckStates() {
-            // Blur active element
-            if (document.activeElement && document.activeElement !== document.body) {
+            // 1. Simply blur the currently active element. 
+            // This fixes 99% of "sticky hover" issues on mobile.
+            if (document.activeElement && document.activeElement instanceof HTMLElement) {
                 document.activeElement.blur();
             }
 
-            // Remove all Tailwind pseudo-class states by forcing a reflow
-            document.querySelectorAll('a, button, [role="button"]').forEach(function(el) {
-                // Force remove focus by re-setting tabindex
-                const currentTabIndex = el.getAttribute('tabindex');
-                el.setAttribute('tabindex', '-1');
-                el.blur();
-                if (currentTabIndex !== null) {
-                    el.setAttribute('tabindex', currentTabIndex);
-                } else {
-                    el.removeAttribute('tabindex');
-                }
-
-                // Clear any stuck visual states
-                el.style.cssText = '';
-            });
-
-            // Force a repaint
-            document.body.style.display = 'none';
-            document.body.offsetHeight;
-            document.body.style.display = '';
+            // 2. Only if absolutely necessary for Tailwind rings/shadows:
+            // Remove focus classes manually from the specific element that was clicked
+            // (Instead of scanning the whole DOM which is slow)
+            const focused = document.querySelector(':focus');
+            if (focused) focused.blur();
         }
 
-        // On page show (back button)
-        window.addEventListener('pageshow', function(event) {
-            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+        // On page show (back button or tab switch)
+        window.addEventListener('pageshow', function (event) {
+            // If page was served from back-forward cache
+            if (event.persisted) {
                 clearAllStuckStates();
+
+                // Ensure overlay is hidden specifically for BFcache
+                const overlay = document.getElementById('pageLoadingOverlay');
+                if (overlay) overlay.classList.remove('active');
             }
         });
 
