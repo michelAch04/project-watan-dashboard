@@ -35,6 +35,7 @@ class LoginController extends Controller
         $request->validate([
             'mobile' => ['required', 'string'],
             'password' => ['required', 'string'],
+            'remember' => ['boolean'],
         ]);
 
         // Find user by mobile
@@ -49,7 +50,7 @@ class LoginController extends Controller
 
         // Generate and send OTP
         $otp = $user->generateOTP();
-        
+
         $smsSent = $this->smsService->sendOTP($user->mobile, $otp);
 
         if (!$smsSent) {
@@ -58,8 +59,11 @@ class LoginController extends Controller
             ]);
         }
 
-        // Store user ID in session for OTP verification
-        session(['otp_user_id' => $user->id]);
+        // Store user ID and remember preference in session for OTP verification
+        session([
+            'otp_user_id' => $user->id,
+            'remember_me' => $request->input('remember', false)
+        ]);
 
         return response()->json([
             'success' => true,
@@ -78,7 +82,8 @@ class LoginController extends Controller
         ]);
 
         $userId = session('otp_user_id');
-        
+        $rememberMe = session('remember_me', false);
+
         if (!$userId) {
             throw ValidationException::withMessages([
                 'otp' => ['Session expired. Please login again.'],
@@ -107,11 +112,11 @@ class LoginController extends Controller
             ]);
         }
 
-        // Login user
-        Auth::login($user);
-        
-        // Clear session
-        session()->forget('otp_user_id');
+        // Login user with remember me option
+        Auth::login($user, $rememberMe);
+
+        // Clear OTP session data
+        session()->forget(['otp_user_id', 'remember_me']);
 
         // Regenerate session for security
         $request->session()->regenerate();

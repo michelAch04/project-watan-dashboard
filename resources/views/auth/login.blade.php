@@ -55,15 +55,31 @@
                     <label for="password" class="block text-sm font-semibold text-[#622032] mb-2">
                         Password
                     </label>
-                    <input 
-                        type="password" 
-                        id="password" 
+                    <input
+                        type="password"
+                        id="password"
                         x-model="password"
                         class="input-field"
                         placeholder="Enter your password"
                         required
                         :disabled="loading"
                     >
+                </div>
+
+                <!-- Remember Me Checkbox -->
+                <div class="mb-6">
+                    <label class="flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            x-model="rememberMe"
+                            class="w-4 h-4 text-[#931335] bg-gray-100 border-gray-300 rounded focus:ring-[#931335] focus:ring-2"
+                            :disabled="loading"
+                        >
+                        <span class="ml-2 text-sm font-medium text-[#622032]">
+                            Keep me signed in for 30 days
+                        </span>
+                    </label>
+                    <p class="text-xs text-[#622032]/70 mt-1 ml-6">Recommended for your personal device</p>
                 </div>
 
                 <!-- Error Message -->
@@ -234,6 +250,7 @@ function loginForm() {
     return {
         mobile: '',
         password: '',
+        rememberMe: true, // Default to checked for better UX
         loading: false,
         errorMessage: '',
 
@@ -251,7 +268,8 @@ function loginForm() {
                     },
                     body: JSON.stringify({
                         mobile: this.mobile,
-                        password: this.password
+                        password: this.password,
+                        remember: this.rememberMe
                     })
                 });
 
