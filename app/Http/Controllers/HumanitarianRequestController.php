@@ -206,11 +206,19 @@ class HumanitarianRequestController extends Controller
 
         // Handle file uploads BEFORE starting database transaction to reduce lock time
         $supportingDocuments = [];
-        if ($httpRequest->hasFile('supporting_documents')) {
-            foreach ($httpRequest->file('supporting_documents') as $file) {
-                $path = $file->store('humanitarian_requests', 'public');
-                $supportingDocuments[] = $path;
+        try {
+            if ($httpRequest->hasFile('supporting_documents')) {
+                foreach ($httpRequest->file('supporting_documents') as $file) {
+                    $path = $file->store('humanitarian_requests', 'public');
+                    $supportingDocuments[] = $path;
+                }
             }
+        } catch (\Exception $e) {
+            Log::error('Error uploading files: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload supporting documents: ' . $e->getMessage()
+            ], 500);
         }
 
         DB::beginTransaction();
