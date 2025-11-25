@@ -24,7 +24,7 @@ class UserController extends Controller
     private function getUserZone()
     {
         static $zone = null;
-        if ($zone !== null) return $zone;
+        if ($zone != null) return $zone;
 
         $user = Auth::user();
 
@@ -63,21 +63,33 @@ class UserController extends Controller
         }
 
         // Direct report check
-        if($targetUser->manager_id === Auth::id()) {
+        if($targetUser->manager_id == Auth::id()) {
             return true;
         }
 
         // 1. Zone Check
         $userZone = $targetUser->zones->first();
-        if ($userZone && $userZone->id === $horZone->id) {
+        if ($userZone && $userZone->id == $horZone->id) {
             return true;
         }
 
         // 2. City Check (Optimized)
-        return City::notCancelled()
+        $hasCityInZone = City::notCancelled()
             ->whereJsonContains('user_id', (string)$targetUser->id)
             ->where('zone_id', $horZone->id)
             ->exists();
+
+        if ($hasCityInZone) {
+            return true;
+        }
+
+        // 3. PW Member's voter location check (for newly created users without assigned location)
+        $voterZoneId = $targetUser->pwMember?->voter?->city?->zone_id;
+        if ($voterZoneId && $voterZoneId == $horZone->id) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -253,7 +265,7 @@ class UserController extends Controller
 
             if ($request->manager_id) {
                 $manager = User::find($request->manager_id);
-                if ($manager->id !== Auth::id() && $manager->manager_id !== Auth::id()) {
+                if ($manager->id != Auth::id() && $manager->manager_id != Auth::id()) {
                     return response()->json(['success' => false, 'message' => 'You can only assign managers that report to you or yourself.'], 403);
                 }
             }
@@ -407,12 +419,12 @@ class UserController extends Controller
         }
 
         if ($horZone) {
-            if ($request->location_type === 'zone') {
+            if ($request->location_type == 'zone') {
                 return response()->json(['success' => false, 'message' => 'You cannot assign zones.'], 403);
             }
-            if ($request->location_type === 'city') {
+            if ($request->location_type == 'city') {
                 $city = City::find($request->location_id);
-                if (!$city || $city->zone_id !== $horZone->id) {
+                if (!$city || $city->zone_id != $horZone->id) {
                     return response()->json(['success' => false, 'message' => 'City not in your zone.'], 403);
                 }
             }
@@ -501,12 +513,12 @@ class UserController extends Controller
             if (in_array($request->role, ['admin', 'hor'])) {
                 return response()->json(['success' => false, 'message' => 'Invalid role'], 403);
             }
-            if ($request->location_type === 'zone') {
+            if ($request->location_type == 'zone') {
                 return response()->json(['success' => false, 'message' => 'Cannot assign zones'], 403);
             }
-            if ($request->location_type === 'city') {
+            if ($request->location_type == 'city') {
                 $city = City::find($request->location_id);
-                if (!$city || $city->zone_id !== $horZone->id) {
+                if (!$city || $city->zone_id != $horZone->id) {
                     return response()->json(['success' => false, 'message' => 'Invalid city'], 403);
                 }
             }
@@ -526,10 +538,10 @@ class UserController extends Controller
                 });
 
             // Assign new location
-            if ($request->location_type !== 'none') {
-                if ($request->location_type === 'zone') {
+            if ($request->location_type != 'none') {
+                if ($request->location_type == 'zone') {
                     Zone::where('id', $request->location_id)->update(['user_id' => $user->id]);
-                } elseif ($request->location_type === 'city') {
+                } elseif ($request->location_type == 'city') {
                     City::findOrFail($request->location_id)->assignUser($user->id);
                 }
             }
@@ -553,7 +565,7 @@ class UserController extends Controller
             return response()->json(['success' => false, 'message' => 'Permission denied'], 403);
         }
 
-        if ($user->id === Auth::id()) {
+        if ($user->id == Auth::id()) {
             return response()->json(['success' => false, 'message' => 'Cannot delete yourself'], 403);
         }
 
@@ -610,11 +622,11 @@ class UserController extends Controller
     {
         $mobile = preg_replace('/[\s\-\+]/', '', $mobile);
 
-        if (substr($mobile, 0, 1) === '0') {
+        if (substr($mobile, 0, 1) == '0') {
             $mobile = substr($mobile, 1);
         }
 
-        if (substr($mobile, 0, 3) !== '961') {
+        if (substr($mobile, 0, 3) != '961') {
             $mobile = '961' . $mobile;
         }
 

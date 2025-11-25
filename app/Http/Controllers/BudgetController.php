@@ -101,7 +101,11 @@ class BudgetController extends Controller
     {
         $user = Auth::user();
         // HOR can only create budgets for their own zone
-        $zone = $user->zones->first();
+        $zone = $user->zones()->first();
+
+        if (!$zone) {
+            abort(403, 'You must be assigned to a zone to create budgets.');
+        }
 
         return view('budgets.create', compact('zone'));
     }
@@ -130,7 +134,7 @@ class BudgetController extends Controller
 
         // Verify user owns this zone
         $zone = Zone::findOrFail($validated['zone_id']);
-        if ($zone->user_id !== $user->id) {
+        if ($zone->user_id != $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'You can only create budgets for your own zones'
@@ -168,7 +172,7 @@ class BudgetController extends Controller
         $budget = Budget::with('zone')->findOrFail($id);
 
         // Verify user owns this zone
-        if ($budget->zone->user_id !== $user->id) {
+        if ($budget->zone->user_id != $user->id) {
             abort(403, 'You can only edit budgets for your own zones');
         }
 
@@ -186,7 +190,7 @@ class BudgetController extends Controller
         $budget = Budget::with('zone')->findOrFail($id);
 
         // Verify user owns this zone (HOR only, admin can't edit)
-        if (!$user->hasRole('hor') || $budget->zone->user_id !== $user->id) {
+        if (!$user->hasRole('hor') || $budget->zone->user_id != $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'You can only edit budgets for your own zones'
@@ -204,7 +208,7 @@ class BudgetController extends Controller
         $budget->update($validated);
 
         // If monthly amount changed, record an adjustment transaction
-        if ($oldMonthlyAmount !== $validated['monthly_amount_in_usd']) {
+        if ($oldMonthlyAmount != $validated['monthly_amount_in_usd']) {
             $difference = $validated['monthly_amount_in_usd'] - $oldMonthlyAmount;
             \App\Models\BudgetTransaction::create([
                 'budget_id' => $budget->id,
@@ -231,7 +235,7 @@ class BudgetController extends Controller
         $budget = Budget::with('zone')->findOrFail($id);
 
         // Verify user owns this zone
-        if ($budget->zone->user_id !== $user->id) {
+        if ($budget->zone->user_id != $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'You can only delete budgets for your own zones'
@@ -280,7 +284,7 @@ class BudgetController extends Controller
         $zone = Zone::findOrFail($zoneId);
 
         // Verify user owns this zone
-        if ($zone->user_id !== $user->id) {
+        if ($zone->user_id != $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
