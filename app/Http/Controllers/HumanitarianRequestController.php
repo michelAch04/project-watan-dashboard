@@ -204,6 +204,15 @@ class HumanitarianRequestController extends Controller
 
         $user = Auth::user();
 
+        // Handle file uploads BEFORE starting database transaction to reduce lock time
+        $supportingDocuments = [];
+        if ($httpRequest->hasFile('supporting_documents')) {
+            foreach ($httpRequest->file('supporting_documents') as $file) {
+                $path = $file->store('humanitarian_requests', 'public');
+                $supportingDocuments[] = $path;
+            }
+        }
+
         DB::beginTransaction();
         try {
             // Determine status based on action
@@ -237,6 +246,10 @@ class HumanitarianRequestController extends Controller
                 $budget = Budget::notCancelled()->with('zone')->findOrFail($validated['budget_id']);
                 if ($budget->zone->user_id !== $user->id) {
                     DB::rollBack();
+                    // Clean up uploaded files if transaction fails
+                    foreach ($supportingDocuments as $doc) {
+                        Storage::disk('public')->delete($doc);
+                    }
                     return response()->json([
                         'success' => false,
                         'message' => 'You can only use budgets from your own zones'
@@ -255,6 +268,10 @@ class HumanitarianRequestController extends Controller
                 if (!$budget->hasEnoughBudget($validated['amount'], $readyYear, $readyMonth)) {
                     $remaining = $budget->getRemainingBudgetForMonth($readyYear, $readyMonth);
                     DB::rollBack();
+                    // Clean up uploaded files if transaction fails
+                    foreach ($supportingDocuments as $doc) {
+                        Storage::disk('public')->delete($doc);
+                    }
                     return response()->json([
                         'success' => false,
                         'message' => 'Insufficient budget for ' . $readyDate->format('F Y') . '. Remaining: $' . number_format($remaining, 2)
@@ -267,15 +284,6 @@ class HumanitarianRequestController extends Controller
 
             // Create the request header
             $requestHeader = RequestHeader::create($headerData);
-
-            // Handle file uploads
-            $supportingDocuments = [];
-            if ($httpRequest->hasFile('supporting_documents')) {
-                foreach ($httpRequest->file('supporting_documents') as $file) {
-                    $path = $file->store('humanitarian_requests', 'public');
-                    $supportingDocuments[] = $path;
-                }
-            }
 
             // Create the humanitarian request
             $humanitarianData = [
@@ -335,6 +343,10 @@ class HumanitarianRequestController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            // Clean up uploaded files if transaction fails
+            foreach ($supportingDocuments as $doc) {
+                Storage::disk('public')->delete($doc);
+            }
             Log::error('Error creating request: ' . $e->getMessage());
             return response()->json([
                 'success' => false,

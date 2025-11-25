@@ -213,6 +213,15 @@ class PublicRequestController extends Controller
             ], 400);
         }
 
+        // Handle file uploads BEFORE starting database transaction to reduce lock time
+        $supportingDocuments = [];
+        if ($httpRequest->hasFile('supporting_documents')) {
+            foreach ($httpRequest->file('supporting_documents') as $file) {
+                $path = $file->store('public_requests', 'public');
+                $supportingDocuments[] = $path;
+            }
+        }
+
         DB::beginTransaction();
         try {
             // Determine status based on action
@@ -246,6 +255,10 @@ class PublicRequestController extends Controller
                 $budget = Budget::notCancelled()->with('zone')->findOrFail($validated['budget_id']);
                 if ($budget->zone->user_id !== $user->id) {
                     DB::rollBack();
+                    // Clean up uploaded files if transaction fails
+                    foreach ($supportingDocuments as $doc) {
+                        Storage::disk('public')->delete($doc);
+                    }
                     return response()->json([
                         'success' => false,
                         'message' => 'You can only use budgets from your own zones'
@@ -264,6 +277,10 @@ class PublicRequestController extends Controller
                 if (!$budget->hasEnoughBudget($validated['amount'], $readyYear, $readyMonth)) {
                     $remaining = $budget->getRemainingBudgetForMonth($readyYear, $readyMonth);
                     DB::rollBack();
+                    // Clean up uploaded files if transaction fails
+                    foreach ($supportingDocuments as $doc) {
+                        Storage::disk('public')->delete($doc);
+                    }
                     return response()->json([
                         'success' => false,
                         'message' => 'Insufficient budget for ' . $readyDate->format('F Y') . '. Remaining: $' . number_format($remaining, 2)
@@ -276,15 +293,6 @@ class PublicRequestController extends Controller
 
             // Create the request header
             $requestHeader = RequestHeader::create($headerData);
-
-            // Handle file uploads
-            $supportingDocuments = [];
-            if ($httpRequest->hasFile('supporting_documents')) {
-                foreach ($httpRequest->file('supporting_documents') as $file) {
-                    $path = $file->store('public_requests', 'public');
-                    $supportingDocuments[] = $path;
-                }
-            }
 
             // Create the public request
             $publicData = [
@@ -346,6 +354,10 @@ class PublicRequestController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            // Clean up uploaded files if transaction fails
+            foreach ($supportingDocuments as $doc) {
+                Storage::disk('public')->delete($doc);
+            }
             Log::error('Error creating public request: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
