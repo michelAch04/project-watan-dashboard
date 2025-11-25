@@ -261,7 +261,7 @@ class PublicRequestController extends Controller
             if ($user->hasRole('hor') && $validated['action'] === 'publish' && !empty($validated['budget_id']) && !empty($validated['ready_date'])) {
                 // Verify budget belongs to HOR's zone
                 $budget = Budget::notCancelled()->with('zone')->findOrFail($validated['budget_id']);
-                if ($budget->zone->user_id !== $user->id) {
+                if ($budget->zone->user_id != $user->id) {
                     DB::rollBack();
                     // Clean up uploaded files if transaction fails
                     foreach ($supportingDocuments as $doc) {
@@ -392,8 +392,8 @@ class PublicRequestController extends Controller
 
         // Check permissions - can view if user is sender, current approver, or has view_public permission
         if (
-            $request->sender_id !== $user->id &&
-            $request->current_user_id !== $user->id &&
+            $request->sender_id != $user->id &&
+            $request->current_user_id != $user->id &&
             !$user->can('view_public')
         ) {
             abort(403);
@@ -616,7 +616,7 @@ class PublicRequestController extends Controller
             $budget = Budget::notCancelled()->with('zone')->lockForUpdate()->findOrFail($validated['budget_id']);
 
             // Verify budget belongs to HOR's zone
-            if ($budget->zone->user_id !== $user->id) {
+            if ($budget->zone->user_id != $user->id) {
                 DB::rollBack();
                 return response()->json([
                     'success' => false,
@@ -763,7 +763,7 @@ class PublicRequestController extends Controller
         }
 
         $finalApprovalStatus = RequestStatus::getByName(RequestStatus::STATUS_FINAL_APPROVAL);
-        if ($requestHeader->request_status_id !== $finalApprovalStatus->id) {
+        if ($requestHeader->request_status_id != $finalApprovalStatus->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Request must be finally approved first'
@@ -804,7 +804,7 @@ class PublicRequestController extends Controller
         }
 
         $readyStatus = RequestStatus::getByName(RequestStatus::STATUS_READY_FOR_COLLECTION);
-        if ($requestHeader->request_status_id !== $readyStatus->id) {
+        if ($requestHeader->request_status_id != $readyStatus->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Request must be ready for collection first'
