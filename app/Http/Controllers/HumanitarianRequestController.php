@@ -40,7 +40,7 @@ class HumanitarianRequestController extends Controller
             ->whereHas('humanitarianRequest')
             ->count();
 
-        // Get budgets if user is HOR
+        // Get budgets if user is HOR (only humanitarian budgets)
         $budgets = null;
         if ($user->hasRole('hor')) {
             $budgets = Budget::notCancelled()
@@ -48,6 +48,7 @@ class HumanitarianRequestController extends Controller
                 ->whereHas('zone', function($q) use ($user) {
                     $q->where('user_id', $user->id);
                 })
+                ->forRequestType(Budget::TYPE_HUMANITARIAN)
                 ->get()
                 ->map(function($budget) {
                     $currentMonth = now()->month;
