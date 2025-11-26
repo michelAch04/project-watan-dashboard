@@ -190,6 +190,7 @@ function inboxManager() {
                 const response = await fetch(`/inbox/${notificationId}/read`, {
                     method: 'POST',
                     headers: {
+                        'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json'
                     }
@@ -197,6 +198,8 @@ function inboxManager() {
 
                 if (response.ok) {
                     window.location.reload();
+                } else {
+                    console.error('Failed to mark as read:', response.status);
                 }
             } catch (error) {
                 console.error('Error marking notification as read:', error);
@@ -208,6 +211,7 @@ function inboxManager() {
                 const response = await fetch('/inbox/read-all', {
                     method: 'POST',
                     headers: {
+                        'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json'
                     }
@@ -215,6 +219,8 @@ function inboxManager() {
 
                 if (response.ok) {
                     window.location.reload();
+                } else {
+                    console.error('Failed to mark all as read:', response.status);
                 }
             } catch (error) {
                 console.error('Error marking all as read:', error);
@@ -228,6 +234,7 @@ function inboxManager() {
                 const response = await fetch('/inbox/clear-all', {
                     method: 'POST',
                     headers: {
+                        'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json'
                     }
@@ -235,6 +242,8 @@ function inboxManager() {
 
                 if (response.ok) {
                     window.location.reload();
+                } else {
+                    console.error('Failed to clear all:', response.status);
                 }
             } catch (error) {
                 console.error('Error clearing all notifications:', error);
@@ -248,6 +257,7 @@ function inboxManager() {
                 const response = await fetch(`/inbox/${notificationId}`, {
                     method: 'DELETE',
                     headers: {
+                        'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json'
                     }
@@ -255,6 +265,8 @@ function inboxManager() {
 
                 if (response.ok) {
                     window.location.reload();
+                } else {
+                    console.error('Failed to delete notification:', response.status);
                 }
             } catch (error) {
                 console.error('Error deleting notification:', error);

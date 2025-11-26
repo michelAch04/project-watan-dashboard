@@ -56,7 +56,7 @@ class MonthlyListController extends Controller
         $requestHeader = RequestHeader::findOrFail($validated['request_id']);
 
         // Verify user can access this request (either sender or can view it)
-        if ($requestHeader->sender_id !== $user->id && !$user->hasRole('hor')) {
+        if ($requestHeader->sender_id != $user->id && !$user->hasRole('hor')) {
             return response()->json([
                 'success' => false,
                 'message' => 'You cannot add this request to your monthly list'
@@ -96,7 +96,7 @@ class MonthlyListController extends Controller
         $user = Auth::user();
         $item = MonthlyList::findOrFail($id);
 
-        if ($item->user_id !== $user->id) {
+        if ($item->user_id != $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -158,17 +158,17 @@ class MonthlyListController extends Controller
                 $budget = null;
                 $budgetType = 'regular'; // or 'diaper'
 
-                if ($requestType === 'humanitarian') {
+                if ($requestType == 'humanitarian') {
                     $original = $originalHeader->humanitarianRequest;
                     if ($original->budget_id) {
                         $budget = \App\Models\Budget::notCancelled()->lockForUpdate()->find($original->budget_id);
                     }
-                } elseif ($requestType === 'public') {
+                } elseif ($requestType == 'public') {
                     $original = $originalHeader->publicRequest;
                     if ($original->budget_id) {
                         $budget = \App\Models\Budget::notCancelled()->lockForUpdate()->find($original->budget_id);
                     }
-                } elseif ($requestType === 'diapers') {
+                } elseif ($requestType == 'diapers') {
                     $original = $originalHeader->diapersRequest;
                     if ($original->budget_id) {
                         $budget = \App\Models\DiaperBudget::notCancelled()->lockForUpdate()->find($original->budget_id);
@@ -181,7 +181,7 @@ class MonthlyListController extends Controller
                     $budget->checkAndRefill();
 
                     // Check if sufficient budget (for regular budgets, diapers use different logic)
-                    if ($budgetType === 'regular') {
+                    if ($budgetType == 'regular') {
                         if (!$budget->hasEnoughBudget($original->amount, $readyYear, $readyMonth)) {
                             $remaining = $budget->getRemainingBudgetForMonth($readyYear, $readyMonth);
                             throw new \Exception("Insufficient budget. Remaining: $" . number_format($remaining, 2));
@@ -209,7 +209,7 @@ class MonthlyListController extends Controller
                 ]);
 
                 // Create new request based on type
-                if ($requestType === 'humanitarian') {
+                if ($requestType == 'humanitarian') {
                     $newRequest = HumanitarianRequest::create([
                         'request_header_id' => $newRequestHeader->id,
                         'voter_id' => $original->voter_id,
@@ -228,7 +228,7 @@ class MonthlyListController extends Controller
                             "Monthly list request #{$newRequestHeader->request_number} allocated to " . $readyDate->format('F Y')
                         );
                     }
-                } elseif ($requestType === 'public') {
+                } elseif ($requestType == 'public') {
                     $newRequest = PublicRequest::create([
                         'request_header_id' => $newRequestHeader->id,
                         'city_id' => $original->city_id,
@@ -249,7 +249,7 @@ class MonthlyListController extends Controller
                             "Monthly list request #{$newRequestHeader->request_number} allocated to " . $readyDate->format('F Y')
                         );
                     }
-                } elseif ($requestType === 'diapers') {
+                } elseif ($requestType == 'diapers') {
                     $newRequest = DiapersRequest::create([
                         'request_header_id' => $newRequestHeader->id,
                         'voter_id' => $original->voter_id,
@@ -289,11 +289,11 @@ class MonthlyListController extends Controller
                 // Get request identifier for error message
                 $requestIdentifier = 'Unknown';
                 if (isset($requestType) && isset($original)) {
-                    if ($requestType === 'humanitarian' && isset($original->voter)) {
+                    if ($requestType == 'humanitarian' && isset($original->voter)) {
                         $requestIdentifier = $original->voter->first_name . ' ' . $original->voter->last_name . ' - ' . $original->subtype;
-                    } elseif ($requestType === 'public' && isset($original->description)) {
+                    } elseif ($requestType == 'public' && isset($original->description)) {
                         $requestIdentifier = substr($original->description, 0, 50) . (strlen($original->description) > 50 ? '...' : '');
-                    } elseif ($requestType === 'diapers' && isset($original->voter)) {
+                    } elseif ($requestType == 'diapers' && isset($original->voter)) {
                         $requestIdentifier = $original->voter->first_name . ' ' . $original->voter->last_name . ' - Diapers';
                     }
                 }

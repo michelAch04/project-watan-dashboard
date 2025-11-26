@@ -73,7 +73,7 @@ class City extends Model
     {
         $users = $this->user_id ?? [];
         $users = array_filter($users, function($id) use ($userId) {
-            return $id !== $userId;
+            return $id != $userId;
         });
         $this->update(['user_id' => array_values($users)]);
     }

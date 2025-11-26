@@ -155,15 +155,15 @@ class RequestHeader extends Model
     {
         return
             $this->sender_id == $user->id && (
-                $this->requestStatus->name === RequestStatus::STATUS_DRAFT ||
-                $this->requestStatus->name === RequestStatus::STATUS_REJECTED
+                $this->requestStatus->name == RequestStatus::STATUS_DRAFT ||
+                $this->requestStatus->name == RequestStatus::STATUS_REJECTED
             );
     }
 
     public function canApproveReject($user)
     {
         return $this->current_user_id == $user->id &&
-            $this->requestStatus->name === RequestStatus::STATUS_PUBLISHED;
+            $this->requestStatus->name == RequestStatus::STATUS_PUBLISHED;
     }
 
     /**

@@ -12,14 +12,14 @@ use Carbon\Carbon;
 class BudgetController extends Controller
 {
     /**
-     * Display budgets for HOR's zone or all budgets for admin
+     * Display budgets for HOR's zone or all budgets for admin/FC
      */
     public function index(Request $request)
     {
         $user = Auth::user();
 
-        // Admin can see all budgets, HOR can only see budgets for their own zones
-        if ($user->hasRole('admin')) {
+        // Admin and FC can see all budgets, HOR can only see budgets for their own zones
+        if ($user->hasRole('admin') || $user->hasRole('fc')) {
             $budgetsQuery = Budget::notCancelled()->with(['zone', 'transactions' => function($q) {
                 $q->notCancelled()->orderBy('created_at', 'desc');
             }]);
@@ -100,28 +100,33 @@ class BudgetController extends Controller
     public function create()
     {
         $user = Auth::user();
-        // HOR can only create budgets for their own zone
-        $zone = $user->zones()->first();
 
-        if (!$zone) {
+        // FC can create budgets for all zones, HOR can only create for their own zone
+        if ($user->hasRole('fc')) {
+            $zones = Zone::all();
+        } else {
+            $zones = $user->zones;
+        }
+
+        if ($zones->isEmpty()) {
             abort(403, 'You must be assigned to a zone to create budgets.');
         }
 
-        return view('budgets.create', compact('zone'));
+        return view('budgets.create', compact('zones'));
     }
 
     /**
-     * Store new budget (HOR only)
+     * Store new budget (HOR and FC)
      */
     public function store(Request $request)
     {
         $user = Auth::user();
 
-        // Only HOR can create budgets
-        if (!$user->hasRole('hor')) {
+        // Only HOR and FC can create budgets
+        if (!$user->hasRole('hor') && !$user->hasRole('fc')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only HOR can create budgets'
+                'message' => 'Only HOR and FC can create budgets'
             ], 403);
         }
 
@@ -129,16 +134,19 @@ class BudgetController extends Controller
             'description' => 'required|string|max:255',
             'monthly_amount_in_usd' => 'required|integer|min:1',
             'auto_refill_day' => 'required|integer|min:1|max:28',
-            'zone_id' => 'required|exists:zones,id'
+            'zone_id' => 'required|exists:zones,id',
+            'request_type' => 'required|string|in:humanitarian,public,diapers'
         ]);
 
-        // Verify user owns this zone
-        $zone = Zone::findOrFail($validated['zone_id']);
-        if ($zone->user_id != $user->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You can only create budgets for your own zones'
-            ], 403);
+        // Verify user owns this zone (skip for FC as they can manage all zones)
+        if (!$user->hasRole('fc')) {
+            $zone = Zone::findOrFail($validated['zone_id']);
+            if ($zone->user_id != $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only create budgets for your own zones'
+                ], 403);
+            }
         }
 
         // Set initial balance to monthly amount
@@ -171,12 +179,17 @@ class BudgetController extends Controller
         $user = Auth::user();
         $budget = Budget::with('zone')->findOrFail($id);
 
-        // Verify user owns this zone
-        if ($budget->zone->user_id != $user->id) {
+        // Verify user owns this zone (skip for FC as they can manage all zones)
+        if (!$user->hasRole('fc') && $budget->zone->user_id != $user->id) {
             abort(403, 'You can only edit budgets for your own zones');
         }
 
-        $zones = $user->zones;
+        // FC can see all zones, HOR can only see their own zones
+        if ($user->hasRole('fc')) {
+            $zones = Zone::all();
+        } else {
+            $zones = $user->zones;
+        }
 
         return view('budgets.edit', compact('budget', 'zones'));
     }
@@ -189,8 +202,16 @@ class BudgetController extends Controller
         $user = Auth::user();
         $budget = Budget::with('zone')->findOrFail($id);
 
-        // Verify user owns this zone (HOR only, admin can't edit)
-        if (!$user->hasRole('hor') || $budget->zone->user_id != $user->id) {
+        // Verify user owns this zone (HOR and FC, admin can't edit)
+        if (!$user->hasRole('hor') && !$user->hasRole('fc')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        // HOR can only edit their own zone's budgets, FC can edit all
+        if (!$user->hasRole('fc') && $budget->zone->user_id != $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'You can only edit budgets for your own zones'
@@ -200,7 +221,8 @@ class BudgetController extends Controller
         $validated = $request->validate([
             'description' => 'required|string|max:255',
             'monthly_amount_in_usd' => 'required|integer|min:1',
-            'auto_refill_day' => 'required|integer|min:1|max:28'
+            'auto_refill_day' => 'required|integer|min:1|max:28',
+            'request_type' => 'required|string|in:humanitarian,public,diapers'
         ]);
 
         $oldMonthlyAmount = $budget->monthly_amount_in_usd;
@@ -234,8 +256,8 @@ class BudgetController extends Controller
         $user = Auth::user();
         $budget = Budget::with('zone')->findOrFail($id);
 
-        // Verify user owns this zone
-        if ($budget->zone->user_id != $user->id) {
+        // Verify user owns this zone (skip for FC as they can manage all zones)
+        if (!$user->hasRole('fc') && $budget->zone->user_id != $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'You can only delete budgets for your own zones'
@@ -276,22 +298,30 @@ class BudgetController extends Controller
 
     /**
      * Get budgets for a specific zone (AJAX)
-     * Used when HOR is approving a request
+     * Used when HOR or FC is approving a request
      */
-    public function getBudgetsForZone($zoneId)
+    public function getBudgetsForZone($zoneId, Request $request)
     {
         $user = Auth::user();
         $zone = Zone::findOrFail($zoneId);
 
-        // Verify user owns this zone
-        if ($zone->user_id != $user->id) {
+        // Verify user owns this zone (skip for FC as they can access all zones)
+        if (!$user->hasRole('fc') && $zone->user_id != $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
             ], 403);
         }
 
-        $budgets = Budget::notCancelled()->where('zone_id', $zoneId)->get();
+        // Get request type from query parameter to filter budgets
+        $requestType = $request->query('request_type');
+
+        $budgets = Budget::notCancelled()
+            ->where('zone_id', $zoneId)
+            ->when($requestType, function($q) use ($requestType) {
+                return $q->forRequestType($requestType);
+            })
+            ->get();
 
         return response()->json([
             'success' => true,
@@ -331,13 +361,19 @@ class BudgetController extends Controller
 
     /**
      * Get all budgets for user's zones (AJAX)
+     * FC can see all zones, HOR can only see their own zones
      */
     public function getMyZoneBudgets()
     {
         $user = Auth::user();
-        $budgets = Budget::notCancelled()->whereHas('zone', function($q) use ($user) {
-            $q->where('user_id', $user->id);
-        })->get();
+
+        if ($user->hasRole('fc')) {
+            $budgets = Budget::notCancelled()->get();
+        } else {
+            $budgets = Budget::notCancelled()->whereHas('zone', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })->get();
+        }
 
         return response()->json([
             'success' => true,

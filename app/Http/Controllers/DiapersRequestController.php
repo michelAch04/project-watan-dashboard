@@ -211,7 +211,7 @@ class DiapersRequestController extends Controller
         DB::beginTransaction();
         try {
             // Determine status based on action
-            if ($validated['action'] === 'draft') {
+            if ($validated['action'] == 'draft') {
                 $status = RequestStatus::getByName(RequestStatus::STATUS_DRAFT);
                 $currentUserId = null;
             } else {
@@ -243,10 +243,10 @@ class DiapersRequestController extends Controller
             }
 
             // Handle budget allocation for HOR users who publish with budget
-            if ($user->hasRole('hor') && $validated['action'] === 'publish' && !empty($validated['diaper_budget_id']) && !empty($validated['ready_date'])) {
+            if ($user->hasRole('hor') && $validated['action'] == 'publish' && !empty($validated['diaper_budget_id']) && !empty($validated['ready_date'])) {
                 // Verify budget belongs to HOR's zone
                 $budget = DiaperBudget::notCancelled()->with('zone')->findOrFail($validated['diaper_budget_id']);
-                if ($budget->zone->user_id !== $user->id) {
+                if ($budget->zone->user_id != $user->id) {
                     DB::rollBack();
                     return response()->json([
                         'success' => false,
@@ -303,7 +303,7 @@ class DiapersRequestController extends Controller
             }
 
             // Record budget allocation if HOR user allocated budget
-            if ($user->hasRole('hor') && $validated['action'] === 'publish' && !empty($validated['diaper_budget_id'])) {
+            if ($user->hasRole('hor') && $validated['action'] == 'publish' && !empty($validated['diaper_budget_id'])) {
                 $budget = DiaperBudget::notCancelled()->findOrFail($validated['diaper_budget_id']);
                 $readyDate = \Carbon\Carbon::parse($validated['ready_date']);
 
@@ -321,7 +321,7 @@ class DiapersRequestController extends Controller
             }
 
             // Create inbox notification if published
-            if ($validated['action'] === 'publish' && $currentUserId) {
+            if ($validated['action'] == 'publish' && $currentUserId) {
                 // Increment published count
                 $requestHeader->increment('published_count');
 
@@ -338,7 +338,7 @@ class DiapersRequestController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => $validated['action'] === 'draft' ? 'Request saved as draft' : 'Request published successfully',
+                'message' => $validated['action'] == 'draft' ? 'Request saved as draft' : 'Request published successfully',
                 'redirect' => route('diapers-requests.index')
             ]);
         } catch (\Exception $e) {
@@ -370,8 +370,8 @@ class DiapersRequestController extends Controller
 
         // Check permissions - can view if user is sender, current approver, or has view_diapers permission
         if (
-            $request->sender_id !== $user->id &&
-            $request->current_user_id !== $user->id &&
+            $request->sender_id != $user->id &&
+            $request->current_user_id != $user->id &&
             !$user->can('view_diapers')
         ) {
             abort(403);
@@ -456,7 +456,7 @@ class DiapersRequestController extends Controller
             }
 
             // Handle status change if publishing
-            if ($validated['action'] === 'publish') {
+            if ($validated['action'] == 'publish') {
                 $publishedStatus = RequestStatus::getByName(RequestStatus::STATUS_PUBLISHED);
                 $headerUpdateData['request_status_id'] = $publishedStatus->id;
 
@@ -465,7 +465,7 @@ class DiapersRequestController extends Controller
                     if (!empty($validated['diaper_budget_id']) && !empty($validated['ready_date'])) {
                         // Verify budget belongs to HOR's zone
                         $budget = DiaperBudget::notCancelled()->with('zone')->findOrFail($validated['diaper_budget_id']);
-                        if ($budget->zone->user_id !== $user->id) {
+                        if ($budget->zone->user_id != $user->id) {
                             DB::rollBack();
                             return response()->json([
                                 'success' => false,
@@ -509,7 +509,7 @@ class DiapersRequestController extends Controller
 
                     // Create notification with correct message based on published count
                     if ($user->manager_id) {
-                        $isFirstPublish = $requestHeader->published_count === 1;
+                        $isFirstPublish = $requestHeader->published_count == 1;
                         $message = $isFirstPublish
                             ? "{$user->username} has published a diapers request #{$requestHeader->request_number} for your approval."
                             : "{$user->username} has republished diapers request #{$requestHeader->request_number} for your approval.";
@@ -532,7 +532,7 @@ class DiapersRequestController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => $validated['action'] === 'save' ? 'Request updated' : 'Request published successfully',
+                'message' => $validated['action'] == 'save' ? 'Request updated' : 'Request published successfully',
                 'redirect' => route('diapers-requests.index')
             ]);
         } catch (\Exception $e) {
@@ -628,7 +628,7 @@ class DiapersRequestController extends Controller
         try {
             // Verify budget belongs to HOR's zone
             $budget = DiaperBudget::notCancelled()->with('zone')->findOrFail($validated['diaper_budget_id']);
-            if ($budget->zone->user_id !== $user->id) {
+            if ($budget->zone->user_id != $user->id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You can only use budgets from your own zones'
@@ -777,7 +777,7 @@ class DiapersRequestController extends Controller
         }
 
         $finalApprovalStatus = RequestStatus::getByName(RequestStatus::STATUS_FINAL_APPROVAL);
-        if ($requestHeader->request_status_id !== $finalApprovalStatus->id) {
+        if ($requestHeader->request_status_id != $finalApprovalStatus->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Request must be finally approved first'
@@ -818,7 +818,7 @@ class DiapersRequestController extends Controller
         }
 
         $readyStatus = RequestStatus::getByName(RequestStatus::STATUS_READY_FOR_COLLECTION);
-        if ($requestHeader->request_status_id !== $readyStatus->id) {
+        if ($requestHeader->request_status_id != $readyStatus->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Request must be ready for collection first'

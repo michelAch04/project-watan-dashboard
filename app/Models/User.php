@@ -144,7 +144,7 @@ class User extends Authenticatable
      */
     public function verifyOTP($code)
     {
-        if ($this->otp_code === $code && 
+        if ($this->otp_code == $code && 
             $this->otp_expires_at && 
             Carbon::now()->lessThan($this->otp_expires_at)) {
             

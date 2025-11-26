@@ -348,7 +348,7 @@ class UserController extends Controller
         $type = $request->type;
         $horZone = $this->getUserZone();
 
-        if ($type === 'zone') {
+        if ($type == 'zone') {
             if ($horZone) return response()->json([]);
 
             if (!$user->manager_id || $user->manager_id == $user->id) {
@@ -369,7 +369,7 @@ class UserController extends Controller
             return response()->json([]);
         } 
         
-        if ($type === 'city') {
+        if ($type == 'city') {
             $query = City::with('zone.district.governorate:id,name')
                          ->select(['id', 'name', 'name_ar', 'zone_id']);
 

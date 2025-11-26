@@ -34,6 +34,11 @@ class PwMemberController extends Controller
         $search = $request->input('search');
         $search = $search && strlen(trim($search)) >= 2 ? trim($search) : null;
 
+        // Store search query in session for later retrieval
+        if ($search) {
+            $request->session()->put('pw_members_search', $request->all());
+        }
+
         if (!$search) {
             return view('pw-members.index', [
                 'members' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 20, 1),
@@ -65,7 +70,7 @@ class PwMemberController extends Controller
 
         // Specific Filters
         if ($request->filled('status')) {
-            $isActive = $request->input('status') === 'active';
+            $isActive = $request->input('status') == 'active';
             $query->where('is_active', $isActive);
         }
 
@@ -202,7 +207,7 @@ class PwMemberController extends Controller
     /**
      * Display the specified PW member
      */
-    public function show($id)
+    public function show($id, Request $request)
     {
         $user = Auth::user();
         $member = PwMember::with(['voter.city.zone', 'user'])->findOrFail($id);
@@ -222,25 +227,28 @@ class PwMemberController extends Controller
             }
         }
 
-        return view('pw-members.show', compact('member'));
+        // Get search parameters from session
+        $searchParams = $request->session()->get('pw_members_search', []);
+
+        return view('pw-members.show', compact('member', 'searchParams'));
     }
 
     /**
      * Show the form for editing the specified PW member
      */
-    public function edit($id)
+    public function edit($id, Request $request)
     {
         $user = Auth::user();
 
         // Check permission
-        if (!$user->hasRole('admin') && !$user->hasRole('hor')) {
+        if (!$user->hasRole('admin') && !$user->hasRole('hor') && !$user->hasRole('fc')) {
             abort(403);
         }
 
         $member = PwMember::with(['voter.city.zone'])->findOrFail($id);
 
         // Check access
-        if (!$user->hasRole('admin')) {
+        if (!$user->hasRole('admin') && !$user->hasRole('fc')) {
             if ($user->hasRole('hor')) {
                 $zoneIds = $user->zones()->pluck('zones.id');
                 if ($member->voter && !$zoneIds->contains($member->voter->city->zone_id)) {
@@ -254,7 +262,10 @@ class PwMemberController extends Controller
             }
         }
 
-        return view('pw-members.edit', compact('member'));
+        // Get search parameters from session
+        $searchParams = $request->session()->get('pw_members_search', []);
+
+        return view('pw-members.edit', compact('member', 'searchParams'));
     }
 
     /**

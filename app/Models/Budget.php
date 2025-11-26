@@ -8,6 +8,11 @@ use Illuminate\Support\Facades\Log;
 
 class Budget extends Model
 {
+    // Request type constants
+    public const TYPE_HUMANITARIAN = 'humanitarian';
+    public const TYPE_PUBLIC = 'public';
+    public const TYPE_DIAPERS = 'diapers';
+
     protected $fillable = [
         'description',
         'monthly_amount_in_usd',
@@ -15,6 +20,7 @@ class Budget extends Model
         'auto_refill_day',
         'last_refill_date',
         'zone_id',
+        'request_type',
         'cancelled'
     ];
 
@@ -207,6 +213,14 @@ class Budget extends Model
     }
 
     /**
+     * Scope to filter budgets by request type
+     */
+    public function scopeForRequestType($query, $requestType)
+    {
+        return $query->where('request_type', $requestType);
+    }
+
+    /**
      * Check if budget needs refill and perform it if necessary
      */
     public function checkAndRefill()
@@ -217,7 +231,7 @@ class Budget extends Model
         // Check if we're on or past the refill day for this month
         $shouldRefill = false;
 
-        if ($this->last_refill_date === null) {
+        if ($this->last_refill_date == null) {
             // Never refilled before
             $shouldRefill = true;
         } else {
@@ -225,7 +239,7 @@ class Budget extends Model
             $lastRefillMonth = $this->last_refill_date->format('Y-m');
             $currentMonth = $today->format('Y-m');
 
-            if ($lastRefillMonth !== $currentMonth && $today->day >= $refillDay) {
+            if ($lastRefillMonth != $currentMonth && $today->day >= $refillDay) {
                 $shouldRefill = true;
             }
         }

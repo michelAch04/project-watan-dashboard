@@ -233,7 +233,7 @@ class PublicRequestController extends Controller
         DB::beginTransaction();
         try {
             // Determine status based on action
-            if ($validated['action'] === 'draft') {
+            if ($validated['action'] == 'draft') {
                 $status = RequestStatus::getByName(RequestStatus::STATUS_DRAFT);
                 $currentUserId = null;
             } else {
@@ -258,7 +258,7 @@ class PublicRequestController extends Controller
             ];
 
             // Handle budget allocation for HOR users who publish with budget
-            if ($user->hasRole('hor') && $validated['action'] === 'publish' && !empty($validated['budget_id']) && !empty($validated['ready_date'])) {
+            if ($user->hasRole('hor') && $validated['action'] == 'publish' && !empty($validated['budget_id']) && !empty($validated['ready_date'])) {
                 // Verify budget belongs to HOR's zone
                 $budget = Budget::notCancelled()->with('zone')->findOrFail($validated['budget_id']);
                 if ($budget->zone->user_id != $user->id) {
@@ -322,7 +322,7 @@ class PublicRequestController extends Controller
             $publicRequest = PublicRequest::create($publicData);
 
             // Record budget allocation if HOR user allocated budget
-            if ($user->hasRole('hor') && $validated['action'] === 'publish' && !empty($validated['budget_id'])) {
+            if ($user->hasRole('hor') && $validated['action'] == 'publish' && !empty($validated['budget_id'])) {
                 $budget = Budget::notCancelled()->findOrFail($validated['budget_id']);
                 $readyDate = \Carbon\Carbon::parse($validated['ready_date']);
 
@@ -340,7 +340,7 @@ class PublicRequestController extends Controller
             }
 
             // Create inbox notification if published
-            if ($validated['action'] === 'publish' && $currentUserId) {
+            if ($validated['action'] == 'publish' && $currentUserId) {
                 // Increment published count
                 $requestHeader->increment('published_count');
 
@@ -357,7 +357,7 @@ class PublicRequestController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => $validated['action'] === 'draft' ? 'Request saved as draft' : 'Request published successfully',
+                'message' => $validated['action'] == 'draft' ? 'Request saved as draft' : 'Request published successfully',
                 'redirect' => route('public-requests.index')
             ]);
         } catch (\Exception $e) {
@@ -489,7 +489,7 @@ class PublicRequestController extends Controller
         ];
 
         // Handle status change if publishing
-        if ($validated['action'] === 'publish') {
+        if ($validated['action'] == 'publish') {
             $publishedStatus = RequestStatus::getByName(RequestStatus::STATUS_PUBLISHED);
             $headerUpdateData['request_status_id'] = $publishedStatus->id;
 
@@ -505,7 +505,7 @@ class PublicRequestController extends Controller
 
                 // Create notification with correct message based on published count
                 if ($user->manager_id) {
-                    $isFirstPublish = $requestHeader->published_count === 1;
+                    $isFirstPublish = $requestHeader->published_count == 1;
                     $message = $isFirstPublish
                         ? "{$user->username} has published a public facilities request #{$requestHeader->request_number} for your approval."
                         : "{$user->username} has republished public facilities request #{$requestHeader->request_number} for your approval.";
@@ -526,7 +526,7 @@ class PublicRequestController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => $validated['action'] === 'save' ? 'Request updated' : 'Request published successfully',
+            'message' => $validated['action'] == 'save' ? 'Request updated' : 'Request published successfully',
             'redirect' => route('public-requests.index')
         ]);
     }

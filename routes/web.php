@@ -22,8 +22,8 @@ Route::middleware('auth')->group(function () {
         return view('profile.index');
     })->name('profile');
 
-    // User Management Routes (Admin and HOR access)
-    Route::prefix('users')->middleware('role:admin|hor')->group(function () {
+    // User Management Routes (Admin, HOR, and FC access)
+    Route::prefix('users')->middleware('role:admin|hor|fc')->group(function () {
         // Index page (viewing users)
         Route::get('/', [UserController::class, 'index'])->name('users.index');
 
@@ -61,9 +61,7 @@ Route::middleware('auth')->group(function () {
         return view('settings.index');
     })->name('settings.index')->middleware('can:manage_settings');
 
-    Route::get('/inbox', function () {
-        return view('inbox.index');
-    })->name('inbox.index')->middleware('can:manage_settings');
+    // Inbox routes are defined below in a dedicated section
 
     // Humanitarian Request Management
     Route::prefix('humanitarian')->middleware('can:view_humanitarian')->group(function () {
@@ -216,77 +214,77 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/remaining-stock', [App\Http\Controllers\DiapersRequestController::class, 'getRemainingStock'])->name('diapers-requests.get-remaining-stock');
     });
 
-    // Budget Management (HOR and Admin)
+    // Budget Management (HOR, FC and Admin)
     Route::prefix('budgets')->middleware('can:view_humanitarian')->group(function () {
-        // Index accessible by both HOR and Admin
+        // Index accessible by HOR, FC and Admin
         Route::get('/', [App\Http\Controllers\BudgetController::class, 'index'])
             ->name('budgets.index')
-            ->middleware('role:hor|admin');
+            ->middleware('role:hor|fc|admin');
 
-        // Create/Store only by HOR
+        // Create/Store by HOR and FC
         Route::get('/create', [App\Http\Controllers\BudgetController::class, 'create'])
             ->name('budgets.create')
-            ->middleware('role:hor');
+            ->middleware('role:hor|fc');
         Route::post('/', [App\Http\Controllers\BudgetController::class, 'store'])
             ->name('budgets.store')
-            ->middleware('role:hor');
+            ->middleware('role:hor|fc');
 
-        // Edit/Update only by HOR (of their own zones)
+        // Edit/Update by HOR (of their own zones) and FC (all zones)
         Route::get('/{id}/edit', [App\Http\Controllers\BudgetController::class, 'edit'])
             ->name('budgets.edit')
-            ->middleware('role:hor');
+            ->middleware('role:hor|fc');
         Route::put('/{id}', [App\Http\Controllers\BudgetController::class, 'update'])
             ->name('budgets.update')
-            ->middleware('role:hor');
+            ->middleware('role:hor|fc');
 
-        // Delete only by HOR (of their own zones)
+        // Delete by HOR (of their own zones) and FC (all zones)
         Route::delete('/{id}', [App\Http\Controllers\BudgetController::class, 'destroy'])
             ->name('budgets.destroy')
-            ->middleware('role:hor');
+            ->middleware('role:hor|fc');
 
-        // AJAX routes (HOR only)
+        // AJAX routes (HOR and FC)
         Route::get('/zone/{zoneId}', [App\Http\Controllers\BudgetController::class, 'getBudgetsForZone'])
             ->name('budgets.for-zone')
-            ->middleware('role:hor');
+            ->middleware('role:hor|fc');
     });
 
-    // Budget API Routes (for budget preview - HOR only)
-    Route::prefix('api/budgets')->middleware(['can:view_humanitarian', 'role:hor'])->group(function () {
+    // Budget API Routes (for budget preview - HOR and FC)
+    Route::prefix('api/budgets')->middleware(['can:view_humanitarian', 'role:hor|fc'])->group(function () {
         Route::post('/preview', [App\Http\Controllers\BudgetController::class, 'getBudgetPreview'])->name('api.budgets.preview');
         Route::get('/my-zones', [App\Http\Controllers\BudgetController::class, 'getMyZoneBudgets'])->name('api.budgets.my-zones');
     });
 
-    // Diaper Budget Management (HOR and Admin)
+    // Diaper Budget Management (HOR, FC and Admin)
     Route::prefix('diaper-budgets')->middleware('can:view_humanitarian')->group(function () {
-        // Create/Store only by HOR
+        // Create/Store by HOR and FC
         Route::get('/create', [App\Http\Controllers\DiaperBudgetController::class, 'create'])
             ->name('diaper-budgets.create')
-            ->middleware('role:hor');
+            ->middleware('role:hor|fc');
         Route::post('/', [App\Http\Controllers\DiaperBudgetController::class, 'store'])
             ->name('diaper-budgets.store')
-            ->middleware('role:hor');
+            ->middleware('role:hor|fc');
 
-        // Edit/Update only by HOR (of their own zones)
+        // Edit/Update by HOR (of their own zones) and FC (all zones)
         Route::get('/{id}/edit', [App\Http\Controllers\DiaperBudgetController::class, 'edit'])
             ->name('diaper-budgets.edit')
-            ->middleware('role:hor');
+            ->middleware('role:hor|fc');
         Route::put('/{id}', [App\Http\Controllers\DiaperBudgetController::class, 'update'])
             ->name('diaper-budgets.update')
-            ->middleware('role:hor');
+            ->middleware('role:hor|fc');
 
-        // Delete only by HOR (of their own zones)
+        // Delete by HOR (of their own zones) and FC (all zones)
         Route::delete('/{id}', [App\Http\Controllers\DiaperBudgetController::class, 'destroy'])
             ->name('diaper-budgets.destroy')
-            ->middleware('role:hor');
+            ->middleware('role:hor|fc');
 
-        // AJAX routes (HOR only)
+        // AJAX routes (HOR and FC)
         Route::get('/zone/{zoneId}', [App\Http\Controllers\DiaperBudgetController::class, 'getBudgetsForZone'])
             ->name('diaper-budgets.for-zone')
-            ->middleware('role:hor');
+            ->middleware('role:hor|fc');
     });
 
-    // Diaper Budget API Routes (for budget preview - HOR only)
-    Route::prefix('api/diaper-budgets')->middleware(['can:view_humanitarian', 'role:hor'])->group(function () {
+    // Diaper Budget API Routes (for budget preview - HOR and FC)
+    Route::prefix('api/diaper-budgets')->middleware(['can:view_humanitarian', 'role:hor|fc'])->group(function () {
         Route::post('/preview', [App\Http\Controllers\DiaperBudgetController::class, 'getBudgetPreview'])->name('api.diaper-budgets.preview');
         Route::get('/my-zones', [App\Http\Controllers\DiaperBudgetController::class, 'getMyZoneBudgets'])->name('api.diaper-budgets.my-zones');
     });
@@ -322,7 +320,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/search', [App\Http\Controllers\PwMemberController::class, 'search'])->name('pw-members.search');
         Route::get('/search-available-voters', [App\Http\Controllers\PwMemberController::class, 'searchAvailableVoters'])->name('pw-members.search-available-voters');
 
-        Route::middleware('role:admin|hor')->group(function () {
+        Route::middleware('role:admin|hor|fc')->group(function () {
             Route::get('/create', [App\Http\Controllers\PwMemberController::class, 'create'])->name('pw-members.create');
             Route::post('/', [App\Http\Controllers\PwMemberController::class, 'store'])->name('pw-members.store');
             Route::get('/{id}/edit', [App\Http\Controllers\PwMemberController::class, 'edit'])->name('pw-members.edit');

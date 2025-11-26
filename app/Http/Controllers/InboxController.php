@@ -31,7 +31,7 @@ class InboxController extends Controller
     {
         $notification = InboxNotification::findOrFail($id);
         
-        if ($notification->user_id !== Auth::id()) {
+        if ($notification->user_id != Auth::id()) {
             abort(403);
         }
 
@@ -70,7 +70,7 @@ class InboxController extends Controller
     {
         $notification = InboxNotification::findOrFail($id);
         
-        if ($notification->user_id !== Auth::id()) {
+        if ($notification->user_id != Auth::id()) {
             abort(403);
         }
 

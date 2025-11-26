@@ -37,6 +37,11 @@ class VotersListController extends Controller
         // Trim and ensure 2 chars
         $search = $search && strlen(trim($search)) >= 2 ? trim($search) : null;
 
+        // Store search query in session for later retrieval
+        if ($search) {
+            $request->session()->put('voters_list_search', $request->all());
+        }
+
         if (!$search) {
             // Return empty or default view
             // Using LengthAwarePaginator manually is fine, but returning empty view is cleaner if that's the logic

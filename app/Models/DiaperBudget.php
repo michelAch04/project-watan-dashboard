@@ -172,7 +172,7 @@ class DiaperBudget extends Model
         // Check if we're on or past the refill day for this month
         $shouldRefill = false;
 
-        if ($this->last_refill_date === null) {
+        if ($this->last_refill_date == null) {
             // Never refilled before
             $shouldRefill = true;
         } else {
@@ -180,7 +180,7 @@ class DiaperBudget extends Model
             $lastRefillMonth = $this->last_refill_date->format('Y-m');
             $currentMonth = $today->format('Y-m');
 
-            if ($lastRefillMonth !== $currentMonth && $today->day >= $refillDay) {
+            if ($lastRefillMonth != $currentMonth && $today->day >= $refillDay) {
                 $shouldRefill = true;
             }
         }

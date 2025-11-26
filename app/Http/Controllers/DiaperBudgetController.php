@@ -11,14 +11,14 @@ use Carbon\Carbon;
 class DiaperBudgetController extends Controller
 {
     /**
-     * Display diaper budgets for HOR's zone or all diaper budgets for admin
+     * Display diaper budgets for HOR's zone or all diaper budgets for admin/FC
      */
     public function index(Request $request)
     {
         $user = Auth::user();
 
-        // Admin can see all budgets, HOR can only see budgets for their own zones
-        if ($user->hasRole('admin')) {
+        // Admin and FC can see all budgets, HOR can only see budgets for their own zones
+        if ($user->hasRole('admin') || $user->hasRole('fc')) {
             $budgetsQuery = DiaperBudget::notCancelled()->with(['zone', 'transactions' => function($q) {
                 $q->notCancelled()->orderBy('created_at', 'desc');
             }]);
@@ -70,24 +70,33 @@ class DiaperBudgetController extends Controller
     public function create()
     {
         $user = Auth::user();
-        // HOR can only create budgets for their own zone
-        $zone = $user->zones->first();
 
-        return view('diaper-budgets.create', compact('zone'));
+        // FC can create budgets for all zones, HOR can only create for their own zone
+        if ($user->hasRole('fc')) {
+            $zones = Zone::all();
+        } else {
+            $zones = $user->zones;
+        }
+
+        if ($zones->isEmpty()) {
+            abort(403, 'You must be assigned to a zone to create diaper budgets.');
+        }
+
+        return view('diaper-budgets.create', compact('zones'));
     }
 
     /**
-     * Store new diaper budget (HOR only)
+     * Store new diaper budget (HOR and FC)
      */
     public function store(Request $request)
     {
         $user = Auth::user();
 
-        // Only HOR can create budgets
-        if (!$user->hasRole('hor')) {
+        // Only HOR and FC can create budgets
+        if (!$user->hasRole('hor') && !$user->hasRole('fc')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Only HOR can create diaper budgets'
+                'message' => 'Only HOR and FC can create diaper budgets'
             ], 403);
         }
 
@@ -99,13 +108,15 @@ class DiaperBudgetController extends Controller
             'zone_id' => 'required|exists:zones,id'
         ]);
 
-        // Verify user owns this zone
-        $zone = Zone::findOrFail($validated['zone_id']);
-        if ($zone->user_id !== $user->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You can only create budgets for your own zones'
-            ], 403);
+        // Verify user owns this zone (skip for FC as they can manage all zones)
+        if (!$user->hasRole('fc')) {
+            $zone = Zone::findOrFail($validated['zone_id']);
+            if ($zone->user_id != $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only create budgets for your own zones'
+                ], 403);
+            }
         }
 
         // Set initial stock to monthly restock
@@ -138,12 +149,17 @@ class DiaperBudgetController extends Controller
         $user = Auth::user();
         $budget = DiaperBudget::with('zone')->findOrFail($id);
 
-        // Verify user owns this zone
-        if ($budget->zone->user_id !== $user->id) {
+        // Verify user owns this zone (skip for FC as they can manage all zones)
+        if (!$user->hasRole('fc') && $budget->zone->user_id != $user->id) {
             abort(403, 'You can only edit budgets for your own zones');
         }
 
-        $zones = $user->zones;
+        // FC can see all zones, HOR can only see their own zones
+        if ($user->hasRole('fc')) {
+            $zones = Zone::all();
+        } else {
+            $zones = $user->zones;
+        }
 
         return view('diaper-budgets.edit', compact('budget', 'zones'));
     }
@@ -156,8 +172,16 @@ class DiaperBudgetController extends Controller
         $user = Auth::user();
         $budget = DiaperBudget::with('zone')->findOrFail($id);
 
-        // Verify user owns this zone (HOR only, admin can't edit)
-        if (!$user->hasRole('hor') || $budget->zone->user_id !== $user->id) {
+        // Verify user owns this zone (HOR and FC, admin can't edit)
+        if (!$user->hasRole('hor') && !$user->hasRole('fc')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        // HOR can only edit their own zone's budgets, FC can edit all
+        if (!$user->hasRole('fc') && $budget->zone->user_id != $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'You can only edit budgets for your own zones'
@@ -176,7 +200,7 @@ class DiaperBudgetController extends Controller
         $budget->update($validated);
 
         // If monthly restock changed, record an adjustment transaction
-        if ($oldMonthlyRestock !== $validated['monthly_restock']) {
+        if ($oldMonthlyRestock != $validated['monthly_restock']) {
             \App\Models\DiaperBudgetTransaction::create([
                 'diaper_budget_id' => $budget->id,
                 'type' => 'adjustment',
@@ -201,8 +225,8 @@ class DiaperBudgetController extends Controller
         $user = Auth::user();
         $budget = DiaperBudget::with('zone')->findOrFail($id);
 
-        // Verify user owns this zone
-        if ($budget->zone->user_id !== $user->id) {
+        // Verify user owns this zone (skip for FC as they can manage all zones)
+        if (!$user->hasRole('fc') && $budget->zone->user_id != $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'You can only delete budgets for your own zones'
@@ -233,15 +257,15 @@ class DiaperBudgetController extends Controller
 
     /**
      * Get diaper budgets for a specific zone (AJAX)
-     * Used when HOR is approving a request
+     * Used when HOR or FC is approving a request
      */
     public function getBudgetsForZone($zoneId)
     {
         $user = Auth::user();
         $zone = Zone::findOrFail($zoneId);
 
-        // Verify user owns this zone
-        if ($zone->user_id !== $user->id) {
+        // Verify user owns this zone (skip for FC as they can access all zones)
+        if (!$user->hasRole('fc') && $zone->user_id != $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -289,13 +313,19 @@ class DiaperBudgetController extends Controller
 
     /**
      * Get all diaper budgets for user's zones (AJAX)
+     * FC can see all zones, HOR can only see their own zones
      */
     public function getMyZoneBudgets()
     {
         $user = Auth::user();
-        $budgets = DiaperBudget::notCancelled()->whereHas('zone', function($q) use ($user) {
-            $q->where('user_id', $user->id);
-        })->get();
+
+        if ($user->hasRole('fc')) {
+            $budgets = DiaperBudget::notCancelled()->get();
+        } else {
+            $budgets = DiaperBudget::notCancelled()->whereHas('zone', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })->get();
+        }
 
         return response()->json([
             'success' => true,

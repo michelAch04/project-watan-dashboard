@@ -35,33 +35,33 @@ class RequestsController extends Controller
     {
         // Get active count
         $activeQuery = RequestHeader::active()->forUser($user);
-        if ($type === 'humanitarian') {
+        if ($type == 'humanitarian') {
             $activeQuery->whereHas('humanitarianRequest');
-        } elseif ($type === 'public') {
+        } elseif ($type == 'public') {
             $activeQuery->whereHas('publicRequest');
-        } elseif ($type === 'diapers') {
+        } elseif ($type == 'diapers') {
             $activeQuery->whereHas('diapersRequest');
         }
         $activeCount = $activeQuery->count();
 
         // Get drafts and rejected count
         $draftQuery = RequestHeader::draftsAndRejects($user);
-        if ($type === 'humanitarian') {
+        if ($type == 'humanitarian') {
             $draftQuery->whereHas('humanitarianRequest');
-        } elseif ($type === 'public') {
+        } elseif ($type == 'public') {
             $draftQuery->whereHas('publicRequest');
-        } elseif ($type === 'diapers') {
+        } elseif ($type == 'diapers') {
             $draftQuery->whereHas('diapersRequest');
         }
         $draftCount = $draftQuery->count();
 
         // Get completed count
         $completedQuery = RequestHeader::completed()->forUser($user);
-        if ($type === 'humanitarian') {
+        if ($type == 'humanitarian') {
             $completedQuery->whereHas('humanitarianRequest');
-        } elseif ($type === 'public') {
+        } elseif ($type == 'public') {
             $completedQuery->whereHas('publicRequest');
-        } elseif ($type === 'diapers') {
+        } elseif ($type == 'diapers') {
             $completedQuery->whereHas('diapersRequest');
         }
         $completedCount = $completedQuery->count();
