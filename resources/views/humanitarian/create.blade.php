@@ -636,8 +636,8 @@
 
             async showBudgetSelectionModal() {
                 try {
-                    // Fetch user's zone budgets
-                    const response = await fetch('/api/budgets/my-zones', {
+                    // Fetch user's zone budgets for humanitarian requests
+                    const response = await fetch('/api/budgets/my-zones?request_type=humanitarian', {
                         headers: {
                             'Accept': 'application/json',
                             'X-CSRF-TOKEN': csrfToken
