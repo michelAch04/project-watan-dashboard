@@ -72,12 +72,36 @@
                 <label for="zone_id" class="block text-sm font-semibold text-[#622032] mb-2">
                     Zone <span class="text-red-500">*</span>
                 </label>
-                <div class="input-field text-sm sm:text-base flex items-center">
-                    <span class="text-gray-700">{{ $zone->name }}</span>
-                </div>
-                <!-- Hidden input to send zone_id in form -->
-                <input type="hidden" name="zone_id" value="{{ $zone->id }}">
-                <p class="mt-1 text-xs text-gray-500">Your assigned zone</p>
+                @if($zones->count() == 1)
+                    <div class="input-field text-sm sm:text-base flex items-center">
+                        <span class="text-gray-700">{{ $zones->first()->name }}</span>
+                    </div>
+                    <!-- Hidden input to send zone_id in form -->
+                    <input type="hidden" name="zone_id" value="{{ $zones->first()->id }}">
+                    <p class="mt-1 text-xs text-gray-500">Your assigned zone</p>
+                @else
+                    <select id="zone_id" name="zone_id" required class="input-field text-sm sm:text-base">
+                        <option value="">Select a zone</option>
+                        @foreach($zones as $zone)
+                            <option value="{{ $zone->id }}">{{ $zone->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Select the zone for this budget</p>
+                @endif
+            </div>
+
+            <!-- Request Type -->
+            <div>
+                <label for="request_type" class="block text-sm font-semibold text-[#622032] mb-2">
+                    Request Type <span class="text-red-500">*</span>
+                </label>
+                <select id="request_type" name="request_type" required class="input-field text-sm sm:text-base">
+                    <option value="">Select request type</option>
+                    <option value="humanitarian">Humanitarian</option>
+                    <option value="public">Public</option>
+                    <option value="diapers">Diapers</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-500">This budget will only be available for the selected request type</p>
             </div>
 
             <!-- Description -->

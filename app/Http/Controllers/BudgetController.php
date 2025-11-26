@@ -104,10 +104,8 @@ class BudgetController extends Controller
         // FC can create budgets for all zones, HOR can only create for their own zone
         if ($user->hasRole('fc')) {
             $zones = Zone::all();
-            return view('budgets.create', compact('zones'));
         } else {
-            $zone = $user->zones;
-            return view('budgets.create', compact('zone'));
+            $zones = $user->zones;
         }
 
         if ($zones->isEmpty()) {
@@ -365,16 +363,26 @@ class BudgetController extends Controller
      * Get all budgets for user's zones (AJAX)
      * FC can see all zones, HOR can only see their own zones
      */
-    public function getMyZoneBudgets()
+    public function getMyZoneBudgets(Request $request)
     {
         $user = Auth::user();
+        $requestType = $request->query('request_type');
 
         if ($user->hasRole('fc')) {
-            $budgets = Budget::notCancelled()->get();
+            $budgets = Budget::notCancelled()
+                ->when($requestType, function($q) use ($requestType) {
+                    return $q->forRequestType($requestType);
+                })
+                ->get();
         } else {
-            $budgets = Budget::notCancelled()->whereHas('zone', function($q) use ($user) {
-                $q->where('user_id', $user->id);
-            })->get();
+            $budgets = Budget::notCancelled()
+                ->whereHas('zone', function($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                })
+                ->when($requestType, function($q) use ($requestType) {
+                    return $q->forRequestType($requestType);
+                })
+                ->get();
         }
 
         return response()->json([

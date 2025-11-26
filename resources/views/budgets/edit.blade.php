@@ -81,6 +81,20 @@
                 @csrf
                 @method('PUT')
 
+                <!-- Request Type -->
+                <div>
+                    <label for="request_type" class="block text-sm font-semibold text-[#622032] mb-2">
+                        Request Type <span class="text-red-500">*</span>
+                    </label>
+                    <select id="request_type" name="request_type" required class="input-field text-sm sm:text-base">
+                        <option value="">Select request type</option>
+                        <option value="humanitarian" {{ $budget->request_type == 'humanitarian' ? 'selected' : '' }}>Humanitarian</option>
+                        <option value="public" {{ $budget->request_type == 'public' ? 'selected' : '' }}>Public</option>
+                        <option value="diapers" {{ $budget->request_type == 'diapers' ? 'selected' : '' }}>Diapers</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">This budget will only be available for the selected request type</p>
+                </div>
+
                 <!-- Description -->
                 <div>
                     <label for="description" class="block text-sm font-semibold text-[#622032] mb-2">
