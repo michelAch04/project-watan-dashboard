@@ -104,8 +104,10 @@ class BudgetController extends Controller
         // FC can create budgets for all zones, HOR can only create for their own zone
         if ($user->hasRole('fc')) {
             $zones = Zone::all();
+            return view('budgets.create', compact('zones'));
         } else {
-            $zones = $user->zones;
+            $zone = $user->zones;
+            return view('budgets.create', compact('zone'));
         }
 
         if ($zones->isEmpty()) {
