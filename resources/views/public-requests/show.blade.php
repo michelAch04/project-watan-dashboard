@@ -49,7 +49,7 @@
 
                 <!-- Rejection Reason -->
                 @if($request->requestStatus->name === 'rejected' && $request->rejection_reason)
-                <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+                <div class="mt-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
                     <div class="flex items-start gap-3">
                         <svg class="w-6 h-6 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -57,6 +57,32 @@
                         <div class="flex-1">
                             <p class="text-sm font-bold text-red-800 mb-1">Rejection Reason:</p>
                             <p class="text-sm text-red-700">{{ $request->rejection_reason }}</p>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Warning: City has rejected requests -->
+                @if($cityHasRejectedRequests)
+                <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-lg">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <div class="flex-1">
+                            <p class="text-sm font-bold text-amber-800 mb-2">Warning: Previous Rejected Requests</p>
+                            <p class="text-sm text-amber-700 mb-2">This city has {{ $rejectedRequests->count() }} rejected request(s):</p>
+                            <ul class="text-xs text-amber-700 space-y-1">
+                                @foreach($rejectedRequests as $rejReq)
+                                <li class="flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 bg-amber-600 rounded-full"></span>
+                                    <a href="{{ route('public-requests.show', $rejReq->requestHeader->id) }}" class="hover:underline font-semibold">
+                                        {{ $rejReq->requestHeader->request_number }}
+                                    </a>
+                                    <span>- Rejected on {{ $rejReq->requestHeader->updated_at->format('M d, Y') }}</span>
+                                </li>
+                                @endforeach
+                            </ul>
                         </div>
                     </div>
                 </div>

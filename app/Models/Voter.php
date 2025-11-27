@@ -36,6 +36,14 @@ class Voter extends Model
     }
 
     /**
+     * Get diapers requests linked to this voter
+     */
+    public function diapersRequests()
+    {
+        return $this->hasMany(DiapersRequest::class, 'voter_id');
+    }
+
+    /**
      * Get the PW member linked to this voter
      */
     public function pwMember()
@@ -70,5 +78,59 @@ class Voter extends Model
               ->orWhere('last_name', 'like', "%{$search}%")
               ->orWhere('register_number', 'like', "%{$search}%");
         });
+    }
+
+    /**
+     * Check if voter has any rejected requests (humanitarian or diapers)
+     */
+    public function hasRejectedRequests()
+    {
+        $hasRejectedHumanitarian = $this->humanitarianRequests()
+            ->whereHas('requestHeader', function($q) {
+                $q->notCancelled()
+                    ->whereHas('requestStatus', function($q2) {
+                        $q2->where('name', RequestStatus::STATUS_REJECTED);
+                    });
+            })
+            ->exists();
+
+        $hasRejectedDiapers = $this->diapersRequests()
+            ->whereHas('requestHeader', function($q) {
+                $q->notCancelled()
+                    ->whereHas('requestStatus', function($q2) {
+                        $q2->where('name', RequestStatus::STATUS_REJECTED);
+                    });
+            })
+            ->exists();
+
+        return $hasRejectedHumanitarian || $hasRejectedDiapers;
+    }
+
+    /**
+     * Get all rejected requests (humanitarian and diapers)
+     */
+    public function getRejectedRequests()
+    {
+        $rejectedHumanitarian = $this->humanitarianRequests()
+            ->whereHas('requestHeader', function($q) {
+                $q->notCancelled()
+                    ->whereHas('requestStatus', function($q2) {
+                        $q2->where('name', RequestStatus::STATUS_REJECTED);
+                    });
+            })
+            ->with('requestHeader')
+            ->get();
+
+        $rejectedDiapers = $this->diapersRequests()
+            ->whereHas('requestHeader', function($q) {
+                $q->notCancelled()
+                    ->whereHas('requestStatus', function($q2) {
+                        $q2->where('name', RequestStatus::STATUS_REJECTED);
+                    });
+            })
+            ->with('requestHeader')
+            ->get();
+
+        return $rejectedHumanitarian->concat($rejectedDiapers);
     }
 }

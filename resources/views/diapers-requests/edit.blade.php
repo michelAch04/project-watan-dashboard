@@ -625,7 +625,31 @@ $memberData = $request->referenceMember ? [
                     const data = await response.json();
 
                     if (response.ok && data.success) {
-                        window.location.href = data.redirect;
+                        // Check if PW member was created
+                        if (data.pw_member_created) {
+                            // Show success message with toast notification
+                            const toast = document.createElement('div');
+                            toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in-down';
+                            toast.innerHTML = `
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span class="font-semibold">PW Member created successfully!</span>
+                                </div>
+                            `;
+                            document.body.appendChild(toast);
+                            setTimeout(() => {
+                                toast.remove();
+                            }, 3000);
+
+                            // Redirect to assign-followers page
+                            setTimeout(() => {
+                                window.location.href = data.redirect + '?auto_created=1';
+                            }, 1000);
+                        } else {
+                            window.location.href = data.redirect;
+                        }
                     } else {
                         this.errorMessage = data.message || 'Failed to update request';
                     }

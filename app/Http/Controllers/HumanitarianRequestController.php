@@ -312,6 +312,9 @@ class HumanitarianRequestController extends Controller
             $humanitarianRequest = HumanitarianRequest::create($humanitarianData);
 
             // Record budget allocation if HOR user allocated budget
+            $pwMemberCreated = false;
+            $newPwMember = null;
+
             if ($user->hasRole('hor') && $validated['action'] == 'publish' && !empty($validated['budget_id'])) {
                 $budget = Budget::notCancelled()->findOrFail($validated['budget_id']);
                 $readyDate = \Carbon\Carbon::parse($validated['ready_date']);
@@ -327,6 +330,26 @@ class HumanitarianRequestController extends Controller
                 );
 
                 Log::info("Budget allocated successfully to " . $readyDate->format('F Y'));
+
+                // Auto-create PW member if voter doesn't have one
+                $voter = $humanitarianRequest->voter;
+                if ($voter && !$voter->pwMember) {
+                    $helpedRole = \App\Models\PwMemberRole::where('name', 'helped')->first();
+
+                    $newPwMember = PwMember::create([
+                        'voter_id' => $voter->id,
+                        'first_name' => $voter->first_name,
+                        'father_name' => $voter->father_name,
+                        'last_name' => $voter->last_name,
+                        'mother_full_name' => $voter->mother_full_name,
+                        'phone' => $voter->phone,
+                        'email' => null,
+                        'pw_member_role_id' => $helpedRole ? $helpedRole->id : null,
+                        'is_active' => true
+                    ]);
+
+                    $pwMemberCreated = true;
+                }
             }
 
             // Create inbox notification if published
@@ -345,11 +368,21 @@ class HumanitarianRequestController extends Controller
 
             DB::commit();
 
-            return response()->json([
+            $response = [
                 'success' => true,
-                'message' => $validated['action'] == 'draft' ? 'Request saved as draft' : 'Request published successfully',
-                'redirect' => route('humanitarian.index')
-            ]);
+                'message' => $validated['action'] == 'draft' ? 'Request saved as draft' : 'Request published successfully'
+            ];
+
+            // If PW member was created, redirect to assign-followers page
+            if ($pwMemberCreated && $newPwMember) {
+                $response['pw_member_created'] = true;
+                $response['pw_member_id'] = $newPwMember->id;
+                $response['redirect'] = route('pw-members.assign-followers', $newPwMember->id);
+            } else {
+                $response['redirect'] = route('humanitarian.index');
+            }
+
+            return response()->json($response);
         } catch (\Exception $e) {
             DB::rollBack();
             // Clean up uploaded files if transaction fails
@@ -389,7 +422,17 @@ class HumanitarianRequestController extends Controller
             abort(403);
         }
 
-        return view('humanitarian.show', compact('request'));
+        // Check if voter has rejected requests
+        $voterHasRejectedRequests = false;
+        $rejectedRequests = collect();
+        if ($request->humanitarianRequest && $request->humanitarianRequest->voter) {
+            $voterHasRejectedRequests = $request->humanitarianRequest->voter->hasRejectedRequests();
+            if ($voterHasRejectedRequests) {
+                $rejectedRequests = $request->humanitarianRequest->voter->getRejectedRequests();
+            }
+        }
+
+        return view('humanitarian.show', compact('request', 'voterHasRejectedRequests', 'rejectedRequests'));
     }
 
     /**
@@ -431,6 +474,8 @@ class HumanitarianRequestController extends Controller
             'amount' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
             'action' => 'required|in:save,publish',
+            'budget_id' => 'nullable|exists:budgets,id',
+            'ready_date' => 'nullable|date',
             'supporting_documents.*' => 'nullable|file|mimes:jpeg,jpg,png,gif,webp,pdf|max:5120',
             'existing_documents' => 'nullable|string',
             'removed_documents' => 'nullable|string'
@@ -478,12 +523,76 @@ class HumanitarianRequestController extends Controller
             'supporting_documents' => !empty($supportingDocuments) ? $supportingDocuments : null,
         ];
 
+        $pwMemberCreated = false;
+        $newPwMember = null;
+
         // Handle status change if publishing
         if ($validated['action'] == 'publish') {
             $publishedStatus = RequestStatus::getByName(RequestStatus::STATUS_PUBLISHED);
             $headerUpdateData['request_status_id'] = $publishedStatus->id;
 
             if ($user->hasRole('hor')) {
+                // HOR publishing - check for budget allocation
+                if (!empty($validated['budget_id']) && !empty($validated['ready_date'])) {
+                    // Verify budget belongs to HOR's zone
+                    $budget = Budget::notCancelled()->with('zone')->findOrFail($validated['budget_id']);
+                    if ($budget->zone->user_id != $user->id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'You can only use budgets from your own zones'
+                        ], 403);
+                    }
+
+                    // Check and refill budget if needed
+                    $budget->checkAndRefill();
+
+                    // Extract month/year from ready_date for proper monthly budget checking
+                    $readyDate = \Carbon\Carbon::parse($validated['ready_date']);
+                    $readyMonth = $readyDate->month;
+                    $readyYear = $readyDate->year;
+
+                    // Check if budget has enough for the ready_date month
+                    if (!$budget->hasEnoughBudget($validated['amount'], $readyYear, $readyMonth)) {
+                        $remaining = $budget->getRemainingBudgetForMonth($readyYear, $readyMonth);
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Insufficient budget for ' . $readyDate->format('F Y') . '. Remaining: $' . number_format($remaining, 2)
+                        ], 400);
+                    }
+
+                    // Allocate budget
+                    $budget->allocateForRequest(
+                        $validated['amount'],
+                        $validated['ready_date'],
+                        $requestHeader->id,
+                        "Humanitarian Request #{$requestHeader->request_number} allocated to " . $readyDate->format('F Y')
+                    );
+
+                    // Update request with budget and ready_date
+                    $humanitarianUpdateData['budget_id'] = $validated['budget_id'];
+                    $headerUpdateData['ready_date'] = $validated['ready_date'];
+
+                    // Auto-create PW member if voter doesn't have one
+                    $voter = $requestHeader->humanitarianRequest->voter;
+                    if ($voter && !$voter->pwMember) {
+                        $helpedRole = \App\Models\PwMemberRole::where('name', 'helped')->first();
+
+                        $newPwMember = PwMember::create([
+                            'voter_id' => $voter->id,
+                            'first_name' => $voter->first_name,
+                            'father_name' => $voter->father_name,
+                            'last_name' => $voter->last_name,
+                            'mother_full_name' => $voter->mother_full_name,
+                            'phone' => $voter->phone,
+                            'email' => null,
+                            'pw_member_role_id' => $helpedRole ? $helpedRole->id : null,
+                            'is_active' => true
+                        ]);
+
+                        $pwMemberCreated = true;
+                    }
+                }
+
                 $finalStatus = RequestStatus::getByName(RequestStatus::STATUS_FINAL_APPROVAL);
                 $headerUpdateData['request_status_id'] = $finalStatus->id;
                 $headerUpdateData['current_user_id'] = null;
@@ -514,11 +623,21 @@ class HumanitarianRequestController extends Controller
         $requestHeader->update($headerUpdateData);
         $requestHeader->humanitarianRequest->update($humanitarianUpdateData);
 
-        return response()->json([
+        $response = [
             'success' => true,
-            'message' => $validated['action'] == 'save' ? 'Request updated' : 'Request published successfully',
-            'redirect' => route('humanitarian.index')
-        ]);
+            'message' => $validated['action'] == 'save' ? 'Request updated' : 'Request published successfully'
+        ];
+
+        // If PW member was created, redirect to assign-followers page
+        if ($pwMemberCreated && $newPwMember) {
+            $response['pw_member_created'] = true;
+            $response['pw_member_id'] = $newPwMember->id;
+            $response['redirect'] = route('pw-members.assign-followers', $newPwMember->id);
+        } else {
+            $response['redirect'] = route('humanitarian.index');
+        }
+
+        return response()->json($response);
     }
 
     /**
@@ -658,6 +777,30 @@ class HumanitarianRequestController extends Controller
                 "Request #{$requestHeader->request_number} allocated to " . $readyDate->format('F Y')
             );
 
+            // Auto-create PW member if voter doesn't have one
+            $voter = $requestHeader->humanitarianRequest->voter;
+            $pwMemberCreated = false;
+            $newPwMember = null;
+
+            if ($voter && !$voter->pwMember) {
+                // Get the 'helped' role
+                $helpedRole = \App\Models\PwMemberRole::where('name', 'helped')->first();
+
+                $newPwMember = PwMember::create([
+                    'voter_id' => $voter->id,
+                    'first_name' => $voter->first_name,
+                    'father_name' => $voter->father_name,
+                    'last_name' => $voter->last_name,
+                    'mother_full_name' => $voter->mother_full_name,
+                    'phone' => $voter->phone,
+                    'email' => null,
+                    'pw_member_role_id' => $helpedRole ? $helpedRole->id : null,
+                    'is_active' => true
+                ]);
+
+                $pwMemberCreated = true;
+            }
+
             // Notify sender
             InboxNotification::createForUser(
                 $requestHeader->sender_id,
@@ -669,11 +812,21 @@ class HumanitarianRequestController extends Controller
 
             DB::commit();
 
-            return response()->json([
+            $response = [
                 'success' => true,
-                'message' => 'Request finally approved with budget allocated',
-                'redirect' => route('humanitarian.active')
-            ]);
+                'message' => 'Request finally approved with budget allocated'
+            ];
+
+            // If PW member was created, redirect to assign-followers page
+            if ($pwMemberCreated && $newPwMember) {
+                $response['pw_member_created'] = true;
+                $response['pw_member_id'] = $newPwMember->id;
+                $response['redirect'] = route('pw-members.assign-followers', $newPwMember->id);
+            } else {
+                $response['redirect'] = route('humanitarian.active');
+            }
+
+            return response()->json($response);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error in finalApprove for humanitarian request: ' . $e->getMessage());

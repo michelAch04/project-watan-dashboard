@@ -94,6 +94,11 @@ class HumanitarianDataSeeder extends Seeder
             $testUser->assignRole('admin');
         }
 
+        // Assign admin role (we'll need to create this role)
+        if (!$testUser2->hasRole('admin')) {
+            $testUser2->assignRole('admin');
+        }
+
         // Create sample voters (we'll need at least one city)
         $voters = [
             [

@@ -93,4 +93,43 @@ class City extends Model
     {
         return $query->where('cancelled', 0);
     }
+
+    /**
+     * Get public requests for this city
+     */
+    public function publicRequests()
+    {
+        return $this->hasMany(PublicRequest::class, 'city_id');
+    }
+
+    /**
+     * Check if city has any rejected public requests
+     */
+    public function hasRejectedRequests()
+    {
+        return $this->publicRequests()
+            ->whereHas('requestHeader', function($q) {
+                $q->notCancelled()
+                    ->whereHas('requestStatus', function($q2) {
+                        $q2->where('name', RequestStatus::STATUS_REJECTED);
+                    });
+            })
+            ->exists();
+    }
+
+    /**
+     * Get rejected public requests
+     */
+    public function getRejectedRequests()
+    {
+        return $this->publicRequests()
+            ->whereHas('requestHeader', function($q) {
+                $q->notCancelled()
+                    ->whereHas('requestStatus', function($q2) {
+                        $q2->where('name', RequestStatus::STATUS_REJECTED);
+                    });
+            })
+            ->with('requestHeader')
+            ->get();
+    }
 }

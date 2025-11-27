@@ -217,6 +217,24 @@
                         />
                     </div>
 
+                    <!-- Role Selection -->
+                    <div>
+                        <label for="pw_member_role_id" class="block text-sm font-semibold text-[#622032] mb-2">
+                            Member Role
+                        </label>
+                        <select
+                            id="pw_member_role_id"
+                            x-model="form.pw_member_role_id"
+                            class="input-field"
+                            :disabled="loading">
+                            <option value="">Select a role (optional)</option>
+                            @foreach(\App\Models\PwMemberRole::notCancelled()->orderBy('name')->get() as $role)
+                            <option value="{{ $role->id }}">{{ $role->name }} @if($role->name_ar) ({{ $role->name_ar }})@endif</option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs text-[#622032]/60 mt-1">Assign a role to categorize this member</p>
+                    </div>
+
                     <!-- Active Status -->
                     <div>
                         <label class="flex items-center cursor-pointer">
@@ -284,6 +302,7 @@
                 mother_full_name: '',
                 phone: '',
                 email: '',
+                pw_member_role_id: '',
                 is_active: true
             },
             voterSearch: '',

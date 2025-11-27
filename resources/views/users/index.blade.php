@@ -105,7 +105,7 @@
                             <p class="text-xs text-[#622032]/60 mb-2">{{ $user->email }}</p>
 
                             <!-- Role Badge -->
-                            <span class="inline-block px-2 py-1 bg-[#fef9de] rounded-md text-xs font-medium text-[#622032] mb-2 capitalize">
+                            <span class="inline-block px-2 py-1 bg-[#fef9de] rounded-md text-xs font-medium text-[#622032] mb-2 uppercase">
                                 {{ $user->roles->first()?->name ?? 'No Role' }}
                             </span>
 

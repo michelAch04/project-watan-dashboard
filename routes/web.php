@@ -320,12 +320,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/search', [App\Http\Controllers\PwMemberController::class, 'search'])->name('pw-members.search');
         Route::get('/search-available-voters', [App\Http\Controllers\PwMemberController::class, 'searchAvailableVoters'])->name('pw-members.search-available-voters');
 
-        Route::middleware('role:admin|hor|fc')->group(function () {
+        Route::middleware('role:admin|hor|fc|hoz|gs')->group(function () {
             Route::get('/create', [App\Http\Controllers\PwMemberController::class, 'create'])->name('pw-members.create');
             Route::post('/', [App\Http\Controllers\PwMemberController::class, 'store'])->name('pw-members.store');
             Route::get('/{id}/edit', [App\Http\Controllers\PwMemberController::class, 'edit'])->name('pw-members.edit');
             Route::put('/{id}', [App\Http\Controllers\PwMemberController::class, 'update'])->name('pw-members.update');
             Route::delete('/{id}', [App\Http\Controllers\PwMemberController::class, 'destroy'])->name('pw-members.destroy');
+
+            // Followers management
+            Route::get('/{id}/assign-followers', [App\Http\Controllers\PwMemberController::class, 'assignFollowers'])->name('pw-members.assign-followers');
+            Route::post('/{id}/followers', [App\Http\Controllers\PwMemberController::class, 'addFollower'])->name('pw-members.add-follower');
+            Route::delete('/{id}/followers/{followerId}', [App\Http\Controllers\PwMemberController::class, 'removeFollower'])->name('pw-members.remove-follower');
         });
 
         Route::get('/{id}', [App\Http\Controllers\PwMemberController::class, 'show'])->name('pw-members.show');

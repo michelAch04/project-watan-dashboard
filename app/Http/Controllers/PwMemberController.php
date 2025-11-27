@@ -109,7 +109,7 @@ class PwMemberController extends Controller
         $user = Auth::user();
 
         // Check permission
-        if (!$user->hasRole('admin') && !$user->hasRole('hor')) {
+        if (!$user->hasRole('admin') && !$user->hasRole('hor') && !$user->hasRole('hoz') && !$user->hasRole('gs')) {
             abort(403, 'Unauthorized');
         }
 
@@ -124,6 +124,18 @@ class PwMemberController extends Controller
                 if ($user->hasRole('hor')) {
                     $zoneIds = $user->zones()->pluck('zones.id');
                     if (!$zoneIds->contains($voter->city->zone_id)) {
+                        abort(403, 'You do not have access to this voter');
+                    }
+                } elseif ($user->hasRole('hoz')) {
+                    // HOZ can only create members in their cities
+                    $cityIds = $user->cities()->pluck('cities.id');
+                    if (!$cityIds->contains($voter->city_id)) {
+                        abort(403, 'You do not have access to this voter');
+                    }
+                } elseif ($user->hasRole('gs')) {
+                    // GS can only create members in their city
+                    $cityIds = $user->cities()->pluck('cities.id');
+                    if (!$cityIds->contains($voter->city_id)) {
                         abort(403, 'You do not have access to this voter');
                     }
                 } else {
@@ -146,7 +158,7 @@ class PwMemberController extends Controller
         $user = Auth::user();
 
         // Check permission
-        if (!$user->hasRole('admin') && !$user->hasRole('hor')) {
+        if (!$user->hasRole('admin') && !$user->hasRole('hor') && !$user->hasRole('hoz') && !$user->hasRole('gs')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -161,6 +173,7 @@ class PwMemberController extends Controller
             'mother_full_name' => 'required|string|max:255',
             'phone' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
+            'pw_member_role_id' => 'nullable|exists:pw_member_roles,id',
             'is_active' => 'boolean'
         ]);
 
@@ -171,6 +184,15 @@ class PwMemberController extends Controller
             if ($user->hasRole('hor')) {
                 $zoneIds = $user->zones()->pluck('zones.id');
                 if (!$zoneIds->contains($voter->city->zone_id)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You do not have access to this voter'
+                    ], 403);
+                }
+            } elseif ($user->hasRole('hoz') || $user->hasRole('gs')) {
+                // HOZ and GS can only create members in their cities
+                $cityIds = $user->cities()->pluck('cities.id');
+                if (!$cityIds->contains($voter->city_id)) {
                     return response()->json([
                         'success' => false,
                         'message' => 'You do not have access to this voter'
@@ -241,7 +263,7 @@ class PwMemberController extends Controller
         $user = Auth::user();
 
         // Check permission
-        if (!$user->hasRole('admin') && !$user->hasRole('hor') && !$user->hasRole('fc')) {
+        if (!$user->hasRole('admin') && !$user->hasRole('hor') && !$user->hasRole('fc') && !$user->hasRole('hoz') && !$user->hasRole('gs')) {
             abort(403);
         }
 
@@ -252,6 +274,12 @@ class PwMemberController extends Controller
             if ($user->hasRole('hor')) {
                 $zoneIds = $user->zones()->pluck('zones.id');
                 if ($member->voter && !$zoneIds->contains($member->voter->city->zone_id)) {
+                    abort(403);
+                }
+            } elseif ($user->hasRole('hoz') || $user->hasRole('gs')) {
+                // HOZ and GS can only edit members in their cities
+                $cityIds = $user->cities()->pluck('cities.id');
+                if ($member->voter && !$cityIds->contains($member->voter->city_id)) {
                     abort(403);
                 }
             } else {
@@ -276,7 +304,7 @@ class PwMemberController extends Controller
         $user = Auth::user();
 
         // Check permission
-        if (!$user->hasRole('admin') && !$user->hasRole('hor')) {
+        if (!$user->hasRole('admin') && !$user->hasRole('hor') && !$user->hasRole('hoz') && !$user->hasRole('gs')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -290,6 +318,15 @@ class PwMemberController extends Controller
             if ($user->hasRole('hor')) {
                 $zoneIds = $user->zones()->pluck('zones.id');
                 if ($member->voter && !$zoneIds->contains($member->voter->city->zone_id)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unauthorized'
+                    ], 403);
+                }
+            } elseif ($user->hasRole('hoz') || $user->hasRole('gs')) {
+                // HOZ and GS can only edit members in their cities
+                $cityIds = $user->cities()->pluck('cities.id');
+                if ($member->voter && !$cityIds->contains($member->voter->city_id)) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Unauthorized'
@@ -313,6 +350,7 @@ class PwMemberController extends Controller
             'mother_full_name' => 'required|string|max:255',
             'phone' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
+            'pw_member_role_id' => 'nullable|exists:pw_member_roles,id',
             'is_active' => 'boolean'
         ]);
 
@@ -480,5 +518,203 @@ class PwMemberController extends Controller
             \Log::error('Search error: ' . $e->getMessage());
             return response()->json(['error' => 'Search failed'], 500);
         }
+    }
+
+    /**
+     * Show assign followers page
+     */
+    public function assignFollowers($id)
+    {
+        $user = Auth::user();
+
+        // Check permission - anyone who can view PW members can manage followers
+        if (!$user->can('view_pw_members')) {
+            abort(403);
+        }
+
+        $member = PwMember::with(['voter.city.zone', 'role', 'followers'])->findOrFail($id);
+
+        // Check access
+        if (!$user->hasRole('admin') && !$user->hasRole('fc')) {
+            if ($user->hasRole('hor')) {
+                $zoneIds = $user->zones()->pluck('zones.id');
+                if ($member->voter && !$zoneIds->contains($member->voter->city->zone_id)) {
+                    abort(403);
+                }
+            } else {
+                $cityIds = $user->cities()->pluck('cities.id');
+                if ($member->voter && !$cityIds->contains($member->voter->city_id)) {
+                    abort(403);
+                }
+            }
+        }
+
+        return view('pw-members.assign-followers', compact('member'));
+    }
+
+    /**
+     * Add follower to PW member (can be existing PW member or voter)
+     */
+    public function addFollower(Request $request, $id)
+    {
+        $user = Auth::user();
+
+        // Check permission
+        if (!$user->can('create_pw_members')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'follower_id' => 'nullable|exists:pw_members,id',
+            'voter_id' => 'nullable|exists:voters_list,id'
+        ]);
+
+        // Must provide either follower_id or voter_id
+        if (!isset($validated['follower_id']) && !isset($validated['voter_id'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Either follower_id or voter_id must be provided'
+            ], 400);
+        }
+
+        $member = PwMember::with(['voter.city.zone'])->findOrFail($id);
+
+        // Check access
+        if (!$user->hasRole('admin') && !$user->hasRole('fc')) {
+            if ($user->hasRole('hor')) {
+                $zoneIds = $user->zones()->pluck('zones.id');
+                if ($member->voter && !$zoneIds->contains($member->voter->city->zone_id)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unauthorized'
+                    ], 403);
+                }
+            } else {
+                $cityIds = $user->cities()->pluck('cities.id');
+                if ($member->voter && !$cityIds->contains($member->voter->city_id)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unauthorized'
+                    ], 403);
+                }
+            }
+        }
+
+        $followerId = null;
+        $pwMemberCreated = false;
+        $follower = null;
+
+        // If voter_id is provided, create or get PW member
+        if (isset($validated['voter_id'])) {
+            $voter = Voter::findOrFail($validated['voter_id']);
+
+            // Check if voter already has a PW member
+            $existingMember = PwMember::where('voter_id', $voter->id)
+                ->where('cancelled', 0)
+                ->first();
+
+            if ($existingMember) {
+                $follower = $existingMember;
+                $followerId = $existingMember->id;
+            } else {
+                // Create new PW member for this voter
+                $follower = PwMember::create([
+                    'voter_id' => $voter->id,
+                    'first_name' => $voter->first_name,
+                    'father_name' => $voter->father_name,
+                    'last_name' => $voter->last_name,
+                    'mother_full_name' => $voter->mother_full_name,
+                    'phone' => $voter->phone,
+                    'email' => null,
+                    'pw_member_role_id' => null,
+                    'is_active' => true
+                ]);
+
+                $followerId = $follower->id;
+                $pwMemberCreated = true;
+            }
+        } else {
+            // Use existing PW member
+            $followerId = $validated['follower_id'];
+            $follower = PwMember::findOrFail($followerId);
+        }
+
+        // Check if trying to add self as follower
+        if ($id == $followerId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot add member as their own follower'
+            ], 400);
+        }
+
+        // Check if follower already exists
+        if ($member->followers()->where('follower_id', $followerId)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This follower is already added'
+            ], 400);
+        }
+
+        // Add follower relationship
+        $member->followers()->attach($followerId);
+
+        // Load follower with relationships for response
+        $follower->load('voter');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Follower added successfully',
+            'pw_member_created' => $pwMemberCreated,
+            'follower' => $follower
+        ]);
+    }
+
+    /**
+     * Remove follower from PW member
+     */
+    public function removeFollower(Request $request, $id, $followerId)
+    {
+        $user = Auth::user();
+
+        // Check permission
+        if (!$user->can('edit_pw_members')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        $member = PwMember::with(['voter.city.zone'])->findOrFail($id);
+
+        // Check access
+        if (!$user->hasRole('admin') && !$user->hasRole('fc')) {
+            if ($user->hasRole('hor')) {
+                $zoneIds = $user->zones()->pluck('zones.id');
+                if ($member->voter && !$zoneIds->contains($member->voter->city->zone_id)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unauthorized'
+                    ], 403);
+                }
+            } else {
+                $cityIds = $user->cities()->pluck('cities.id');
+                if ($member->voter && !$cityIds->contains($member->voter->city_id)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unauthorized'
+                    ], 403);
+                }
+            }
+        }
+
+        $member->followers()->detach($followerId);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Follower removed successfully'
+        ]);
     }
 }

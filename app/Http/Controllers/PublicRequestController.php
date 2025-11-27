@@ -400,7 +400,17 @@ class PublicRequestController extends Controller
             abort(403);
         }
 
-        return view('public-requests.show', compact('request'));
+        // Check if city has rejected requests
+        $cityHasRejectedRequests = false;
+        $rejectedRequests = collect();
+        if ($request->publicRequest && $request->publicRequest->city) {
+            $cityHasRejectedRequests = $request->publicRequest->city->hasRejectedRequests();
+            if ($cityHasRejectedRequests) {
+                $rejectedRequests = $request->publicRequest->city->getRejectedRequests();
+            }
+        }
+
+        return view('public-requests.show', compact('request', 'cityHasRejectedRequests', 'rejectedRequests'));
     }
 
     /**

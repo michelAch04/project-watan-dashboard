@@ -17,7 +17,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $permissions = [
             // Dashboard
             'view_dashboard',
-            
+
             // Humanitarian Management
             'view_humanitarian',
             'create_humanitarian',
@@ -53,7 +53,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'create_budget',
             'edit_budget',
             'delete_budget',
-            
+
             // User Management
             'view_users',
             'create_users',
@@ -82,6 +82,50 @@ class RolesAndPermissionsSeeder extends Seeder
         // Admin - Full access
         $admin = Role::firstOrCreate(['name' => 'admin']);
         $admin->syncPermissions(Permission::all());
+
+        // FC (Financial Controller) - Can manipulate budgets of all zones and see requests of all zones, plus HOR base permissions
+        $fc = Role::firstOrCreate(['name' => 'fc']);
+        $fc->syncPermissions([
+            'view_dashboard',
+            'view_humanitarian',
+            'create_humanitarian',
+            'edit_humanitarian',
+            'delete_humanitarian',
+            'approve_humanitarian',
+            'final_approve_humanitarian',
+            'mark_ready_humanitarian',
+            'mark_collected_humanitarian',
+            'view_public',
+            'create_public',
+            'edit_public',
+            'delete_public',
+            'approve_public',
+            'final_approve_public',
+            'mark_ready_public',
+            'mark_collected_public',
+            'view_diapers',
+            'create_diapers',
+            'edit_diapers',
+            'delete_diapers',
+            'approve_diapers',
+            'final_approve_diapers',
+            'mark_ready_diapers',
+            'mark_collected_diapers',
+            'view_budget',
+            'create_budget',
+            'edit_budget',
+            'delete_budget',
+            'view_inbox',
+            'view_users',
+            'create_users',
+            'edit_users',
+            'delete_users',
+            'view_pw_members',
+            'create_pw_members',
+            'edit_pw_members',
+            'delete_pw_members',
+            'view_voters_list',
+        ]);
 
         // HOR (Head of Region) - Full access to their zone
         $hor = Role::firstOrCreate(['name' => 'hor']);
@@ -145,6 +189,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'approve_diapers',
             'view_inbox',
             'view_pw_members',
+            'create_pw_members',
+            'edit_pw_members',
             'view_voters_list',
         ]);
 
@@ -166,50 +212,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'approve_diapers',
             'view_inbox',
             'view_pw_members',
-            'view_voters_list',
-        ]);
-
-        // FC (Financial Controller) - Can manipulate budgets of all zones and see requests of all zones, plus HOR base permissions
-        $fc = Role::firstOrCreate(['name' => 'fc']);
-        $fc->syncPermissions([
-            'view_dashboard',
-            'view_humanitarian',
-            'create_humanitarian',
-            'edit_humanitarian',
-            'delete_humanitarian',
-            'approve_humanitarian',
-            'final_approve_humanitarian',
-            'mark_ready_humanitarian',
-            'mark_collected_humanitarian',
-            'view_public',
-            'create_public',
-            'edit_public',
-            'delete_public',
-            'approve_public',
-            'final_approve_public',
-            'mark_ready_public',
-            'mark_collected_public',
-            'view_diapers',
-            'create_diapers',
-            'edit_diapers',
-            'delete_diapers',
-            'approve_diapers',
-            'final_approve_diapers',
-            'mark_ready_diapers',
-            'mark_collected_diapers',
-            'view_budget',
-            'create_budget',
-            'edit_budget',
-            'delete_budget',
-            'view_inbox',
-            'view_users',
-            'create_users',
-            'edit_users',
-            'delete_users',
-            'view_pw_members',
             'create_pw_members',
             'edit_pw_members',
-            'delete_pw_members',
             'view_voters_list',
         ]);
 

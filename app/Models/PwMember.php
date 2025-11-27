@@ -15,6 +15,7 @@ class PwMember extends Model
         'phone',
         'email',
         'voter_id',
+        'pw_member_role_id',
         'office_status',
         'is_active',
         'cancelled'
@@ -41,11 +42,37 @@ class PwMember extends Model
     }
 
     /**
+     * Get the role of this PW member
+     */
+    public function role()
+    {
+        return $this->belongsTo(PwMemberRole::class, 'pw_member_role_id');
+    }
+
+    /**
      * Get request headers where this member is referenced
      */
     public function requestHeaders()
     {
         return $this->hasMany(RequestHeader::class, 'reference_member_id');
+    }
+
+    /**
+     * Get the followers of this PW member
+     */
+    public function followers()
+    {
+        return $this->belongsToMany(PwMember::class, 'pw_member_followers', 'pw_member_id', 'follower_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the PW members that this member is following
+     */
+    public function following()
+    {
+        return $this->belongsToMany(PwMember::class, 'pw_member_followers', 'follower_id', 'pw_member_id')
+            ->withTimestamps();
     }
 
     /**

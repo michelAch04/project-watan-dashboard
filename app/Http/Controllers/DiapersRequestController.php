@@ -303,6 +303,9 @@ class DiapersRequestController extends Controller
             }
 
             // Record budget allocation if HOR user allocated budget
+            $pwMemberCreated = false;
+            $newPwMember = null;
+
             if ($user->hasRole('hor') && $validated['action'] == 'publish' && !empty($validated['diaper_budget_id'])) {
                 $budget = DiaperBudget::notCancelled()->findOrFail($validated['diaper_budget_id']);
                 $readyDate = \Carbon\Carbon::parse($validated['ready_date']);
@@ -318,6 +321,26 @@ class DiapersRequestController extends Controller
                 );
 
                 Log::info("Diaper budget allocated successfully to " . $readyDate->format('F Y'));
+
+                // Auto-create PW member if voter doesn't have one
+                $voter = $diapersRequest->voter;
+                if ($voter && !$voter->pwMember) {
+                    $helpedRole = \App\Models\PwMemberRole::where('name', 'helped')->first();
+
+                    $newPwMember = \App\Models\PwMember::create([
+                        'voter_id' => $voter->id,
+                        'first_name' => $voter->first_name,
+                        'father_name' => $voter->father_name,
+                        'last_name' => $voter->last_name,
+                        'mother_full_name' => $voter->mother_full_name,
+                        'phone' => $voter->phone,
+                        'email' => null,
+                        'pw_member_role_id' => $helpedRole ? $helpedRole->id : null,
+                        'is_active' => true
+                    ]);
+
+                    $pwMemberCreated = true;
+                }
             }
 
             // Create inbox notification if published
@@ -336,11 +359,21 @@ class DiapersRequestController extends Controller
 
             DB::commit();
 
-            return response()->json([
+            $response = [
                 'success' => true,
-                'message' => $validated['action'] == 'draft' ? 'Request saved as draft' : 'Request published successfully',
-                'redirect' => route('diapers-requests.index')
-            ]);
+                'message' => $validated['action'] == 'draft' ? 'Request saved as draft' : 'Request published successfully'
+            ];
+
+            // If PW member was created, redirect to assign-followers page
+            if ($pwMemberCreated && $newPwMember) {
+                $response['pw_member_created'] = true;
+                $response['pw_member_id'] = $newPwMember->id;
+                $response['redirect'] = route('pw-members.assign-followers', $newPwMember->id);
+            } else {
+                $response['redirect'] = route('diapers-requests.index');
+            }
+
+            return response()->json($response);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error creating diapers request: ' . $e->getMessage());
@@ -377,7 +410,17 @@ class DiapersRequestController extends Controller
             abort(403);
         }
 
-        return view('diapers-requests.show', compact('request'));
+        // Check if voter has rejected requests
+        $voterHasRejectedRequests = false;
+        $rejectedRequests = collect();
+        if ($request->diapersRequest && $request->diapersRequest->voter) {
+            $voterHasRejectedRequests = $request->diapersRequest->voter->hasRejectedRequests();
+            if ($voterHasRejectedRequests) {
+                $rejectedRequests = $request->diapersRequest->voter->getRejectedRequests();
+            }
+        }
+
+        return view('diapers-requests.show', compact('request', 'voterHasRejectedRequests', 'rejectedRequests'));
     }
 
     /**
@@ -405,6 +448,8 @@ class DiapersRequestController extends Controller
     {
         $requestHeader = RequestHeader::with('diapersRequest.items')->findOrFail($id);
         $user = Auth::user();
+        $pwMemberCreated = false;
+        $newPwMember = null;
 
         if (!$requestHeader->canEdit($user)) {
             return response()->json([
@@ -496,6 +541,25 @@ class DiapersRequestController extends Controller
                         // Update request with budget and ready_date
                         $diapersUpdateData['diaper_budget_id'] = $validated['diaper_budget_id'];
                         $headerUpdateData['ready_date'] = $validated['ready_date'];
+
+                        // Auto-create PW member if voter doesn't have one
+                        $voter = $requestHeader->diapersRequest->voter;
+                        if ($voter && !$voter->pwMember) {
+                            $helpedRole = \App\Models\PwMemberRole::where('name', 'helped')->first();
+
+                            $pwMemberCreated = true;
+                            $newPwMember = PwMember::create([
+                                'voter_id' => $voter->id,
+                                'first_name' => $voter->first_name,
+                                'father_name' => $voter->father_name,
+                                'last_name' => $voter->last_name,
+                                'mother_full_name' => $voter->mother_full_name,
+                                'phone' => $voter->phone,
+                                'email' => null,
+                                'pw_member_role_id' => $helpedRole ? $helpedRole->id : null,
+                                'is_active' => true
+                            ]);
+                        }
                     }
 
                     $finalStatus = RequestStatus::getByName(RequestStatus::STATUS_FINAL_APPROVAL);
@@ -530,11 +594,21 @@ class DiapersRequestController extends Controller
 
             DB::commit();
 
-            return response()->json([
+            $response = [
                 'success' => true,
-                'message' => $validated['action'] == 'save' ? 'Request updated' : 'Request published successfully',
-                'redirect' => route('diapers-requests.index')
-            ]);
+                'message' => $validated['action'] == 'save' ? 'Request updated' : 'Request published successfully'
+            ];
+
+            // If PW member was created, redirect to assign-followers page
+            if ($pwMemberCreated && $newPwMember) {
+                $response['pw_member_created'] = true;
+                $response['pw_member_id'] = $newPwMember->id;
+                $response['redirect'] = route('pw-members.assign-followers', $newPwMember->id);
+            } else {
+                $response['redirect'] = route('diapers-requests.index');
+            }
+
+            return response()->json($response);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error updating diapers request: ' . $e->getMessage());
@@ -682,6 +756,30 @@ class DiapersRequestController extends Controller
                 "Diapers Request #{$requestHeader->request_number} allocated to " . $readyDate->format('F Y')
             );
 
+            // Auto-create PW member if voter doesn't have one
+            $voter = $requestHeader->diapersRequest->voter;
+            $pwMemberCreated = false;
+            $newPwMember = null;
+
+            if ($voter && !$voter->pwMember) {
+                // Get the 'helped' role
+                $helpedRole = \App\Models\PwMemberRole::where('name', 'helped')->first();
+
+                $newPwMember = \App\Models\PwMember::create([
+                    'voter_id' => $voter->id,
+                    'first_name' => $voter->first_name,
+                    'father_name' => $voter->father_name,
+                    'last_name' => $voter->last_name,
+                    'mother_full_name' => $voter->mother_full_name,
+                    'phone' => $voter->phone,
+                    'email' => null,
+                    'pw_member_role_id' => $helpedRole ? $helpedRole->id : null,
+                    'is_active' => true
+                ]);
+
+                $pwMemberCreated = true;
+            }
+
             // Notify sender
             InboxNotification::createForUser(
                 $requestHeader->sender_id,
@@ -693,11 +791,21 @@ class DiapersRequestController extends Controller
 
             DB::commit();
 
-            return response()->json([
+            $response = [
                 'success' => true,
-                'message' => 'Request finally approved with budget allocated',
-                'redirect' => route('diapers-requests.active')
-            ]);
+                'message' => 'Request finally approved with budget allocated'
+            ];
+
+            // If PW member was created, redirect to assign-followers page
+            if ($pwMemberCreated && $newPwMember) {
+                $response['pw_member_created'] = true;
+                $response['pw_member_id'] = $newPwMember->id;
+                $response['redirect'] = route('pw-members.assign-followers', $newPwMember->id);
+            } else {
+                $response['redirect'] = route('diapers-requests.active');
+            }
+
+            return response()->json($response);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
