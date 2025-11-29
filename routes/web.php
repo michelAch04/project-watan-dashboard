@@ -113,6 +113,55 @@ Route::middleware('auth')->group(function () {
         Route::get('/{id}/amount', [App\Http\Controllers\HumanitarianRequestController::class, 'getAmount'])->name('humanitarian.get-amount');
     });
 
+    // Team Support Request Management
+    Route::prefix('team-support')->middleware('can:view_humanitarian')->group(function () {
+        Route::get('/', [App\Http\Controllers\TeamSupportRequestController::class, 'index'])->name('team-support.index');
+        Route::get('/active', [App\Http\Controllers\TeamSupportRequestController::class, 'active'])->name('team-support.active');
+        Route::get('/completed', [App\Http\Controllers\TeamSupportRequestController::class, 'completed'])->name('team-support.completed');
+        Route::get('/drafts', [App\Http\Controllers\TeamSupportRequestController::class, 'drafts'])->name('team-support.drafts');
+
+        Route::middleware('can:create_humanitarian')->group(function () {
+            Route::get('/create', [App\Http\Controllers\TeamSupportRequestController::class, 'create'])->name('team-support.create');
+            Route::post('/', [App\Http\Controllers\TeamSupportRequestController::class, 'store'])->name('team-support.store');
+        });
+
+        // Export routes (must come before /{id} wildcard route)
+        Route::middleware('can:final_approve_humanitarian')->group(function () {
+            Route::get('/export-monthly-pdf', [App\Http\Controllers\TeamSupportRequestController::class, 'exportMonthlyPDF'])->name('team-support.export-monthly-pdf');
+            Route::get('/export-active-pdf', [App\Http\Controllers\TeamSupportRequestController::class, 'exportActivePDF'])->name('team-support.export-active-pdf');
+        });
+
+        Route::get('/{id}', [App\Http\Controllers\TeamSupportRequestController::class, 'show'])->name('team-support.show');
+
+        Route::middleware('can:edit_humanitarian')->group(function () {
+            Route::get('/{id}/edit', [App\Http\Controllers\TeamSupportRequestController::class, 'edit'])->name('team-support.edit');
+            Route::put('/{id}', [App\Http\Controllers\TeamSupportRequestController::class, 'update'])->name('team-support.update');
+            Route::delete('/{id}', [App\Http\Controllers\TeamSupportRequestController::class, 'destroy'])->name('team-support.destroy');
+        });
+
+        Route::middleware('can:approve_humanitarian')->group(function () {
+            Route::post('/{id}/approve', [App\Http\Controllers\TeamSupportRequestController::class, 'approve'])->name('team-support.approve');
+            Route::post('/{id}/reject', [App\Http\Controllers\TeamSupportRequestController::class, 'reject'])->name('team-support.reject');
+        });
+
+        Route::middleware('can:mark_ready_humanitarian')->group(function () {
+            Route::post('/{id}/mark-ready', [App\Http\Controllers\TeamSupportRequestController::class, 'markReady'])->name('team-support.mark-ready');
+        });
+
+        Route::middleware('can:mark_collected_humanitarian')->group(function () {
+            Route::post('/{id}/mark-collected', [App\Http\Controllers\TeamSupportRequestController::class, 'markCollected'])->name('team-support.mark-collected');
+        });
+
+        Route::middleware('can:final_approve_humanitarian')->group(function () {
+            Route::get('/{id}/download', [App\Http\Controllers\TeamSupportRequestController::class, 'download'])->name('team-support.download');
+            Route::post('/{id}/final-approve', [App\Http\Controllers\TeamSupportRequestController::class, 'finalApprove'])->name('team-support.final-approve');
+        });
+
+        // AJAX routes
+        Route::get('/api/search-members', [App\Http\Controllers\TeamSupportRequestController::class, 'searchMembers'])->name('team-support.search-members');
+        Route::get('/{id}/amount', [App\Http\Controllers\TeamSupportRequestController::class, 'getAmount'])->name('team-support.get-amount');
+    });
+
     // Public Request Management (Public Facilities)
     Route::prefix('public-requests')->middleware('can:view_public')->group(function () {
         Route::get('/', [App\Http\Controllers\PublicRequestController::class, 'index'])->name('public-requests.index');

@@ -80,6 +80,44 @@
                 </div>
                 @endcan
 
+                <!-- Team Support Requests Card -->
+                @can('view_humanitarian')
+                <div class="bg-white rounded-xl shadow-sm border border-[#f8f0e2] overflow-hidden hover:shadow-md transition-all">
+                    <a href="{{ route('team-support.index') }}" class="block">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center">
+                                    <svg class="w-7 h-7 text-emerald-600" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                                    </svg>
+                                </div>
+                                <svg class="w-5 h-5 text-[#622032]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-bold text-[#622032] mb-2">Team Support Requests</h3>
+                            <p class="text-sm text-[#622032]/60 mb-4">Support for PW team members</p>
+
+                            <!-- Stats Summary -->
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="bg-blue-50 rounded-lg p-2 text-center">
+                                    <p class="text-xs text-blue-600 font-medium mb-1">Active</p>
+                                    <p class="text-lg font-bold text-blue-700">{{ $teamSupport['active'] }}</p>
+                                </div>
+                                <div class="bg-amber-50 rounded-lg p-2 text-center">
+                                    <p class="text-xs text-amber-600 font-medium mb-1">Drafts</p>
+                                    <p class="text-lg font-bold text-amber-700">{{ $teamSupport['drafts'] }}</p>
+                                </div>
+                                <div class="bg-green-50 rounded-lg p-2 text-center">
+                                    <p class="text-xs text-green-600 font-medium mb-1">Done</p>
+                                    <p class="text-lg font-bold text-green-700">{{ $teamSupport['completed'] }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                @endcan
+
                 <!-- Public Requests Card -->
                 @can('view_public')
                 <div class="bg-white rounded-xl shadow-sm border border-[#f8f0e2] overflow-hidden hover:shadow-md transition-all">
@@ -95,7 +133,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-lg font-bold text-[#622032] mb-2">Public Facilities Requests</h3>
+                            <h3 class="text-lg font-bold text-[#622032] mb-2">Public & Enterntainment Requests</h3>
                             <p class="text-sm text-[#622032]/60 mb-4">Manage infrastructure requests</p>
 
                             <!-- Stats Summary -->

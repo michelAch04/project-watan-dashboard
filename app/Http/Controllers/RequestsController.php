@@ -20,11 +20,13 @@ class RequestsController extends Controller
         $humanitarianStats = $this->getRequestStats('humanitarian', $user);
         $publicStats = $this->getRequestStats('public', $user);
         $diapersStats = $this->getRequestStats('diapers', $user);
+        $teamSupportStats = $this->getRequestStats('team_support', $user);
 
         return view('requests.index', [
             'humanitarian' => $humanitarianStats,
             'public' => $publicStats,
             'diapers' => $diapersStats,
+            'teamSupport' => $teamSupportStats,
         ]);
     }
 
@@ -41,6 +43,8 @@ class RequestsController extends Controller
             $activeQuery->whereHas('publicRequest');
         } elseif ($type == 'diapers') {
             $activeQuery->whereHas('diapersRequest');
+        } elseif ($type == 'team_support') {
+            $activeQuery->whereHas('teamSupportRequest');
         }
         $activeCount = $activeQuery->count();
 
@@ -52,6 +56,8 @@ class RequestsController extends Controller
             $draftQuery->whereHas('publicRequest');
         } elseif ($type == 'diapers') {
             $draftQuery->whereHas('diapersRequest');
+        } elseif ($type == 'team_support') {
+            $draftQuery->whereHas('teamSupportRequest');
         }
         $draftCount = $draftQuery->count();
 
@@ -63,6 +69,8 @@ class RequestsController extends Controller
             $completedQuery->whereHas('publicRequest');
         } elseif ($type == 'diapers') {
             $completedQuery->whereHas('diapersRequest');
+        } elseif ($type == 'team_support') {
+            $completedQuery->whereHas('teamSupportRequest');
         }
         $completedCount = $completedQuery->count();
 

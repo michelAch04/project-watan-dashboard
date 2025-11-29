@@ -12,6 +12,7 @@ class Budget extends Model
     public const TYPE_HUMANITARIAN = 'humanitarian';
     public const TYPE_PUBLIC = 'public';
     public const TYPE_DIAPERS = 'diapers';
+    public const TYPE_TEAM_SUPPORT = 'team_support';
 
     protected $fillable = [
         'description',
@@ -29,6 +30,7 @@ class Budget extends Model
         'current_balance' => 'integer',
         'auto_refill_day' => 'integer',
         'last_refill_date' => 'datetime',
+        'request_type' => 'array',
     ];
 
     /**
@@ -214,10 +216,19 @@ class Budget extends Model
 
     /**
      * Scope to filter budgets by request type
+     * Now handles JSON array - checks if the given type is in the array
      */
     public function scopeForRequestType($query, $requestType)
     {
-        return $query->where('request_type', $requestType);
+        return $query->whereJsonContains('request_type', $requestType);
+    }
+
+    /**
+     * Check if this budget supports a given request type
+     */
+    public function supportsRequestType($requestType)
+    {
+        return is_array($this->request_type) && in_array($requestType, $this->request_type);
     }
 
     /**

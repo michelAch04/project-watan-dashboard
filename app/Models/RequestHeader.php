@@ -63,6 +63,11 @@ class RequestHeader extends Model
         return $this->hasOne(DiapersRequest::class);
     }
 
+    public function teamSupportRequest()
+    {
+        return $this->hasOne(TeamSupportRequest::class);
+    }
+
     public function inboxNotifications()
     {
         return $this->hasMany(InboxNotification::class);

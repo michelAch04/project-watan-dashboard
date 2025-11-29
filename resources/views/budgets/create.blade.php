@@ -11,7 +11,21 @@
 
              this.submitting = true;
              const formData = new FormData(event.target);
-             const data = Object.fromEntries(formData.entries());
+
+             // Convert FormData to object, properly handling arrays
+             const data = {};
+             for (let [key, value] of formData.entries()) {
+                 if (key.endsWith('[]')) {
+                     // Handle array fields (like checkboxes)
+                     const arrayKey = key.slice(0, -2); // Remove '[]' from key
+                     if (!data[arrayKey]) {
+                         data[arrayKey] = [];
+                     }
+                     data[arrayKey].push(value);
+                 } else {
+                     data[key] = value;
+                 }
+             }
 
              try {
                  const response = await fetch('{{ route('budgets.store') }}', {
@@ -90,18 +104,30 @@
                 @endif
             </div>
 
-            <!-- Request Type -->
+            <!-- Request Types -->
             <div>
-                <label for="request_type" class="block text-sm font-semibold text-[#622032] mb-2">
-                    Request Type <span class="text-red-500">*</span>
+                <label class="block text-sm font-semibold text-[#622032] mb-2">
+                    Request Types <span class="text-red-500">*</span>
                 </label>
-                <select id="request_type" name="request_type" required class="input-field text-sm sm:text-base">
-                    <option value="">Select request type</option>
-                    <option value="humanitarian">Humanitarian</option>
-                    <option value="public">Public</option>
-                    <option value="diapers">Diapers</option>
-                </select>
-                <p class="mt-1 text-xs text-gray-500">This budget will only be available for the selected request type</p>
+                <div class="space-y-2">
+                    <label class="flex items-center p-3 bg-[#fcf7f8] rounded-lg border border-[#f8f0e2] hover:bg-[#f8f0e2] transition-colors cursor-pointer">
+                        <input type="checkbox" name="request_types[]" value="humanitarian" class="w-4 h-4 text-[#931335] border-gray-300 rounded focus:ring-[#931335]">
+                        <span class="ml-3 text-sm text-[#622032]">Humanitarian Requests</span>
+                    </label>
+                    <label class="flex items-center p-3 bg-[#fcf7f8] rounded-lg border border-[#f8f0e2] hover:bg-[#f8f0e2] transition-colors cursor-pointer">
+                        <input type="checkbox" name="request_types[]" value="team_support" class="w-4 h-4 text-[#931335] border-gray-300 rounded focus:ring-[#931335]">
+                        <span class="ml-3 text-sm text-[#622032]">Team Support Requests</span>
+                    </label>
+                    <label class="flex items-center p-3 bg-[#fcf7f8] rounded-lg border border-[#f8f0e2] hover:bg-[#f8f0e2] transition-colors cursor-pointer">
+                        <input type="checkbox" name="request_types[]" value="public" class="w-4 h-4 text-[#931335] border-gray-300 rounded focus:ring-[#931335]">
+                        <span class="ml-3 text-sm text-[#622032]">Public Facilities Requests</span>
+                    </label>
+                    <label class="flex items-center p-3 bg-[#fcf7f8] rounded-lg border border-[#f8f0e2] hover:bg-[#f8f0e2] transition-colors cursor-pointer">
+                        <input type="checkbox" name="request_types[]" value="diapers" class="w-4 h-4 text-[#931335] border-gray-300 rounded focus:ring-[#931335]">
+                        <span class="ml-3 text-sm text-[#622032]">Diapers Requests</span>
+                    </label>
+                </div>
+                <p class="mt-2 text-xs text-gray-500">Select one or more request types that can use this budget</p>
             </div>
 
             <!-- Description -->

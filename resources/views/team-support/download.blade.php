@@ -22,9 +22,9 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <title>
         @if(isset($requests))
-        طلبات إنسانية - {{ \Carbon\Carbon::create($year, $month, 1)->format('F Y') }}
+        طلبات دعم الفريق - {{ \Carbon\Carbon::create($year, $month, 1)->format('F Y') }}
         @else
-        طلب مساعدة - {{ $request->request_number ?? '' }}
+        طلب دعم فريق - {{ $request->request_number ?? '' }}
         @endif
     </title>
     <style>
@@ -458,7 +458,7 @@
     @if(isset($requests) && $requests->count() > 0)
     <!-- Monthly Export Header (shown on screen, hidden in print) -->
     <div class="monthly-header no-print">
-        <div class="monthly-title">تقرير الطلبات الإنسانية الشهري</div>
+        <div class="monthly-title">تقرير طلبات دعم الفريق الشهري</div>
         <div class="monthly-subtitle">
             {{ \Carbon\Carbon::create($year, $month, 1)->locale('ar')->translatedFormat('F Y') }}
         </div>
@@ -469,9 +469,9 @@
 
     @foreach($requests as $request)
     <div class="form-container">
-        <!-- Header: طلب مساعدة with request number and date -->
+        <!-- Header: طلب دعم فريق with request number and date -->
         <div class="header">
-            <h1>طلب مساعدة</h1>
+            <h1>طلب دعم فريق</h1>
             <div class="header-fields">
                 <div class="right">
                     <strong>رقم الطلب</strong>
@@ -489,17 +489,17 @@
             <!-- Row 1: Name, City, Registration Number -->
             <div class="form-row">
                 <span class="form-label">الاسم الثلاثي :</span>
-                <span class="form-value large">{{ $request->humanitarianRequest->requester_full_name ?? '' }}</span>
+                <span class="form-value large">{{ $request->teamSupportRequest->requester_full_name ?? '' }}</span>
                 <span class="form-label">البلدة :</span>
-                <span class="form-value medium">{{ $request->humanitarianRequest->voter->city->name ?? '' }}</span>
+                <span class="form-value medium">{{ $request->teamSupportRequest->pwMember->voter->city->name ?? '' }}</span>
                 <span class="form-label">رقم السجل:</span>
-                <span class="form-value small">{{ $request->humanitarianRequest->voter->register_number ?? '' }}</span>
+                <span class="form-value small">{{ $request->teamSupportRequest->pwMember->voter->register_number ?? '' }}</span>
             </div>
 
             <!-- Row 2: Mother Name, Spouse Name -->
             <div class="form-row">
                 <span class="form-label">إسم الأم الثلاثي :</span>
-                <span class="form-value medium">{{ $request->humanitarianRequest->voter->mother_full_name ?? '' }}</span>
+                <span class="form-value medium">{{ $request->teamSupportRequest->pwMember->mother_full_name ?? '' }}</span>
                 <span class="form-label">أسم الزوج/ة :</span>
                 <span class="form-value medium"></span>
             </div>
@@ -533,13 +533,13 @@
             <!-- Row 4: Residential Address -->
             <div class="form-row">
                 <span class="form-label">عنوان السكن:</span>
-                <span class="form-value full">{{ $request->humanitarianRequest->voter->city->name ?? '' }}</span>
+                <span class="form-value full">{{ $request->teamSupportRequest->pwMember->city->name ?? '' }}</span>
             </div>
 
             <!-- Row 5: Reference -->
             <div class="form-row">
                 <span class="form-label">الهاتف :</span>
-                <span class="form-value medium">{{ $request->humanitarianRequest->voter->phone ?? '' }}</span>
+                <span class="form-value medium">{{ $request->teamSupportRequest->pwMember->phone ?? '' }}</span>
                 <span class="form-label">المرجع</span>
                 <span class="form-value large">{{ $request->referenceMember ? trim($request->referenceMember->first_name . ' ' . $request->referenceMember->father_name . ' ' . $request->referenceMember->last_name) : '' }}</span>
             </div>
@@ -549,19 +549,19 @@
         <div class="form-section">
             <div class="checkbox-row">
                 <div class="checkbox-item">
-                    <span class="checkbox {{ (isset($request->humanitarianRequest->subtype) && (str_contains(mb_strtolower($request->humanitarianRequest->subtype), 'إجتماعية') || str_contains(strtolower($request->humanitarianRequest->subtype), 'social'))) ? 'checked' : '' }}"></span>
+                    <span class="checkbox {{ (isset($request->teamSupportRequest->subtype) && (str_contains(mb_strtolower($request->teamSupportRequest->subtype), 'إجتماعية') || str_contains(strtolower($request->teamSupportRequest->subtype), 'social'))) ? 'checked' : '' }}"></span>
                     <span>اجتماعية</span>
                 </div>
                 <div class="checkbox-item">
-                    <span class="checkbox {{ (isset($request->humanitarianRequest->subtype) && (str_contains(mb_strtolower($request->humanitarianRequest->subtype), 'استشفائية') || str_contains(strtolower($request->humanitarianRequest->subtype), 'hospital'))) ? 'checked' : '' }}"></span>
+                    <span class="checkbox {{ (isset($request->teamSupportRequest->subtype) && (str_contains(mb_strtolower($request->teamSupportRequest->subtype), 'استشفائية') || str_contains(strtolower($request->teamSupportRequest->subtype), 'hospital'))) ? 'checked' : '' }}"></span>
                     <span>استشفائية</span>
                 </div>
                 <div class="checkbox-item">
-                    <span class="checkbox {{ (isset($request->humanitarianRequest->subtype) && (str_contains(mb_strtolower($request->humanitarianRequest->subtype), 'طبية') || str_contains(strtolower($request->humanitarianRequest->subtype), 'medical'))) ? 'checked' : '' }}"></span>
+                    <span class="checkbox {{ (isset($request->teamSupportRequest->subtype) && (str_contains(mb_strtolower($request->teamSupportRequest->subtype), 'طبية') || str_contains(strtolower($request->teamSupportRequest->subtype), 'medical'))) ? 'checked' : '' }}"></span>
                     <span>طبية</span>
                 </div>
                 <div class="checkbox-item">
-                    <span class="checkbox {{ (isset($request->humanitarianRequest->subtype) && (str_contains(mb_strtolower($request->humanitarianRequest->subtype), 'تربوية') || str_contains(strtolower($request->humanitarianRequest->subtype), 'education'))) ? 'checked' : '' }}"></span>
+                    <span class="checkbox {{ (isset($request->teamSupportRequest->subtype) && (str_contains(mb_strtolower($request->teamSupportRequest->subtype), 'تربوية') || str_contains(strtolower($request->teamSupportRequest->subtype), 'education'))) ? 'checked' : '' }}"></span>
                     <span>تربوية</span>
                 </div>
             </div>
@@ -660,16 +660,16 @@
         <div class="financial-section">
             <div class="form-row">
                 <span class="form-label">إقتراح المساعدة</span>
-                <span class="form-value full">{{ $request->humanitarianRequest->subtype ?? '' }}</span>
+                <span class="form-value full">{{ $request->teamSupportRequest->subtype ?? '' }}</span>
             </div>
             <div class="amount-row">
                 <div class="amount-item">
                     <label>المبلغ</label>
-                    <span class="amount-highlight">${{ isset($request->humanitarianRequest->amount) ? number_format($request->humanitarianRequest->amount, 0) : '' }}</span>
+                    <span class="amount-highlight">${{ isset($request->teamSupportRequest->amount) ? number_format($request->teamSupportRequest->amount, 0) : '' }}</span>
                 </div>
                 <div class="amount-item">
                     <label>المجموع:</label>
-                    <span class="amount-highlight">${{ isset($request->humanitarianRequest->amount) ? number_format($request->humanitarianRequest->amount, 0) : '' }}</span>
+                    <span class="amount-highlight">${{ isset($request->teamSupportRequest->amount) ? number_format($request->teamSupportRequest->amount, 0) : '' }}</span>
                 </div>
             </div>
         </div>
@@ -692,14 +692,14 @@
             </div>
             <div class="approval-row">
                 <span class="form-label">بأسم</span>
-                <span class="form-value" style="min-width: 300px;"><!-- {{ $request->humanitarianRequest->requester_full_name ?? ''  }} --> </span>
+                <span class="form-value" style="min-width: 300px;"><!-- {{ $request->teamSupportRequest->requester_full_name ?? ''  }} --> </span>
             </div>
         </div>
 
         <!-- Notes Section -->
         <div class="notes-section">
             <div class="notes-label">ملاحظات :</div>
-            <div class="notes-box">{{ $request->humanitarianRequest->notes ?? '' }}</div>
+            <div class="notes-box">{{ $request->teamSupportRequest->notes ?? '' }}</div>
         </div>
 
         <!-- Office Footer -->
@@ -721,9 +721,9 @@
     @endforeach
     @else
     <div class="form-container">
-        <!-- Header: طلب مساعدة with request number and date -->
+        <!-- Header: طلب دعم فريق with request number and date -->
         <div class="header">
-            <h1>طلب مساعدة</h1>
+            <h1>طلب دعم فريق</h1>
             <div class="header-fields">
                 <div class="right">
                     <strong>رقم الطلب</strong>
@@ -741,17 +741,17 @@
             <!-- Row 1: Name, City, Registration Number -->
             <div class="form-row">
                 <span class="form-label">الاسم الثلاثي :</span>
-                <span class="form-value large">{{ $request->humanitarianRequest->requester_full_name ?? '' }}</span>
+                <span class="form-value large">{{ $request->teamSupportRequest->requester_full_name ?? '' }}</span>
                 <span class="form-label">البلدة :</span>
-                <span class="form-value medium">{{ $request->humanitarianRequest->voter->city->name ?? '' }}</span>
+                <span class="form-value medium">{{ $request->teamSupportRequest->pwMember->city->name ?? '' }}</span>
                 <span class="form-label">رقم السجل:</span>
-                <span class="form-value small">{{ $request->humanitarianRequest->voter->register_number ?? '' }}</span>
+                <span class="form-value small">{{ $request->teamSupportRequest->pwMember->register_number ?? '' }}</span>
             </div>
 
             <!-- Row 2: Mother Name, Spouse Name -->
             <div class="form-row">
                 <span class="form-label">إسم الأم الثلاثي :</span>
-                <span class="form-value medium">{{ $request->humanitarianRequest->voter->mother_full_name ?? '' }}</span>
+                <span class="form-value medium">{{ $request->teamSupportRequest->pwMember->mother_full_name ?? '' }}</span>
                 <span class="form-label">أسم الزوج/ة :</span>
                 <span class="form-value medium"></span>
             </div>
@@ -785,13 +785,13 @@
             <!-- Row 4: Residential Address -->
             <div class="form-row">
                 <span class="form-label">عنوان السكن:</span>
-                <span class="form-value full">{{ $request->humanitarianRequest->voter->city->name ?? '' }}</span>
+                <span class="form-value full">{{ $request->teamSupportRequest->pwMember->city->name ?? '' }}</span>
             </div>
 
             <!-- Row 5: Reference -->
             <div class="form-row">
                 <span class="form-label">الهاتف :</span>
-                <span class="form-value medium">{{ $request->humanitarianRequest->voter->phone ?? '' }}</span>
+                <span class="form-value medium">{{ $request->teamSupportRequest->pwMember->phone ?? '' }}</span>
                 <span class="form-label">المرجع</span>
                 <span class="form-value large">{{ $request->referenceMember ? trim($request->referenceMember->first_name . ' ' . $request->referenceMember->father_name . ' ' . $request->referenceMember->last_name) : '' }}</span>
             </div>
@@ -801,19 +801,19 @@
         <div class="form-section">
             <div class="checkbox-row">
                 <div class="checkbox-item">
-                    <span class="checkbox {{ (isset($request->humanitarianRequest->subtype) && (str_contains(mb_strtolower($request->humanitarianRequest->subtype), 'إجتماعية') || str_contains(strtolower($request->humanitarianRequest->subtype), 'social'))) ? 'checked' : '' }}"></span>
+                    <span class="checkbox {{ (isset($request->teamSupportRequest->subtype) && (str_contains(mb_strtolower($request->teamSupportRequest->subtype), 'إجتماعية') || str_contains(strtolower($request->teamSupportRequest->subtype), 'social'))) ? 'checked' : '' }}"></span>
                     <span>اجتماعية</span>
                 </div>
                 <div class="checkbox-item">
-                    <span class="checkbox {{ (isset($request->humanitarianRequest->subtype) && (str_contains(mb_strtolower($request->humanitarianRequest->subtype), 'استشفائية') || str_contains(strtolower($request->humanitarianRequest->subtype), 'hospital'))) ? 'checked' : '' }}"></span>
+                    <span class="checkbox {{ (isset($request->teamSupportRequest->subtype) && (str_contains(mb_strtolower($request->teamSupportRequest->subtype), 'استشفائية') || str_contains(strtolower($request->teamSupportRequest->subtype), 'hospital'))) ? 'checked' : '' }}"></span>
                     <span>استشفائية</span>
                 </div>
                 <div class="checkbox-item">
-                    <span class="checkbox {{ (isset($request->humanitarianRequest->subtype) && (str_contains(mb_strtolower($request->humanitarianRequest->subtype), 'طبية') || str_contains(strtolower($request->humanitarianRequest->subtype), 'medical'))) ? 'checked' : '' }}"></span>
+                    <span class="checkbox {{ (isset($request->teamSupportRequest->subtype) && (str_contains(mb_strtolower($request->teamSupportRequest->subtype), 'طبية') || str_contains(strtolower($request->teamSupportRequest->subtype), 'medical'))) ? 'checked' : '' }}"></span>
                     <span>طبية</span>
                 </div>
                 <div class="checkbox-item">
-                    <span class="checkbox {{ (isset($request->humanitarianRequest->subtype) && (str_contains(mb_strtolower($request->humanitarianRequest->subtype), 'تربوية') || str_contains(strtolower($request->humanitarianRequest->subtype), 'education'))) ? 'checked' : '' }}"></span>
+                    <span class="checkbox {{ (isset($request->teamSupportRequest->subtype) && (str_contains(mb_strtolower($request->teamSupportRequest->subtype), 'تربوية') || str_contains(strtolower($request->teamSupportRequest->subtype), 'education'))) ? 'checked' : '' }}"></span>
                     <span>تربوية</span>
                 </div>
             </div>
@@ -912,16 +912,16 @@
         <div class="financial-section">
             <div class="form-row">
                 <span class="form-label">إقتراح المساعدة</span>
-                <span class="form-value full">{{ $request->humanitarianRequest->subtype ?? '' }}</span>
+                <span class="form-value full">{{ $request->teamSupportRequest->subtype ?? '' }}</span>
             </div>
             <div class="amount-row">
                 <div class="amount-item">
                     <label>المبلغ</label>
-                    <span class="amount-highlight">${{ isset($request->humanitarianRequest->amount) ? number_format($request->humanitarianRequest->amount, 0) : '' }}</span>
+                    <span class="amount-highlight">${{ isset($request->teamSupportRequest->amount) ? number_format($request->teamSupportRequest->amount, 0) : '' }}</span>
                 </div>
                 <div class="amount-item">
                     <label>المجموع:</label>
-                    <span class="amount-highlight">${{ isset($request->humanitarianRequest->amount) ? number_format($request->humanitarianRequest->amount, 0) : '' }}</span>
+                    <span class="amount-highlight">${{ isset($request->teamSupportRequest->amount) ? number_format($request->teamSupportRequest->amount, 0) : '' }}</span>
                 </div>
             </div>
         </div>
@@ -944,14 +944,14 @@
             </div>
             <div class="approval-row">
                 <span class="form-label">بأسم</span>
-                <span class="form-value" style="min-width: 300px;"><!-- {{ $request->humanitarianRequest->requester_full_name ?? ''  }} --> </span>
+                <span class="form-value" style="min-width: 300px;"><!-- {{ $request->teamSupportRequest->requester_full_name ?? ''  }} --> </span>
             </div>
         </div>
 
         <!-- Notes Section -->
         <div class="notes-section">
             <div class="notes-label">ملاحظات :</div>
-            <div class="notes-box">{{ $request->humanitarianRequest->notes ?? '' }}</div>
+            <div class="notes-box">{{ $request->teamSupportRequest->notes ?? '' }}</div>
         </div>
 
         <!-- Office Footer -->

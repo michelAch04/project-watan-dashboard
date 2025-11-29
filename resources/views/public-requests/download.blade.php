@@ -320,6 +320,11 @@
         طباعة / Print
     </button>
 
+    <!-- Back/Close Button -->
+    <button class="print-button" onclick="window.history.back()" style="top: 10px; right: 10px; left: auto;">
+        رجوع / Back
+    </button>
+
     @if(isset($request))
     <div class="page">
         <div class="header">

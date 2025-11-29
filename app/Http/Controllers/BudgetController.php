@@ -135,8 +135,13 @@ class BudgetController extends Controller
             'monthly_amount_in_usd' => 'required|integer|min:1',
             'auto_refill_day' => 'required|integer|min:1|max:28',
             'zone_id' => 'required|exists:zones,id',
-            'request_type' => 'required|string|in:humanitarian,public,diapers'
+            'request_types' => 'required|array|min:1',
+            'request_types.*' => 'required|string|in:humanitarian,team_support,public,diapers'
         ]);
+
+        // Convert request_types array to request_type for storage
+        $validated['request_type'] = $validated['request_types'];
+        unset($validated['request_types']);
 
         // Verify user owns this zone (skip for FC as they can manage all zones)
         if (!$user->hasRole('fc')) {
@@ -222,8 +227,13 @@ class BudgetController extends Controller
             'description' => 'required|string|max:255',
             'monthly_amount_in_usd' => 'required|integer|min:1',
             'auto_refill_day' => 'required|integer|min:1|max:28',
-            'request_type' => 'required|string|in:humanitarian,public,diapers'
+            'request_types' => 'required|array|min:1',
+            'request_types.*' => 'required|string|in:humanitarian,team_support,public,diapers'
         ]);
+
+        // Convert request_types array to request_type for storage
+        $validated['request_type'] = $validated['request_types'];
+        unset($validated['request_types']);
 
         $oldMonthlyAmount = $budget->monthly_amount_in_usd;
 
